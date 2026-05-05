@@ -1,0 +1,1996 @@
+<!doctype html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMP RADIO</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="application-name" content="FMPRADIO">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="FMPRADIO">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="description" content="For My People Radio — The Voice of the People. Chicago's Austin Community.">
+  <script src="https://cdn.jsdelivr.net/npm/@widgetbot/html-embed"></script>
+  <link rel="apple-touch-icon" href="./assets/logo.png">
+
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Source+Sans+3:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    .hero-bg {
+      background: linear-gradient(to bottom, rgba(10, 14, 26, 0.85), rgba(10, 14, 26, 0.95)),
+        url('https://i.imgur.com/b3QFRyz.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    :root {
+      --fmp-gold: #eab308;
+    }
+
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Global Legibility Fix */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      color: #fff !important;
+    }
+
+    .text-white {
+      color: #fff !important;
+    }
+
+    [data-widget] * {
+      color: #fff !important;
+    }
+
+    /* Atmospheric Background */
+    .bg-mesh {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      background: radial-gradient(circle at 50% 50%, #0a0a0a 0%, #000 100%);
+    }
+
+    .bg-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(234, 179, 8, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(234, 179, 8, 0.05) 0%, transparent 50%);
+      filter: blur(80px);
+      animation: atmosphericFloat 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes atmosphericFloat {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: translate(5%, 5%) scale(1.2);
+        opacity: 1;
+      }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .host-card {
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .host-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(234, 179, 8, 0.3);
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 179, 8, 0.1);
+    }
+
+    .nav-glass {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    #cover-art {
+      transition: opacity 0.4s ease;
+    }
+
+    #visualizer {
+      filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.3));
+    }
+
+    /* MOBILE DEVICE OVERLAY */
+    #mobile-device-view {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    #mobile-device-view.active {
+      display: flex;
+    }
+
+    #orientation-warning {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: #000;
+      color: #fff;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    @media screen and (orientation: landscape) {
+      #mobile-device-view.active~#orientation-warning {
+        display: flex;
+      }
+    }
+
+    #device-container {
+      width: 100%;
+      height: 100%;
+      max-width: 420px;
+      max-height: 800px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 50;
+    }
+
+    /* MODERN STREAMING SKIN */
+    .skin-modern {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3rem 1.5rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .dynamic-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+      overflow: hidden;
+    }
+
+    .dynamic-bg::after {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      background: radial-gradient(circle at 50% 50%, var(--glow-color, #eab308) 0%, transparent 60%);
+      filter: blur(100px);
+      opacity: 0.15;
+      animation: pulseGlow 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from {
+        opacity: 0.1;
+        transform: scale(1);
+      }
+
+      to {
+        opacity: 0.25;
+        transform: scale(1.2);
+      }
+    }
+
+    .artwork-container {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7), 0 18px 36px -18px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transform: scale(0.95);
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #mobile-device-view.active .artwork-container {
+      transform: scale(1);
+    }
+
+    .player-controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .glass-btn:active {
+      transform: scale(0.9);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* VINYL SKIN (70s) */
+    .skin-vinyl {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    .turntable-chassis {
+      width: 380px;
+      height: 380px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.01) 0px, rgba(255, 255, 255, 0.01) 1px, transparent 1px, transparent 2px),
+        linear-gradient(135deg, #1f1f1f, #0a0a0a);
+      border-radius: 12px;
+      border: 2px solid #333;
+      border-bottom: 6px solid #111;
+      border-right: 4px solid #111;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 1), inset 0 2px 4px rgba(255, 255, 255, 0.05);
+      position: relative;
+      margin: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform: scale(var(--scale-vinyl, 1));
+      overflow: hidden;
+      /* Contain the texture */
+    }
+
+    .turntable-platter {
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, #555 0%, #222 90%, #111 100%);
+      border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      left: 10px;
+    }
+
+    .record-spinner {
+      width: 310px;
+      height: 310px;
+      background: repeating-radial-gradient(circle, #1a1a1a 0, #1a1a1a 2px, #0f0f0f 4px, #0f0f0f 5px);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 1);
+      position: relative;
+      z-index: 5;
+      will-change: transform;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      -webkit-transform-style: preserve-3d;
+      transform-style: preserve-3d;
+    }
+
+    .record-spinning {
+      animation: spin 2s linear infinite;
+    }
+
+    .record-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(calc(1 / var(--scale-vinyl, 1)));
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      border: 4px solid #000;
+      /* BREADCRUMB: Removed mask-image to prevent rotation artifacts */
+    }
+
+    .record-center-hole {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(calc(1 / var(--scale-vinyl, 1)));
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #000;
+      z-index: 11;
+    }
+
+    .adapter-45 {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      width: 86px;
+      height: 86px;
+      z-index: 10;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
+      pointer-events: none;
+    }
+
+    .adapter-45::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 6px solid #cc0000;
+      mask-image: conic-gradient(transparent 0deg 25deg, black 25deg 120deg, transparent 120deg 145deg, black 145deg 240deg, transparent 240deg 265deg, black 265deg 360deg);
+      -webkit-mask-image: conic-gradient(transparent 0deg 25deg, black 25deg 120deg, transparent 120deg 145deg, black 145deg 240deg, transparent 240deg 265deg, black 265deg 360deg);
+    }
+
+    .record-spindle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(calc(1 / var(--scale-vinyl, 1)));
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #000;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 1), 0 1px 1px rgba(255, 255, 255, 0.1);
+      border: 1px solid #111;
+      z-index: 12;
+    }
+
+    .record-spindle::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 3px;
+      background: #444;
+      border-radius: 50%;
+    }
+
+    .speed-selector {
+      position: absolute;
+      bottom: 30px;
+      right: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      z-index: 10;
+    }
+
+    .speed-switch-track {
+      width: 16px;
+      height: 28px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      border: 1px solid #333;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .speed-switch-knob {
+      width: 12px;
+      height: 12px;
+      background: #888;
+      border-radius: 2px;
+      position: absolute;
+      left: 1px;
+      top: 1px;
+      /* Position for 33 */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+      border: 1px solid #aaa;
+    }
+
+    .speed-label {
+      font-size: 8px;
+      font-weight: 900;
+      color: #444;
+      text-transform: uppercase;
+    }
+
+    .tonearm {
+      position: absolute;
+      top: 40px;
+      right: 25px;
+      transform-origin: 20px 20px;
+      transform: rotate(-10deg);
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+    }
+
+    .tonearm-playing {
+      transform: rotate(10deg);
+    }
+
+    .tonearm-base {
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, #aaa, #444);
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+      border: 2px solid #222;
+    }
+
+    .tonearm-rod {
+      width: 6px;
+      height: 180px;
+      background: linear-gradient(to right, #999, #eee 30%, #555);
+      position: absolute;
+      top: 20px;
+      left: 17px;
+      border-radius: 4px;
+      box-shadow: 4px 8px 10px rgba(0, 0, 0, 0.6);
+      transform-origin: top center;
+    }
+
+    .tonearm-head {
+      width: 18px;
+      height: 40px;
+      background: linear-gradient(to bottom, #333, #111);
+      border-radius: 4px;
+      position: absolute;
+      top: 195px;
+      left: 11px;
+      transform: rotate(20deg);
+      box-shadow: 2px 6px 8px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+      border: 1px solid #000;
+    }
+
+    .tonearm-nickel {
+      position: absolute;
+      top: 10px;
+      left: -2px;
+      width: 20px;
+      height: 20px;
+      background:
+        repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 255, 255, 0.05) 2px, rgba(255, 255, 255, 0.05) 4px),
+        radial-gradient(circle at 35% 35%, #f3f4f6 0%, #9ca3af 60%, #4b5563 100%);
+      border-radius: 50%;
+      border: 1px solid #4b5563;
+      box-shadow: 1px 3px 5px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 2px 3px rgba(255, 255, 255, 0.8);
+      opacity: 0;
+      transition: opacity 0.1s ease 0s;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tonearm-nickel::after {
+      content: '5¢';
+      font-size: 9px;
+      font-weight: 900;
+      font-family: 'Times New Roman', serif;
+      color: #8c96a3;
+      text-shadow: -0.5px -0.5px 0px rgba(0, 0, 0, 0.6), 0.5px 0.5px 0px rgba(255, 255, 255, 0.9);
+      transform: rotate(-10deg);
+    }
+
+    .tonearm-playing .tonearm-nickel {
+      opacity: 1;
+      transition: opacity 0.3s ease 0.6s;
+    }
+
+    /* MAXELL CASSETTE (Hyper-Real 1.6:1 Ratio) */
+    .skin-cassette-body {
+      width: 395px;
+      height: 250px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      border-top: 2px solid #333;
+      border-left: 2px solid #333;
+      border-right: 4px solid #000;
+      border-bottom: 4px solid #000;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      position: relative;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.9), inset 0 0 30px #000;
+      z-index: 10;
+      transform: rotate(90deg) scale(var(--scale-tape, 1.26));
+      margin-top: 180px;
+      margin-bottom: 180px;
+    }
+
+    .tape-window {
+      width: 180px;
+      height: 90px;
+      background: rgba(0, 0, 0, 0.95);
+      border-radius: 4px;
+      border: 4px solid #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      box-shadow: inset 0 0 40px #000, 0 0 10px rgba(0, 0, 0, 0.5);
+      padding: 0 15px;
+      margin: 15px auto;
+      overflow: hidden;
+    }
+
+    .tape-leader {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 14px;
+      background: linear-gradient(to bottom, #4e342e, #3e2723, #4e342e);
+      transform: translateY(-50%);
+      opacity: 0.6;
+    }
+
+    /* The "Industrial Trapezoid" (Accurate Geometric Replica) */
+    .cassette-trapezoid {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 275px;
+      height: 42px;
+      background: linear-gradient(to bottom, #222 0%, #111 100%);
+      clip-path: polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%);
+      z-index: 100;
+      border-top: 1px solid #333;
+      filter: drop-shadow(0 -5px 10px rgba(0, 0, 0, 0.7));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 6px;
+    }
+
+    .trap-screw {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: #2a2a2a;
+      border-radius: 50%;
+      box-shadow: inset 0 0 4px #000, 0 1px 1px rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .trap-screw::before {
+      content: '+';
+      color: #000;
+      font-size: 8px;
+      font-family: monospace;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .trap-ports {
+      width: 100%;
+      padding: 0 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .trap-hole {
+      background: #050505;
+      box-shadow: inset 0 4px 8px rgba(0, 0, 0, 1), 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .trap-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-bottom: 2px;
+    }
+
+    .trap-rect {
+      width: 32px;
+      height: 18px;
+      border-radius: 4px;
+    }
+
+    .trap-gap {
+      width: 60px;
+    }
+
+    /* Mechanical Screws */
+    .cassette-screw {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      box-shadow: inset 0 0 4px #000, 1px 1px 2px rgba(255, 255, 255, 0.1);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cassette-screw::before {
+      content: '+';
+      color: #111;
+      font-size: 8px;
+      font-family: monospace;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .screw-tl {
+      top: 8px;
+      left: 8px;
+    }
+
+    .screw-tr {
+      top: 8px;
+      right: 8px;
+    }
+
+    .screw-bl {
+      bottom: 8px;
+      left: 8px;
+    }
+
+    .screw-br {
+      bottom: 8px;
+      right: 8px;
+    }
+
+    .cassette-label {
+      width: 100%;
+      height: 100%;
+      background: #fdfdfd;
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #ddd;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 35px;
+    }
+
+    .maxell-stripe {
+      width: 100%;
+      height: 20px;
+      background: linear-gradient(to right, #b45309 0%, #b45309 50%, #991b1b 50%, #991b1b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .tape-window {
+      width: 275px;
+      height: 58px;
+      background: rgba(0, 0, 0, 0.95);
+      border-radius: 4px;
+      border: 4px solid #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      top: 10px;
+      box-shadow: inset 0 0 40px #000, 0 0 10px rgba(0, 0, 0, 0.5);
+      padding: 0 20px;
+      margin: auto;
+      overflow: hidden;
+    }
+
+    .tape-leader {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 14px;
+      background: linear-gradient(to bottom, #4e342e, #3e2723, #4e342e);
+      transform: translateY(-50%);
+      opacity: 0.85;
+    }
+
+    .reel {
+      width: 52px;
+      height: 52px;
+      background: #eee;
+      border-radius: 50%;
+      border: 6px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 5;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      will-change: transform;
+    }
+
+    .reel-spinning {
+      animation: spin 4s linear infinite;
+    }
+
+    /* Magnetic Tape Spools */
+    .reel-tape {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, #333 0%, #1a1a1a 100%);
+      z-index: -1;
+      box-shadow: inset 0 0 15px #000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .reel-left .reel-tape {
+      width: 100px;
+      height: 100px;
+    }
+
+    /* More tape */
+    .reel-right .reel-tape {
+      width: 70px;
+      height: 70px;
+    }
+
+    /* Less tape */
+
+    .reel-gear {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #eee;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .reel-gear::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      /* BREADCRUMB: Repeating gradient ensures perfect mechanical symmetry */
+      background: repeating-conic-gradient(#cbd5e1 0deg 30deg, transparent 30deg 60deg);
+    }
+
+    .reel-gear::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #94a3b8;
+      border-radius: 50%;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes marquee {
+      0% {
+        transform: translateX(110%);
+      }
+
+      100% {
+        transform: translateX(-110%);
+      }
+    }
+
+    /* DISCMAN SKIN (90s / 00s) - Hyper-Real */
+    .skin-discman {
+      /* Scope class - do not override container dimensions */
+    }
+
+    .discman-body {
+      width: 360px;
+      height: 390px;
+      background: radial-gradient(ellipse at 50% 10%, #d1d5db, #9ca3af 60%, #4b5563);
+      border-radius: 50%;
+      border: 4px solid #6b7280;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 4px 10px rgba(255, 255, 255, 0.7), inset 0 -10px 20px rgba(0, 0, 0, 0.5);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+      z-index: 10;
+      margin: auto;
+      transform: scale(var(--scale-disc, 1));
+    }
+
+    .discman-window {
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: #111;
+      border: 6px solid #374151;
+      box-shadow: inset 0 0 30px #000, 0 2px 5px rgba(255, 255, 255, 0.5);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .cd-disc {
+      width: 230px;
+      height: 230px;
+      border-radius: 50%;
+      background-size: cover !important;
+      background-position: center !important;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      position: relative;
+      mask-image: radial-gradient(circle at 50% 50%, transparent 10%, black 11%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 10%, black 11%);
+    }
+
+    .cd-disc::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 45deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 15%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.4) 65%, rgba(255, 255, 255, 0) 80%);
+      pointer-events: none;
+    }
+
+    .cd-spinning {
+      animation: spin 1s linear infinite;
+    }
+
+    .cd-spindle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 34px;
+      height: 34px;
+      background: #222;
+      border-radius: 50%;
+      border: 4px solid #444;
+      z-index: 5;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .discman-lcd {
+      background: #8b9a8b;
+      border-radius: 4px;
+      padding: 4px 8px;
+      width: 150px;
+      height: 36px;
+      box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.7), inset 0 -1px 2px rgba(255, 255, 255, 0.2), 0 1px 1px rgba(255, 255, 255, 0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: absolute;
+      bottom: 55px;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .discman-lcd-text {
+      font-family: 'Courier New', monospace;
+      color: #1a2e1a;
+      font-weight: 900;
+      font-size: 11px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      display: inline-block;
+      animation: marquee 6s linear infinite;
+    }
+
+    .discman-controls {
+      position: absolute;
+      bottom: 12px;
+      display: flex;
+      gap: 8px;
+      z-index: 20;
+      background: #8a93a1;
+      padding: 4px 10px;
+      border-radius: 20px;
+      box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.7), 0 1px 1px rgba(255, 255, 255, 0.6);
+    }
+
+    .discman-btn {
+      background: linear-gradient(to bottom, #e5e7eb, #9ca3af);
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+      color: #374151;
+      font-weight: 900;
+      font-size: 9px;
+      padding: 4px 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s;
+      cursor: pointer;
+    }
+
+    .discman-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    /* IPOD SKIN (Refined) */
+    .skin-ipod {
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 35px;
+      border: 1px solid #d1d5db;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 25px;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4), inset 0 -10px 20px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+    }
+
+    .ipod-screen-refined {
+      width: 100%;
+      height: 280px;
+      background: #000;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      border: 3px solid #1a1a1a;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ipod-text-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 15px 10px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+      text-align: center;
+      z-index: 10;
+    }
+
+    /* BREADCRUMB: Pure CSS EQ for performance */
+    .ipod-eq-wide {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      width: 100%;
+      height: 20px;
+      padding: 0 10px;
+      position: absolute;
+      bottom: 5px;
+      left: 0;
+      pointer-events: none;
+    }
+
+    .eq-bar {
+      flex: 1;
+      background: #eab308;
+      opacity: 1;
+      height: 4px;
+      /* Base height */
+      transition: height 0.1s ease;
+      /* Smooth the frequency jumps */
+    }
+
+    /* Fallback animation if audio context is blocked */
+    .eq-animating:not(.eq-active) .eq-bar {
+      animation: eqBounce 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes eqBounce {
+      from {
+        height: 2px;
+      }
+
+      to {
+        height: 18px;
+      }
+    }
+
+    .click-wheel-refined {
+      width: 260px;
+      height: 260px;
+      background: #f9fafb;
+      border-radius: 50%;
+      border: 1px solid #d1d5db;
+      box-shadow:
+        inset 0 10px 20px rgba(0, 0, 0, 0.08),
+        inset 0 2px 6px rgba(0, 0, 0, 0.05),
+        0 2px 4px rgba(255, 255, 255, 1);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: auto 0;
+    }
+
+    .wheel-center {
+      width: 90px;
+      height: 90px;
+      background: #f9fafb;
+      border-radius: 50%;
+      border: 1px solid #d1d5db;
+      box-shadow:
+        inset 0 6px 12px rgba(0, 0, 0, 0.15),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        0 1px 2px rgba(255, 255, 255, 1);
+      z-index: 5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .wheel-center:active {
+      transform: scale(0.96);
+      box-shadow:
+        inset 0 10px 20px rgba(0, 0, 0, 0.25),
+        inset 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    /* IPOD SPECIFIC NAVIGATION (Visibility Fix) */
+    .skin-ipod button {
+      color: rgba(0, 0, 0, 0.5) !important;
+      border-color: rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .skin-ipod button:hover {
+      color: rgba(0, 0, 0, 1) !important;
+      border-color: rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .skin-ipod .text-yellow-500\/40 {
+      color: rgba(180, 83, 9, 0.6) !important;
+    }
+
+    /* NAVIGATION HIGHLIGHTING */
+    .nav-btn-active {
+      color: #eab308 !important;
+      /* Yellow-500 */
+      border-color: rgba(234, 179, 8, 0.4) !important;
+      opacity: 1 !important;
+    }
+
+    .skin-ipod .nav-btn-active {
+      color: #b45309 !important;
+      /* Darker Gold for iPod contrast */
+      border-color: rgba(180, 83, 9, 0.4) !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-glow"></div>
+
+  <div class="min-h-screen flex flex-col">
+    <nav class="fixed top-0 left-0 w-full z-50 nav-glass border-b border-white/5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-20 items-center">
+          <div class="flex items-center gap-2">
+            <img src="./assets/logo.png" alt="FMP Radio Logo"
+              class="h-12 w-auto hover:scale-110 transition-transform cursor-pointer">
+          </div>
+          <div class="hidden md:flex items-center space-x-8">
+            <a href="#" class="text-[10px] font-black tracking-[0.2em] text-yellow-500">HOME</a>
+            <a href="#now-playing"
+              class="text-[10px] font-black tracking-[0.2em] text-white hover:text-yellow-500 transition-colors">NOW
+              PLAYING</a>
+            <a href="#schedule"
+              class="text-[10px] font-black tracking-[0.2em] text-white hover:text-yellow-500 transition-colors">SCHEDULE</a>
+            <a href="#hosts"
+              class="text-[10px] font-black tracking-[0.2em] text-white hover:text-yellow-500 transition-colors">HOSTS</a>
+            <a href="#community"
+              class="text-[10px] font-black tracking-[0.2em] text-white hover:text-yellow-500 transition-colors">COMMUNITY</a>
+            <button id="install-btn" onclick="installPWA()"
+              class="hidden px-5 py-2.5 bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 text-[10px] font-black tracking-[0.2em] text-yellow-500 rounded transition-all active:scale-95 shadow-lg shadow-yellow-900/10">INSTALL
+              APP</button>
+            <button id="ios-install-btn" onclick="showIOSInstructions()"
+              class="hidden px-5 py-2.5 bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 text-[10px] font-black tracking-[0.2em] text-yellow-500 rounded transition-all active:scale-95 shadow-lg shadow-yellow-900/10">SAVE
+              TO IPHONE</button>
+            <button onclick="document.getElementById('schedule').scrollIntoView({behavior:'smooth'})"
+              class="px-5 py-2.5 bg-red-700 hover:bg-red-600 text-[10px] font-black tracking-[0.2em] text-white rounded transition-all active:scale-95 shadow-lg shadow-red-900/40">LISTEN</button>
+          </div>
+          <div class="flex items-center gap-4">
+            <div id="live-indicator"
+              class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+              <span class="text-[10px] font-black text-red-500 tracking-widest">LIVE</span>
+            </div>
+            <button class="md:hidden text-white" onclick="toggleMobileMenu()">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m7 6H4"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="mobile-menu"
+        class="hidden md:hidden bg-black/95 border-t border-white/10 px-4 py-6 flex flex-col gap-4 text-[10px] font-black tracking-widest uppercase">
+        <a href="#" onclick="closeMobileMenu()" class="text-yellow-500">Home</a>
+        <a href="#now-playing" onclick="closeMobileMenu()" class="hover:text-yellow-500 transition-colors">Now
+          Playing</a>
+        <a href="#schedule" onclick="closeMobileMenu()" class="hover:text-yellow-500 transition-colors">Schedule</a>
+        <a href="#hosts" onclick="closeMobileMenu()" class="hover:text-yellow-500 transition-colors">Hosts</a>
+        <a href="#community" onclick="closeMobileMenu()" class="hover:text-yellow-500 transition-colors">Community</a>
+        <button id="mobile-install-btn" onclick="installPWA()"
+          class="hidden text-left text-yellow-500 hover:opacity-80">Install App</button>
+        <button id="mobile-ios-install-btn" onclick="showIOSInstructions()"
+          class="hidden text-left text-yellow-500 hover:opacity-80">Add to Home Screen</button>
+      </div>
+    </nav>
+
+    <section class="w-full pt-48 pb-32 hero-bg relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center md:text-left reveal">
+        <h2 class="text-yellow-500 font-bold tracking-[0.3em] text-sm mb-4 uppercase">Direct from Chicago's West Side
+        </h2>
+        <h1 class="text-6xl md:text-8xl font-black mb-6 leading-tight tracking-tighter text-white">THE VOICE OF<br><span
+            class="text-yellow-500">THE PEOPLE.</span></h1>
+        <p class="text-xl text-gray-300 mb-10 max-w-2xl font-light leading-relaxed">Serving the Austin Community &amp;
+          Beyond with Good Music for the People.</p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="#schedule"
+            class="px-8 py-4 border border-white/30 text-white font-bold uppercase rounded-md hover:bg-white/10 text-center transition-all">View
+            Programming</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="now-playing" class="w-full py-12 bg-gray-950 border-b border-white/5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
+        <h2 class="text-xs font-bold text-yellow-500 tracking-widest mb-2">LIVE</h2>
+        <h3 class="text-3xl font-black mb-6 text-white">Now Playing</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-lg border border-white/10 bg-gray-900 p-6 flex gap-4 items-start">
+            <img id="main-cover-art" data-widget="mcp-cover-image" data-name="fmpradio"
+              style="width:80px;height:80px;object-fit:cover;border-radius:6px;flex-shrink:0;transition: opacity 0.4s ease;"
+              onerror="this.src='./assets/logo.png'; this.onerror=null;" />
+            <div>
+              <div class="text-xs font-bold text-yellow-500 mb-2">NOW PLAYING</div>
+              <div class="text-2xl font-black text-white">
+                <span id="now-playing-title" data-widget="mcp-custom-text" data-name="fmpradio"
+                  data-format="%nowplaying%">Loading...</span>
+              </div>
+              <div class="text-xs text-gray-500 mt-2">
+                Status: <span data-widget="mcp-stream-status" data-name="fmpradio" data-online-text="Online"
+                  data-offline-text="Offline"></span>
+                &nbsp;·&nbsp;
+                Listeners: <span data-widget="mcp-custom-text" data-name="fmpradio" data-format="%connections%"></span>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-lg border border-white/10 bg-gray-900 p-6">
+            <div class="text-xs font-bold text-yellow-500 mb-4">RECENTLY PLAYED</div>
+            <div data-widget="mcp-recently-played" data-name="fmpradio" data-limit="5" data-covers="true"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="schedule" class="w-full py-16 bg-black">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
+        <h2 class="text-xs font-bold text-yellow-500 tracking-widest mb-2">PROGRAMMING</h2>
+        <h3 class="text-3xl font-black mb-6 text-white">24/7 Schedule</h3>
+        <div class="flex gap-2 mb-6" id="day-tabs"></div>
+        <div class="rounded-lg border border-white/10 overflow-hidden mb-10">
+          <table class="w-full text-sm">
+            <thead class="bg-white/5 text-left text-xs uppercase tracking-wider">
+              <tr>
+                <th class="px-4 py-3 font-medium text-white">Time</th>
+                <th class="px-4 py-3 font-medium text-white">Program</th>
+                <th class="px-4 py-3 font-medium text-white">Host</th>
+                <th class="px-4 py-3 font-medium text-white">Genre</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="hosts" class="w-full py-16 bg-gray-950">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
+        <h2 class="text-xs font-bold text-yellow-500 tracking-widest mb-2">THE TEAM</h2>
+        <h3 class="text-3xl font-black mb-6 text-white">Our Personalities</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="hosts-grid"></div>
+      </div>
+    </section>
+
+    <section id="community" class="w-full py-16 bg-black">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 reveal">
+        <h2 class="text-xs font-bold text-yellow-500 tracking-widest mb-2">COMMUNITY</h2>
+        <h3 id="community-headline" class="text-3xl font-black mb-8 text-white text-center">The Voice of the People</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+          <div class="lg:col-span-2">
+            <h4 class="text-lg font-bold text-yellow-500 mb-4 text-white">Industry Spotlights</h4>
+            <div class="space-y-4" id="spotlights-grid"></div>
+          </div>
+          <div>
+            <div class="rounded-lg border border-white/10 bg-gray-900 p-5">
+              <h4 class="font-bold mb-4 text-white">Send a Shout-Out</h4>
+              <div id="shoutout-form">
+                <input id="shoutout-name" type="text" placeholder="Your Name"
+                  class="w-full mb-3 px-3 py-2 rounded bg-gray-800 border border-white/10 text-white text-sm">
+                <textarea id="shoutout-msg" placeholder="Your message..." rows="3"
+                  class="w-full mb-3 px-3 py-2 rounded bg-gray-800 border border-white/10 text-white text-sm resize-none"></textarea>
+                <button onclick="submitShoutout()"
+                  class="w-full py-2 rounded bg-red-700 hover:bg-red-600 text-white font-bold text-sm">Send It
+                  In</button>
+              </div>
+              <div id="shoutout-success"
+                class="hidden mt-3 p-3 rounded bg-yellow-500/10 border border-yellow-500/20 text-sm text-yellow-500 text-center font-semibold">
+                ✨ Got it! Listen for your shout-out on air.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="max-w-4xl mx-auto">
+          <h4 class="text-lg font-bold text-yellow-500 mb-4 text-center">Join the Conversation</h4>
+          <div class="rounded-lg border border-white/10 overflow-hidden shadow-2xl bg-gray-900" style="height: 600px;">
+            <iframe src="https://e.widgetbot.io/channels/1495227303838613505/1495227307605102745" width="100%"
+              height="100%" allowtransparency="true" frameborder="0"
+              sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="w-full py-8 bg-gray-950 border-t border-white/5 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <img src="./assets/logo.png" alt="FMP Radio" class="h-16 w-auto mb-2">
+        <p class="text-xs text-gray-500 mb-3">© 2026 FMP Media Group</p>
+      </div>
+    </footer>
+
+    <!-- STICKY PLAYER -->
+    <div class="fixed bottom-0 left-0 w-full z-50 bg-black/95 backdrop-blur border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="toggleDeviceView()">
+          <div class="relative">
+            <img id="cover-art" src="./assets/logo.png"
+              style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0;"
+              onerror="this.src='./assets/logo.png'; this.onerror=null;" />
+            <div
+              class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-[4px]">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-yellow-500 flex items-center gap-1 uppercase tracking-tighter">
+              LIVE <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+              <span class="ml-2 text-[8px] text-white/20 group-hover:text-yellow-500 transition-colors">TAP TO
+                EXPAND</span>
+            </div>
+            <div id="sticky-title" class="text-sm font-bold truncate max-w-[150px] sm:max-w-none text-white">
+              <span data-widget="mcp-custom-text" data-name="fmpradio" data-format="%nowplaying%">Loading...</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <canvas id="visualizer" width="120" height="32" class="hidden md:block w-32 h-8 opacity-80"
+            aria-hidden="true"></canvas>
+          <button id="play-btn" onclick="togglePlay()"
+            class="w-10 h-10 rounded-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold"
+            aria-label="Play or Pause Stream">▶</button>
+        </div>
+      </div>
+    </div>
+    <div class="h-16"></div>
+  </div>
+  <div id="orientation-warning">
+    <div class="text-yellow-500 text-4xl mb-4">🔄</div>
+    <div class="text-xl font-black uppercase tracking-widest mb-2">Portrait Only</div>
+    <div class="text-white/60 text-sm">Please rotate your device to vertical<br>for the best experience.</div>
+  </div>
+
+  <audio id="audio-stream" src="https://hello.citrus3.com:2020/stream/fmpradio"></audio>
+
+  <!-- MOBILE DEVICE OVERLAY -->
+  <div id="mobile-device-view">
+    <div class="dynamic-bg"></div>
+    <button onclick="toggleDeviceView()"
+      class="absolute top-8 right-8 text-white/50 hover:text-white text-3xl z-[9999] drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">✕</button>
+
+    <div id="device-container" class="skin-modern">
+      <!-- Top Section -->
+      <div class="w-full text-center">
+        <div class="text-[10px] font-black tracking-[0.4em] text-yellow-500 uppercase mb-2">Broadcasting Live</div>
+        <div class="text-xs text-white/60">Chicago's Austin Community</div>
+      </div>
+
+      <!-- Artwork -->
+      <div class="artwork-container">
+        <img id="device-cover" src="./assets/logo.png" class="w-full h-full object-cover">
+      </div>
+
+      <!-- Info & Controls -->
+      <div class="player-controls">
+        <div class="text-center px-4">
+          <h2 id="device-title" class="text-2xl font-black text-white mb-2 leading-tight">FMP RADIO</h2>
+          <div class="text-yellow-500 font-bold text-sm tracking-widest uppercase">The Voice of the People</div>
+        </div>
+
+        <div class="flex items-center justify-center">
+          <button onclick="togglePlay()" class="w-20 h-20 glass-btn text-white">
+            <span id="device-play-icon" class="text-2xl">▶</span>
+          </button>
+        </div>
+
+        <!-- Progress Simulation -->
+        <div class="w-full px-4">
+          <div class="h-1 bg-white/10 rounded-full overflow-hidden">
+            <div class="h-full bg-yellow-500 w-1/3 animate-pulse"></div>
+          </div>
+          <div class="flex justify-between mt-2 text-[10px] text-white/30 font-bold">
+            <span>LIVE</span>
+            <span id="device-listeners">2 Listeners</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Era Selector (Modern Drawer Style) -->
+      <div class="w-full mt-8 flex justify-center gap-6">
+        <button onclick="setEra('retro')"
+          class="px-4 py-2 rounded-full border border-white/10 text-[10px] font-black tracking-widest text-white/40 hover:text-white transition-all uppercase">
+          ✨ Retro Modes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isPlaying = false;
+    let activeDay = 'Mon–Fri';
+    const audio = document.getElementById('audio-stream');
+
+    const HOSTS = [
+      { name: 'Danny Boy', role: 'Morning Host', show: 'Wake & Bake', time: '6AM–10AM', img: 'https://i.imgur.com/mTtRxbW.jpeg' },
+      { name: 'ChiTown', role: 'Midmorning', show: 'The Bridge', time: '10AM–12PM', img: 'https://i.imgur.com/AFySV6g.jpeg' },
+      { name: 'Kimberla', role: 'Weekend', show: 'Sunday Soul', time: 'Weekends', img: 'assets/hosts/kimberla.png' }
+    ];
+
+    const SCHEDULE = {
+      'Mon–Fri': [
+        { time: '6AM–10AM', show: 'Wake & Bake', host: 'Danny Boy', genre: 'R&B / Soul' },
+        { time: '10AM–12PM', show: 'The Bridge', host: 'ChiTown', genre: 'R&B' }
+      ],
+      'Saturday': [{ time: '6AM–10AM', show: 'Saturday Soul', host: 'FMPRADIO', genre: 'Soul' }],
+      'Sunday': [{ time: '6AM–12PM', show: 'Church on Block', host: 'Kimberla', genre: 'Gospel' }]
+    };
+
+    const SPOTLIGHTS = [
+      { title: 'Austin Block Party Recap', desc: 'Summer\'s biggest community event.' },
+      { title: 'Soul Music Awards', desc: 'Local artists making waves nationally.' }
+    ];
+
+    function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
+    function closeMobileMenu() { document.getElementById('mobile-menu').classList.add('hidden'); }
+
+    const Visualizer = {
+      initialized: false, ctx: null, analyser: null, data: null, canvas: null, cctx: null,
+      init() {
+        if (this.initialized) return;
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+          this.analyser = this.ctx.createAnalyser();
+          audio.crossOrigin = "anonymous";
+          const source = this.ctx.createMediaElementSource(audio);
+          source.connect(this.analyser);
+          this.analyser.connect(this.ctx.destination);
+          this.analyser.fftSize = 64;
+          this.data = new Uint8Array(this.analyser.frequencyBinCount);
+          this.canvas = document.getElementById('visualizer');
+          this.cctx = this.canvas.getContext('2d');
+          this.initialized = true;
+          this.animate();
+        } catch (e) {
+          this.canvas = document.getElementById('visualizer');
+          this.cctx = this.canvas.getContext('2d');
+          this.animate();
+        }
+      },
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        const w = this.canvas.width, h = this.canvas.height;
+        this.cctx.clearRect(0, 0, w, h);
+        let hasRealData = false;
+
+        if (this.initialized && isPlaying) {
+          this.analyser.getByteFrequencyData(this.data);
+          hasRealData = !this.data.every(v => v === 0);
+
+          // Real-time iPod EQ
+          const eqContainer = document.querySelector('.ipod-eq-wide');
+          if (eqContainer) {
+            const bars = eqContainer.querySelectorAll('.eq-bar');
+            if (bars.length > 0) {
+              eqContainer.classList.add('eq-active');
+              const step = Math.floor(this.data.length / bars.length);
+              bars.forEach((bar, i) => {
+                const val = this.data[i * step];
+                const height = Math.max(3, (val / 255) * 20);
+                bar.style.height = `${height}px`;
+              });
+            }
+          }
+        } else {
+          const eqContainer = document.querySelector('.ipod-eq-wide');
+          if (eqContainer) eqContainer.classList.remove('eq-active');
+        }
+
+        const bars = 16, spacing = 2, barW = (w / bars) - spacing;
+        for (let i = 0; i < bars; i++) {
+          let barH = isPlaying ? (hasRealData ? (this.data[i] / 255) * h : (Math.sin(Date.now() / 150 + i * 0.5) * 0.3 + 0.7) * h / 2) : 2;
+          this.cctx.fillStyle = '#eab308';
+          this.cctx.fillRect(i * (barW + spacing), h - barH, barW, barH);
+        }
+      }
+    };
+
+    function togglePlay() {
+      Visualizer.init();
+      const playBtn = document.getElementById('play-btn');
+      const devicePlayIcon = document.getElementById('device-play-icon');
+
+      if (isPlaying) {
+        audio.pause();
+        isPlaying = false;
+        if (playBtn) playBtn.textContent = '▶';
+        if (devicePlayIcon) devicePlayIcon.textContent = '▶';
+      }
+      else {
+        audio.volume = 0.8;
+        audio.load();
+        audio.play();
+        isPlaying = true;
+        if (playBtn) playBtn.textContent = '⏸';
+        if (devicePlayIcon) devicePlayIcon.textContent = '⏸';
+      }
+
+      document.querySelectorAll('[id="tap-to-play-overlay"]').forEach(overlay => {
+        if (isPlaying) {
+          overlay.classList.remove('opacity-100');
+          overlay.classList.add('opacity-0', 'pointer-events-none');
+        } else {
+          overlay.classList.remove('opacity-0', 'pointer-events-none');
+          overlay.classList.add('opacity-100');
+        }
+      });
+      document.querySelectorAll('.reel').forEach(el => {
+        if (isPlaying) el.classList.add('reel-spinning');
+        else el.classList.remove('reel-spinning');
+      });
+
+      const ipodEq = document.querySelector('.ipod-eq-wide');
+      if (ipodEq) {
+        if (isPlaying) ipodEq.classList.add('eq-animating');
+        else ipodEq.classList.remove('eq-animating');
+      }
+
+      const cdDisc = document.querySelector('.cd-disc');
+      if (cdDisc) {
+        if (isPlaying) cdDisc.classList.add('cd-spinning');
+        else cdDisc.classList.remove('cd-spinning');
+      }
+
+      const vinylSpinner = document.getElementById('vinyl-spinner');
+      if (vinylSpinner) {
+        if (isPlaying) vinylSpinner.classList.add('record-spinning');
+        else vinylSpinner.classList.remove('record-spinning');
+      }
+
+      const tonearm = document.getElementById('tonearm-element');
+      if (tonearm) {
+        if (isPlaying) tonearm.classList.add('tonearm-playing');
+        else tonearm.classList.remove('tonearm-playing');
+      }
+    }
+
+    function renderDayTabs() {
+      var container = document.getElementById('day-tabs');
+      container.innerHTML = '';
+      Object.keys(SCHEDULE).forEach(function (day) {
+        var btn = document.createElement('button');
+        btn.className = 'px-4 py-2 rounded font-semibold text-sm ' + (day === activeDay ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-gray-400');
+        btn.textContent = day;
+        btn.onclick = function () { activeDay = day; renderDayTabs(); renderSchedule(); };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderSchedule() {
+      var body = document.getElementById('schedule-body');
+      body.innerHTML = '';
+      SCHEDULE[activeDay].forEach(function (slot) {
+        var row = document.createElement('tr');
+        row.className = 'border-b border-white/5 hover:bg-white/5';
+        row.innerHTML = `<td class="px-4 py-3">${slot.time}</td><td class="px-4 py-3 font-bold">${slot.show}</td><td class="px-4 py-3 text-gray-400">${slot.host}</td><td class="px-4 py-3 text-gray-500 text-sm">${slot.genre}</td>`;
+        body.appendChild(row);
+      });
+    }
+
+    function renderHosts() {
+      var grid = document.getElementById('hosts-grid');
+      grid.innerHTML = '';
+      HOSTS.forEach(function (host) {
+        var card = document.createElement('div');
+        card.className = 'host-card rounded-lg bg-gray-900 border border-white/10 p-5';
+        card.innerHTML = `<img src="${host.img}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:1rem;"><h3 class="font-bold">${host.name}</h3><p class="text-xs text-yellow-500 mt-1">${host.role}</p><p class="text-sm text-gray-400 mt-2">${host.show}</p>`;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderSpotlights() {
+      var grid = document.getElementById('spotlights-grid');
+      grid.innerHTML = '';
+      SPOTLIGHTS.forEach(function (s) {
+        var el = document.createElement('div');
+        el.className = 'p-4 rounded-lg bg-gray-900 border border-white/10';
+        el.innerHTML = `<h4 class="font-bold text-base mb-2">${s.title}</h4><p class="text-sm text-gray-400">${s.desc}</p>`;
+        grid.appendChild(el);
+      });
+    }
+
+    async function submitShoutout() {
+      const name = document.getElementById('shoutout-name').value.trim();
+      const msg = document.getElementById('shoutout-msg').value.trim();
+      if (!name || !msg) return;
+      document.getElementById('shoutout-form').classList.add('hidden');
+      document.getElementById('shoutout-success').classList.remove('hidden');
+    }
+
+    // ── Smart Era Engine ──────────────────────────────────────
+    let isManualSkin = false;
+    let currentEra = 'modern';
+
+    function detectEra(title) {
+      const lower = title.toLowerCase();
+      // BREADCRUMB: Legend Artist Heuristics
+      const isVinyl = /chic|slave|gap band|zapp|con funk|parliament|funkadelic|bar-kays|cameo|isley|earth wind|stevie wonder|marvin gaye|chaka khan|motown|disco|funk|soul|whispers|shalamar|kool|commodores|70's/.test(lower);
+      const isTape = /rick james|bobby brown|billy ocean|keith sweat|guy|new edition|debarge|janet jackson|prince|michael jackson|80s|90s|r&b|swing|new jack|80's|90's/.test(lower);
+      const isDisc = /usher|alicia keys|beyonce|jay-z|luther vandross|mary j|2000|2001|2002|2003|2004|hip hop|rkelly|r kelly/.test(lower);
+
+      if (lower.match(/196|197|60s|70s/) || isVinyl) return 'vinyl';
+      if (lower.match(/198|199[0-5]|80s/) || isTape) return 'cassette';
+      if (lower.match(/199[6-9]|200[0-4]|cd|discman/) || isDisc) return 'discman';
+      if (lower.match(/200[5-9]|201|202|ipod|pop|modern|new/)) return 'ipod';
+
+      return 'modern';
+    }
+
+    function syncEra() {
+      if (isManualSkin) return;
+      const title = document.getElementById('now-playing-title').innerText;
+      const detected = detectEra(title);
+      if (detected !== currentEra) {
+        currentEra = detected;
+        if (document.getElementById('mobile-device-view').classList.contains('active')) {
+          renderCurrentSkin();
+        }
+      }
+    }
+
+    async function toggleDeviceView() {
+      const el = document.getElementById('mobile-device-view');
+      el.classList.toggle('active');
+      if (el.classList.contains('active')) {
+        renderCurrentSkin();
+        // BREADCRUMB: Attempt Orientation Lock
+        if (screen.orientation && screen.orientation.lock) {
+          try {
+            await screen.orientation.lock('portrait');
+          } catch (e) {
+            console.log("Auto-lock restricted. Using CSS fallback.");
+            document.getElementById('orientation-warning').classList.remove('hidden');
+          }
+        }
+      } else {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+        document.getElementById('orientation-warning').classList.add('hidden');
+      }
+    }
+
+    function setEra(era) {
+      if (era === 'auto') {
+        isManualSkin = false;
+        currentEra = detectEra(document.getElementById('now-playing-title').innerText);
+      } else {
+        isManualSkin = true;
+        currentEra = era;
+      }
+      renderCurrentSkin();
+    }
+
+    function renderCurrentSkin() {
+      const container = document.getElementById('device-container');
+      const title = document.getElementById('now-playing-title').innerText;
+      const cover = document.getElementById('main-cover-art').src;
+
+      container.className = `skin-${currentEra} flex flex-col items-center justify-between py-10 h-full`;
+
+      let skinHTML = '';
+
+      if (currentEra === 'modern') {
+        skinHTML = `
+          <div class="w-full text-center">
+            <div class="text-[12px] font-black tracking-[0.4em] text-yellow-500 uppercase mb-2">Broadcasting Live</div>
+            <div class="text-[14px] text-white/60">from Chicago's Austin Community</div>
+          </div>
+          <div class="artwork-container"><img id="device-cover" src="${cover}" class="w-full h-full object-cover"></div>
+          <div class="player-controls mt-6">
+            <div class="text-center px-4">
+              <h2 id="device-title" class="text-2xl font-black text-white mb-2 leading-tight">${title}</h2>
+              <div class="text-yellow-500 font-bold text-sm tracking-widest uppercase">The Voice of the People</div>
+            </div>
+            <div class="flex items-center justify-center">
+               <button onclick="togglePlay()" class="w-20 h-20 glass-btn text-white"><span id="device-play-icon" class="text-2xl">${isPlaying ? '⏸' : '▶'}</span></button>
+            </div>
+          </div>
+        `;
+      } else if (currentEra === 'vinyl') {
+        skinHTML = `
+          <div class="turntable-chassis">
+            <div class="turntable-platter">
+              <div id="vinyl-spinner" onclick="togglePlay()" class="record-spinner cursor-pointer group relative ${isPlaying ? 'record-spinning' : ''}">
+                <div id="skin-cover" class="record-label" style="background-image: url('${cover}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+                <div class="record-center-hole"></div>
+                <div class="record-spindle"></div>
+                <div id="tap-to-play-overlay" class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full text-white text-[10px] font-black tracking-widest uppercase transition-opacity duration-300 z-20 ${isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}">Tap Play</div>
+              </div>
+            </div>
+            <div class="speed-selector">
+              <div class="speed-label">33</div>
+              <div class="speed-switch-track"><div class="speed-switch-knob"></div></div>
+              <div class="speed-label">45</div>
+            </div>
+            <div id="tonearm-element" class="tonearm ${isPlaying ? 'tonearm-playing' : ''}">
+              <div class="tonearm-base"></div>
+              <div class="tonearm-rod"></div>
+              <div class="tonearm-head">
+                <div class="tonearm-nickel"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-14 text-center px-4 relative z-20">
+            <h2 id="skin-title" class="text-white font-black text-xl leading-tight drop-shadow-lg">${title}</h2>
+          </div>
+        `;
+      } else if (currentEra === 'cassette') {
+        skinHTML = `
+          <div onclick="togglePlay()" class="skin-cassette-body cursor-pointer group">
+            <div class="cassette-screw screw-tl"></div><div class="cassette-screw screw-tr"></div>
+            <div class="cassette-screw screw-bl"></div><div class="cassette-screw screw-br"></div>
+            
+            <div class="cassette-trapezoid">
+              <div class="trap-screw"></div>
+              <div class="trap-ports">
+                <div class="trap-hole trap-circle"></div>
+                <div class="trap-hole trap-rect"></div>
+                <div class="trap-gap"></div>
+                <div class="trap-hole trap-rect"></div>
+                <div class="trap-hole trap-circle"></div>
+              </div>
+            </div>
+
+            <div id="skin-cover" class="cassette-label" style="background: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.7)), url('${cover}'); background-size: cover; background-position: center;">
+              <div class="maxell-stripe">
+                <span class="text-[7px] font-black text-white italic">maxell</span>
+                <span class="text-[7px] font-black text-white">UR 90</span>
+              </div>
+              <div class="tape-window relative">
+                <div id="tap-to-play-overlay" class="absolute inset-0 z-30 flex items-center justify-center bg-black/40 text-white text-[8px] font-black tracking-widest uppercase transition-opacity duration-300 ${isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}">Tap to Play</div>
+                <div class="tape-leader"></div>
+                <div class="reel reel-left ${isPlaying ? 'reel-spinning' : ''}">
+                  <div class="reel-tape"></div>
+                  <div class="reel-gear"></div>
+                </div>
+                <div class="reel reel-right ${isPlaying ? 'reel-spinning' : ''}">
+                  <div class="reel-tape"></div>
+                  <div class="reel-gear"></div>
+                </div>
+              </div>
+              <div class="w-full text-center px-4 mb-2">
+                <div id="skin-title" class="text-[12px] text-gray-900 font-black tracking-tight uppercase leading-tight border-b-2 border-gray-300 pb-1">${title}</div>
+                <div class="text-[6px] text-red-700 font-black mt-1 tracking-[0.3em]">POSITION · NORMAL</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (currentEra === 'discman') {
+        skinHTML = `
+          <div class="discman-body">
+            <div class="discman-window" onclick="togglePlay()">
+              <div id="skin-cover" class="cd-disc ${isPlaying ? 'cd-spinning' : ''}" style="background: url('${cover}')"></div>
+              <div class="cd-spindle"></div>
+              <div id="tap-to-play-overlay" class="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-[10px] font-black tracking-widest uppercase z-10 transition-opacity duration-300 ${isPlaying ? 'opacity-0 pointer-events-none' : 'opacity-100'}">Tap Play</div>
+            </div>
+            <div class="discman-lcd">
+              <div class="text-[7px] text-[#1a2e1a] font-bold tracking-widest uppercase mb-0.5 opacity-60">Anti-Skip ESP</div>
+              <div id="skin-title" class="discman-lcd-text">${title}</div>
+            </div>
+            <div class="discman-controls">
+              <button onclick="togglePlay()" class="discman-btn">⏯ PLAY/PAUSE</button>
+            </div>
+          </div>
+        `;
+      } else if (currentEra === 'ipod') {
+        skinHTML = `
+          <div class="ipod-screen-refined">
+            <img id="skin-cover" src="${cover}" class="w-full h-full object-contain object-center bg-black">
+            <div class="ipod-text-overlay">
+              <div id="skin-title" class="text-white font-black text-lg leading-tight mb-1">${title}</div>
+              <div class="text-yellow-500 text-[10px] tracking-[0.3em] font-bold uppercase">Now Playing</div>
+            </div>
+            <!-- BREADCRUMB: EQ Bar Array -->
+            <div class="ipod-eq-wide ${isPlaying ? 'eq-animating' : ''}">
+              ${Array(15).fill(0).map((_, i) => `<div class="eq-bar" style="animation-delay: ${i * 0.05}s"></div>`).join('')}
+            </div>
+          </div>
+          <div class="click-wheel-refined">
+            <button onclick="togglePlay()" class="wheel-center text-slate-400 font-bold text-2xl">
+              <span style="font-family: sans-serif; filter: grayscale(100%);">⏯︎</span>
+            </button>
+            <div class="absolute top-6 text-[12px] font-black text-slate-200">MENU</div>
+            <div class="absolute left-6 text-[12px] font-black text-slate-200">⏮</div>
+            <div class="absolute right-6 text-[12px] font-black text-slate-200">⏭</div>
+            <div class="absolute bottom-6 text-[12px] font-black text-slate-200">⏯</div>
+          </div>
+        `;
+      }
+
+      // Append Unified Navigation to ALL skins
+      container.innerHTML = skinHTML + `
+        <div class="w-full mt-auto pt-8 flex flex-col items-center gap-4 relative z-[999]">
+          <div class="flex justify-center gap-6">
+            <button onclick="setEra('vinyl')" class="px-3 py-3 text-[16px] uppercase tracking-widest font-black transition-colors ${!isManualSkin ? 'text-white/40' : (currentEra === 'vinyl' ? 'nav-btn-active' : 'text-white/40')}">Vinyl</button>
+            <button onclick="setEra('cassette')" class="px-3 py-3 text-[16px] uppercase tracking-widest font-black transition-colors ${!isManualSkin ? 'text-white/40' : (currentEra === 'cassette' ? 'nav-btn-active' : 'text-white/40')}">Tape</button>
+            <button onclick="setEra('discman')" class="px-3 py-3 text-[16px] uppercase tracking-widest font-black transition-colors ${!isManualSkin ? 'text-white/40' : (currentEra === 'discman' ? 'nav-btn-active' : 'text-white/40')}">Disc</button>
+            <button onclick="setEra('ipod')" class="px-3 py-3 text-[16px] uppercase tracking-widest font-black transition-colors ${!isManualSkin ? 'text-white/40' : (currentEra === 'ipod' ? 'nav-btn-active' : 'text-white/40')}">MP3</button>
+          </div>
+          <div class="flex gap-6">
+            <button onclick="setEra('auto')" class="px-4 py-1.5 rounded-full border text-[9px] font-black tracking-widest uppercase transition-all ${!isManualSkin ? 'nav-btn-active' : 'border-white/10 text-white/40'}">✨ Auto Era</button>
+            <button onclick="setEra('modern')" class="px-4 py-1.5 rounded-full border text-[9px] font-black tracking-widest uppercase transition-all ${(isManualSkin && currentEra === 'modern') ? 'nav-btn-active' : 'border-white/10 text-white/40'}">Stream</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateDeviceUI() {
+      const title = document.getElementById('now-playing-title').innerText;
+      const cover = document.getElementById('main-cover-art').src;
+      const listeners = document.querySelector('[data-format="%connections%"]').innerText;
+
+      // Modern View
+      if (document.getElementById('device-title')) document.getElementById('device-title').innerText = title;
+      if (document.getElementById('device-cover')) document.getElementById('device-cover').src = cover;
+      if (document.getElementById('device-listeners')) document.getElementById('device-listeners').innerText = listeners + ' Listeners';
+
+      // Hardware Skins Internal Sync
+      const skinTitle = document.getElementById('skin-title');
+      if (skinTitle) skinTitle.innerText = title;
+
+      if (skinCover) {
+        if (skinCover.tagName === 'IMG') skinCover.src = cover;
+        else skinCover.style.backgroundImage = `linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0)), url('${cover}')`;
+      }
+
+      // Sync the Era Engine on metadata change
+      syncEra();
+
+      // Update play icon in case it was toggled elsewhere
+      const devicePlayIcon = document.getElementById('device-play-icon');
+      if (devicePlayIcon) devicePlayIcon.textContent = isPlaying ? '⏸' : '▶';
+    }
+    function animateVUMeters() {
+      if (!isPlaying) { document.getElementById('needle-l').style.transform = 'rotate(-45deg)'; document.getElementById('needle-r').style.transform = 'rotate(-45deg)'; return; }
+      document.getElementById('needle-l').style.transform = `rotate(${-30 + Math.random() * 40}deg)`;
+      document.getElementById('needle-r').style.transform = `rotate(${-30 + Math.random() * 40}deg)`;
+    }
+    setInterval(animateVUMeters, 150);
+
+    // ── The Watchtower: Direct Citrus API Sync ──────────────
+    async function fetchCitrusData() {
+      try {
+        const response = await fetch('https://hello.citrus3.com:2020/json/stream/fmpradio');
+        const data = await response.json();
+        if (data && data.nowplaying) {
+          const title = data.nowplaying;
+          const cover = data.coverart || './assets/logo.png';
+          const listeners = data.connections || 0;
+
+          // Update Global State
+          const titleEl = document.getElementById('now-playing-title');
+          if (titleEl && titleEl.innerText !== title) {
+            titleEl.innerText = title;
+            document.getElementById('sticky-title').innerText = title;
+
+            const mainCover = document.getElementById('main-cover-art');
+            if (mainCover) mainCover.src = cover;
+            document.getElementById('cover-art').src = cover;
+
+            updateDeviceUI();
+
+            updateDeviceUI();
+          }
+
+          // Always update listener count
+          const listenerEl = document.querySelector('[data-format="%connections%"]');
+          if (listenerEl) listenerEl.innerText = listeners;
+          const deviceListeners = document.getElementById('device-listeners');
+          if (deviceListeners) deviceListeners.innerText = listeners + ' Listeners';
+        }
+      } catch (e) {
+        console.error("Citrus Sync Error:", e);
+      }
+    }
+
+    function initWatchtower() {
+      // BREADCRUMB: High-fidelity polling every 8s
+      fetchCitrusData();
+      setInterval(fetchCitrusData, 8000);
+
+      // Keep DOM observer as a low-latency fallback
+      const target = document.getElementById('now-playing-title');
+      if (target) {
+        const observer = new MutationObserver(() => updateDeviceUI());
+        observer.observe(target, { childList: true, characterData: true });
+      }
+    }
+    function updateScale() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isLandscape = w > h;
+
+      if (w <= 1024) { // Mobile & Tablet
+        // If landscape, we scale based on height to prevent infinite width-zoom
+        const baseW = isLandscape ? h * 0.6 : w;
+
+        document.documentElement.style.setProperty('--scale-tape', ((baseW - 20) / 250) * 1.05);
+        document.documentElement.style.setProperty('--scale-disc', (baseW - 4) / 360);
+        // BREADCRUMB: Ultra Deep Zoom (40px bleed) - limit in landscape
+        const vinylScale = isLandscape ? (h / 380) * 0.9 : (w + 80) / 380;
+        document.documentElement.style.setProperty('--scale-vinyl', vinylScale);
+      } else {
+        document.documentElement.style.setProperty('--scale-tape', '1.32');
+        document.documentElement.style.setProperty('--scale-disc', '1');
+        document.documentElement.style.setProperty('--scale-vinyl', '1.2');
+      }
+    }
+    // ── PWA Installation Logic ──────────────────────────────
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-btn').classList.remove('hidden');
+      const mobBtn = document.getElementById('mobile-install-btn');
+      if (mobBtn) mobBtn.classList.remove('hidden');
+    });
+
+    async function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('install-btn').classList.add('hidden');
+        const mobBtn = document.getElementById('mobile-install-btn');
+        if (mobBtn) mobBtn.classList.add('hidden');
+      }
+      deferredPrompt = null;
+    }
+
+    function showIOSInstructions() {
+      alert("To install FMP Radio on your iPhone:\n\n1. Tap the 'Share' icon (the square with an arrow) at the bottom of Safari.\n2. Scroll down and tap 'Add to Home Screen'.\n3. Tap 'Add' in the top right corner.");
+    }
+
+    // iOS Detection for Install Help
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      window.addEventListener('load', () => {
+        document.getElementById('ios-install-btn').classList.remove('hidden');
+        const mobIosBtn = document.getElementById('mobile-ios-install-btn');
+        if (mobIosBtn) mobIosBtn.classList.remove('hidden');
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed:', err));
+      });
+    }
+
+    window.addEventListener('resize', updateScale);
+    window.addEventListener('load', () => {
+      updateScale();
+      initWatchtower();
+      if (window.innerWidth <= 768) {
+        document.getElementById('mobile-device-view').classList.add('active');
+        setEra('auto');
+      }
+    });
+
+    renderDayTabs(); renderSchedule(); renderHosts(); renderSpotlights();
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  </script>
+  <script type="text/javascript" src="https://hello.citrus3.com:2020/dist/widgets.js" defer></script>
+</body>
+
+</html>
