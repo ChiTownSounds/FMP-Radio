@@ -1,0 +1,7 @@
+venv/
+*.mp3
+*.webm
+*.tmp
+*.part
+__pycache__/
+.env

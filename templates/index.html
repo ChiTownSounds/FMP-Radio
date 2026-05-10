@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FMP Ultimate: Control Room</title>
+    <style>
+        body { background: #0a0a0a; color: #eee; font-family: 'Segoe UI', sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 900px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .card { background: #161616; padding: 15px; border-radius: 8px; border: 1px solid #222; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .card h3 { margin: 0 0 5px 0; color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .card p { font-size: 20px; margin: 0; font-weight: bold; color: #00ff41; }
+        .url-input { width: 100%; height: 100px; background: #000; color: #00ff41; border: 1px solid #333; border-radius: 5px; padding: 10px; box-sizing: border-box; font-family: monospace; }
+        .log-box { background: #000; color: #aaa; font-family: 'Consolas', monospace; padding: 15px; height: 250px; overflow-y: auto; border: 1px solid #333; font-size: 12px; line-height: 1.5; }
+        .log-success { color: #00ff41; font-weight: bold; }
+        .log-fail { color: #ff3e3e; }
+        .log-info { color: #00e5ff; }
+        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; padding: 10px; transition: 0.3s; }
+        .btn-green { background: #1b5e20; color: white; border: 1px solid #2e7d32; }
+        .btn-green:hover { background: #2e7d32; box-shadow: 0 0 10px #2e7d32; }
+        .btn-red { background: #b71c1c; color: white; }
+        .btn-red:hover { background: #d32f2f; box-shadow: 0 0 10px #d32f2f; }
+        .btn-small-red { background: #b71c1c; color: white; padding: 5px 10px; font-size: 11px; }
+        .results-scroll { max-height: 200px; overflow-y: auto; background: #000; border: 1px solid #333; margin-top: 10px; border-radius: 4px; }
+        .match-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #111; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 style="text-align: center; color: #fff; font-weight: 100; letter-spacing: 5px;">FMP <span style="color: #ff3e3e;">ULTIMATE</span></h1>
+    
+    <div class="grid">
+        <div class="card"><h3>Engine</h3><p id="status-text">Idle</p></div>
+        <div class="card"><h3>Queue</h3><p id="queue-count">0</p></div>
+        <div class="card"><h3>Vaulted</h3><p id="completed-count">0</p></div>
+        <div class="card"><h3>Current Era</h3><p id="target-year">---</p></div>
+    </div>
+
+    <div class="card">
+        <h3>Input Pipeline</h3>
+        <textarea id="url-input" class="url-input" placeholder="Drop URLs..."></textarea>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn-green" style="flex: 2;" onclick="addUrls()">START INGESTION</button>
+            <button class="btn-red" style="flex: 1;" onclick="stopProcess()">STOP ENGINE</button>
+        </div>
+    </div>
+
+    <div class="card" style="border-top: 2px solid #ff3e3e;">
+        <h3 style="color: #ff3e3e;">The Eraser</h3>
+        <div style="display: flex; gap: 5px;">
+            <input type="text" id="scrub-q" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Search Library..." onkeydown="if(event.key==='Enter') search()">
+            <button style="background:#333; color:#fff;" onclick="search()">SEARCH</button>
+        </div>
+        <div id="results" class="results-scroll"></div>
+    </div>
+
+    <div class="log-box" id="log-box"></div>
+</div>
+
+<script>
+    setInterval(async () => {
+        try {
+            const r = await fetch('/api/status'); const d = await r.json();
+            document.getElementById('status-text').innerText = d.current_status;
+            document.getElementById('queue-count').innerText = d.total_in_queue;
+            document.getElementById('completed-count').innerText = d.completed_count;
+            
+            const logBox = document.getElementById('log-box'); 
+            logBox.innerHTML = d.logs.map(l => {
+                let cls = '';
+                if(l.includes('Complete') || l.includes('ERASED')) cls = 'log-success';
+                if(l.includes('failed') || l.includes('Rejected')) cls = 'log-fail';
+                if(l.includes('Phase')) cls = 'log-info';
+                return `<div class="${cls}">> ${l}</div>`;
+            }).join('');
+            logBox.scrollTop = 9999;
+
+            if(d.logs.length > 0) {
+                const last = d.logs[d.logs.length-1];
+                const match = last.match(/\d{4}/);
+                if(match) document.getElementById('target-year').innerText = match[0];
+            }
+        } catch(e) {}
+    }, 1000);
+
+    async function addUrls() {
+        const val = document.getElementById('url-input').value;
+        if(!val.trim()) return;
+        await fetch('/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: val}) });
+        document.getElementById('url-input').value = '';
+    }
+
+    async function stopProcess() { 
+        await fetch('/stop', { method: 'POST' }); 
+    }
+
+    async function search() {
+        const q = document.getElementById('scrub-q').value;
+        if(!q.trim()) return;
+        const res = await fetch('/search_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
+        const list = await res.json();
+        const div = document.getElementById('results');
+        div.innerHTML = list.length ? '' : '<div style="padding:10px;">No results.</div>';
+        list.forEach(item => {
+            div.innerHTML += `<div class="match-row">
+                <span>${item['Track Name']}</span>
+                <button class="btn-small-red" onclick="scrub('${item['Track Name']}')">SCRUB</button>
+            </div>`;
+        });
+    }
+
+    async function scrub(name) {
+        if(!confirm(`Delete ${name}?`)) return;
+        await fetch('/execute_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({track_name: name}) });
+        document.getElementById('results').innerHTML = '';
+        document.getElementById('scrub-q').value = '';
+    }
+</script>
+</body>
+</html>
