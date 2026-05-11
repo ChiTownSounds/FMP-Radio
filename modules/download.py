@@ -1,40 +1,67 @@
-import subprocess
-import logging
 import os
-import glob
-from typing import Optional
-
-from config import SOMEDL_CMD, STAGING_DIR
+import yt_dlp
+import logging
+from typing import Tuple, Optional
+from config import STAGING_DIR
 
 class Transporter:
     def __init__(self):
         if not os.path.exists(STAGING_DIR):
             os.makedirs(STAGING_DIR)
+        
+        self.cookie_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cookies.txt')
 
-    def download_track(self, url: str) -> Optional[str]:
-        # Clean the staging directory before downloading to prevent race conditions
-        for f in glob.glob(os.path.join(STAGING_DIR, "*.mp3")):
-            try: os.remove(f)
-            except OSError: pass
-
-        cmd = SOMEDL_CMD + [
-            url,
-            "--format", "mp3",
-            "--output", str(STAGING_DIR),
-            "--no-album",
-            "--skip-file-check"
-        ]
+    def download_track(self, url: str) -> Tuple[Optional[str], int]:
+        peek_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+        }
+        if os.path.exists(self.cookie_path):
+            peek_opts['cookiefile'] = self.cookie_path
 
         try:
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
-            
-            # Find the new file SomeDL just created
-            staged_files = glob.glob(os.path.join(STAGING_DIR, "*.mp3"))
-            if staged_files:
-                return staged_files[0]
-            return None
+            with yt_dlp.YoutubeDL(peek_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                source_abr = info.get('abr') or info.get('tbr') or 128
+                
+                if source_abr < 128:
+                    print(f"\n[REJECTED] Source audio too weak ({source_abr}kbps). Find a better link.")
+                    return None, 0
+                
+                if source_abr >= 250:
+                    honest_bitrate = '320'
+                else:
+                    honest_bitrate = '192'
+                    
+        except Exception as e:
+            logging.error(f"Transporter probe error: {e}")
+            return None, 0
 
-        except subprocess.CalledProcessError:
-            return None
-        except FileNotFoundError:
-            return None
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(STAGING_DIR, '%(id)s.%(ext)s'),
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': honest_bitrate, 
+            }],
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        if os.path.exists(self.cookie_path):
+            ydl_opts['cookiefile'] = self.cookie_path
+            
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                final_info = ydl.extract_info(url, download=True)
+                expected_path = os.path.join(STAGING_DIR, f"{final_info['id']}.mp3")
+                
+                if os.path.exists(expected_path):
+                    # We now return the path AND the final calculated bitrate
+                    return expected_path, int(honest_bitrate)
+        except Exception as e:
+            logging.error(f"Transporter download error: {e}")
+            
+        return None, 0

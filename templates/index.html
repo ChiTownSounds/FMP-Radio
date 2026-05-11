@@ -11,7 +11,7 @@
         .card h3 { margin: 0 0 5px 0; color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
         .card p { font-size: 20px; margin: 0; font-weight: bold; color: #00ff41; }
         .url-input { width: 100%; height: 100px; background: #000; color: #00ff41; border: 1px solid #333; border-radius: 5px; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        .log-box { background: #000; color: #aaa; font-family: 'Consolas', monospace; padding: 15px; height: 250px; overflow-y: auto; border: 1px solid #333; font-size: 12px; line-height: 1.5; }
+        .log-box { background: #000; color: #aaa; font-family: 'Consolas', monospace; padding: 15px; height: 250px; overflow-y: auto; border: 1px solid #333; font-size: 12px; line-height: 1.5; margin-top: 15px; }
         .log-success { color: #00ff41; font-weight: bold; }
         .log-fail { color: #ff3e3e; }
         .log-info { color: #00e5ff; }
@@ -51,7 +51,17 @@
             <input type="text" id="scrub-q" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Search Library..." onkeydown="if(event.key==='Enter') search()">
             <button style="background:#333; color:#fff;" onclick="search()">SEARCH</button>
         </div>
-        <div id="results" class="results-scroll"></div>
+        <div id="results" class="results-scroll" style="display:none;"></div>
+    </div>
+
+    <div class="card" style="border-top: 2px solid #ffaa00; margin-top: 15px;">
+        <h3 style="color: #ffaa00; display: flex; justify-content: space-between; align-items: center;">
+            <span>Quality Control Radar (Sub-256kbps)</span>
+            <button onclick="runQC()" style="background: transparent; border: 1px solid #ffaa00; color: #ffaa00; font-size: 9px; cursor: pointer; padding: 4px 8px;">SCAN VAULT</button>
+        </h3>
+        <div id="qc-results" class="results-scroll">
+            <div style="color: #444; font-size: 11px; padding: 10px; text-align: center;">Click scan to find low-quality audio in your ledger.</div>
+        </div>
     </div>
 
     <div class="log-box" id="log-box"></div>
@@ -70,7 +80,7 @@
                 let cls = '';
                 if(l.includes('Complete') || l.includes('ERASED')) cls = 'log-success';
                 if(l.includes('failed') || l.includes('Rejected')) cls = 'log-fail';
-                if(l.includes('Phase')) cls = 'log-info';
+                if(l.includes('Phase') || l.includes('PREP')) cls = 'log-info';
                 return `<div class="${cls}">> ${l}</div>`;
             }).join('');
             logBox.scrollTop = 9999;
@@ -90,9 +100,7 @@
         document.getElementById('url-input').value = '';
     }
 
-    async function stopProcess() { 
-        await fetch('/stop', { method: 'POST' }); 
-    }
+    async function stopProcess() { await fetch('/stop', { method: 'POST' }); }
 
     async function search() {
         const q = document.getElementById('scrub-q').value;
@@ -100,11 +108,12 @@
         const res = await fetch('/search_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
         const list = await res.json();
         const div = document.getElementById('results');
+        div.style.display = 'block';
         div.innerHTML = list.length ? '' : '<div style="padding:10px;">No results.</div>';
         list.forEach(item => {
             div.innerHTML += `<div class="match-row">
                 <span>${item['Track Name']}</span>
-                <button class="btn-small-red" onclick="scrub('${item['Track Name']}')">SCRUB</button>
+                <button class="btn-small-red" onclick="scrub('${item['Track Name'].replace(/'/g, "\\'")}')">SCRUB</button>
             </div>`;
         });
     }
@@ -113,7 +122,42 @@
         if(!confirm(`Delete ${name}?`)) return;
         await fetch('/execute_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({track_name: name}) });
         document.getElementById('results').innerHTML = '';
+        document.getElementById('results').style.display = 'none';
         document.getElementById('scrub-q').value = '';
+    }
+
+    async function runQC() {
+        const div = document.getElementById('qc-results');
+        div.innerHTML = '<div style="padding:10px; color:#00e5ff;">Scanning ledger...</div>';
+        
+        const res = await fetch('/api/qc_scan');
+        const list = await res.json();
+        
+        if (list.length === 0) {
+            div.innerHTML = '<div style="padding:10px; color:#00ff41;">All tracks meet broadcast standards!</div>';
+            return;
+        }
+        
+        div.innerHTML = '';
+        list.forEach(item => {
+            div.innerHTML += `<div class="match-row">
+                <span>${item['Track Name']} <strong style="color:#ffaa00; margin-left:10px;">[${item['Bitrate']} kbps]</strong></span>
+                <button class="btn-small-red" style="background:#ffaa00; color:#000;" data-track="${item['Track Name'].replace(/"/g, '&quot;')}" onclick="upgradeTrack(this.dataset.track)">UPGRADE</button>
+            </div>`;
+        });
+    }
+
+    async function upgradeTrack(trackName) {
+        const newUrl = prompt(`UPGRADE PROTOCOL\n\nPaste the YouTube URL for the high-quality replacement for:\n"${trackName}"\n\nLeave blank to cancel.`);
+        if (!newUrl || !newUrl.trim()) return;
+
+        await fetch('/api/upgrade', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ old_track_name: trackName, new_url: newUrl.trim() }) 
+        });
+
+        runQC();
     }
 </script>
 </body>

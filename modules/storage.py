@@ -37,6 +37,30 @@ class VaultManager:
         except (ValueError, TypeError):
             return "Unsorted_Review"
 
+    def get_weak_links(self, threshold_kbps: int = 256) -> List[Dict]:
+        weak_tracks = []
+        try:
+            if not os.path.exists(CSV_BLUEPRINT): return []
+            with open(CSV_BLUEPRINT, mode='r', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    bitrate_str = str(row.get('Bitrate', 'Unknown'))
+                    
+                    if bitrate_str.lower() == 'unknown' or not bitrate_str.strip():
+                        weak_tracks.append(row)
+                        continue
+                        
+                    match = re.search(r'(\d+)', bitrate_str)
+                    if match:
+                        kbps = int(match.group(1))
+                        if kbps < threshold_kbps:
+                            weak_tracks.append(row)
+                    else:
+                        weak_tracks.append(row)
+        except Exception as e:
+            logging.error(f"QC Scan failed: {e}")
+            
+        return sorted(weak_tracks, key=lambda x: str(x.get('Bitrate', '0')))
+
     def find_candidates(self, search_query: str) -> List[Dict]:
         all_tracks = []
         try:
@@ -119,7 +143,6 @@ class VaultManager:
             return True
         except: return False
 
-    # THE FULL CSV LOGIC RESTORED
     def _update_csv(self, metadata: Dict[str, Any], clean_title: str):
         rows = []
         updated = False
