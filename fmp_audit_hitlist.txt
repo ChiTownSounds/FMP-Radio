@@ -1,3 +1,0 @@
-FMP AUDIT HITLIST (Threshold: -45.0dB)
-================================================
-No fakes found at this threshold.

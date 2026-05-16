@@ -1,19 +1,22 @@
-from pathlib import Path
+import os
 
-# --- CORE DIRECTORIES ---
-BASE_DIR = Path(__file__).resolve().parent 
+# --- PATHS ---
+STAGING_DIR = "C:/fmp_ultimate/staging"
+CSV_BLUEPRINT = "C:/FMP_Ultimate/configs/fmp_data_7718.csv"
 
-CONFIG_DIR = BASE_DIR / "configs"
-MODULES_DIR = BASE_DIR / "modules"
-STAGING_DIR = BASE_DIR / "staging"
+# --- FTP SERVER SETTINGS ---
+# Using Citrus3 Custom Port 2121
+FTP_HOST = "hello.citrus3.com"
+FTP_PORT = 2121
+FTP_USER = "ftp_1047"
+FTP_PASS = "EC6V7bQ!$CQs"
+# Citrus3 drops the user directly into the root media folder
+FTP_BASE_DIR = "/" 
 
-# --- THE SOURCE OF TRUTH ---
-CSV_BLUEPRINT = CONFIG_DIR / "fmp_data_7718.csv"
-SERVER_DIR = Path("Z:\\")
-
-# --- EXTERNAL TOOLS (DUAL-ENGINE ARCHITECTURE) ---
-# Engine 1: The Transporter (Downloads & tags using YouTube Music / Genius API)
-SOMEDL_CMD = ["python", "-m", "SomeDL.main"]
-
-# Engine 2: The Probe (Strictly for scanning JSON metadata at the door)
+# --- EXECUTABLES ---
+SOMEDL_CMD = ["somedl"] 
 YT_DLP_CMD = ["yt-dlp"]
+
+# --- API KEYS ---
+ACOUSTID_API_KEY = "cc5tCw5q9G" 
+MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmail.com")

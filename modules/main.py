@@ -1,22 +1,44 @@
 import sys
 import os
 import glob
+import subprocess
 
 # Import the configured paths and our custom modules
-from config import STAGING_DIR
+from config import STAGING_DIR, YT_DLP_CMD
 from modules.ingest import Gatekeeper
 from modules.download import Transporter
 from modules.storage import VaultManager
 
-def get_staged_file() -> str:
-    """Finds the newly downloaded MP3 sitting in the staging directory."""
-    # Look for any .mp3 file inside the staging folder
-    search_pattern = os.path.join(STAGING_DIR, "*.mp3")
-    staged_files = glob.glob(search_pattern)
+def extract_playlist_urls(playlist_url: str) -> list:
+    """Uses yt-dlp to quickly flatten a playlist and strictly filters for single tracks."""
+    print(f"[EXTRACTOR] Analyzing playlist... Stand by.")
     
-    if staged_files:
-        return staged_files[0] # Return the absolute path of the file
-    return ""
+    cmd = YT_DLP_CMD + [
+        "--flat-playlist", 
+        "--print", "url", 
+        playlist_url
+    ]
+    
+    try:
+        # Run the command and capture the text output
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        
+        # Split by line breaks, and strictly filter for ACTUAL single tracks
+        urls = []
+        for line in result.stdout.split('\n'):
+            clean_line = line.strip()
+            # Only keep URLs that are definitely individual videos/songs
+            if 'watch?v=' in clean_line or 'youtu.be/' in clean_line:
+                urls.append(clean_line)
+                
+        return urls
+        
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Failed to extract playlist. yt-dlp error: {e.stderr}")
+        return []
+    except Exception as e:
+        print(f"[ERROR] System failure during playlist extraction: {e}")
+        return []
 
 def main():
     print("===========================================")
@@ -24,64 +46,79 @@ def main():
     print("===========================================")
     print("Initializing modules...")
     
-    # Booting up the organs
     gatekeeper = Gatekeeper()
     transporter = Transporter()
     vault = VaultManager()
     
-    print("System Online. Ready for URLs.\n")
+    print("System Online. Ready for URLs or Playlists.\n")
 
     while True:
         try:
-            url = input("Enter YouTube Music URL (or 'exit' to stop): ").strip()
+            # 1. Ask for the URL
+            url_input = input("Enter YouTube Music URL or Playlist (or 'exit' to stop): ").strip()
             
-            if url.lower() in ['exit', 'quit']:
+            if url_input.lower() in ['exit', 'quit']:
                 print("Initiating shutdown sequence...")
                 break
-            if not url:
+            if not url_input:
                 continue
 
             # ==========================================
-            # PHASE 1: THE BOUNCER
+            # THE TRAFFIC COP
             # ==========================================
-            print("\n[PHASE 1] Gatekeeper: Validating metadata...")
-            is_valid, result_data = gatekeeper.process_request(url)
-            
-            if not is_valid:
-                error_msg = result_data.get('error', 'Unknown validation failure')
-                print(f"[REJECTED] {error_msg}")
-                continue
-                
-            metadata = result_data
-            print("[APPROVED] Track meets FMP standards.")
-
-            # ==========================================
-            # PHASE 2: THE TRANSPORTER
-            # ==========================================
-            print("[PHASE 2] Transporter: Downloading via SomeDL...")
-            # Remember: Our actual script returns True/False, not a path!
-            download_success = transporter.download_track(url)
-            
-            if not download_success:
-                print("[ERROR] Download failed. Moving to next URL.")
-                continue
-
-            # ==========================================
-            # PHASE 3: THE VAULT
-            # ==========================================
-            file_path = get_staged_file()
-            
-            if not file_path:
-                print(f"[ERROR] Transporter succeeded, but no MP3 was found in {STAGING_DIR}.")
-                continue
-
-            print(f"[PHASE 3] Vault: Tagging and moving to Z:\\ drive...")
-            success = vault.store_track(file_path, metadata)
-            
-            if success:
-                print("[PIPELINE COMPLETE] Track secured and CSV updated.")
+            # Check if it's a playlist URL
+            if "list=" in url_input or "playlist" in url_input.lower():
+                urls_to_process = extract_playlist_urls(url_input)
+                if not urls_to_process:
+                    print("[ERROR] No tracks found or playlist is private.")
+                    continue
+                print(f"[EXTRACTOR] Successfully flattened! Found {len(urls_to_process)} tracks ready for ingestion.")
             else:
-                print("[ERROR] Vault storage failed. File may be stuck in staging.")
+                # It's just a single song, put it in a list so we can loop it anyway
+                urls_to_process = [url_input]
+
+            # ==========================================
+            # THE PROCESSING LOOP
+            # ==========================================
+            # Loop through however many URLs we have (1 or 100)
+            for index, url in enumerate(urls_to_process, 1):
+                if len(urls_to_process) > 1:
+                    print(f"\n--- [TRACK {index}/{len(urls_to_process)}] ---")
+                else:
+                    print("\n--- [SINGLE TRACK] ---")
+
+                # --- PHASE 1: THE BOUNCER ---
+                print(f"[PHASE 1] Gatekeeper: Validating {url}")
+                is_valid, result_data = gatekeeper.process_request(url)
+                
+                if not is_valid:
+                    error_msg = result_data.get('error', 'Unknown validation failure')
+                    print(f"[REJECTED] {error_msg}. Moving to next...")
+                    continue 
+                    
+                metadata = result_data
+                track_name = metadata.get('title', 'Unknown Title')
+                print(f"[APPROVED] '{track_name}' meets FMP standards.")
+
+                # --- PHASE 2: THE TRANSPORTER ---
+                print(f"[PHASE 2] Transporter: Downloading via SomeDL...")
+                dl_result = transporter.download_track(url)
+                
+                # dl_result is a tuple: (file_path, bitrate)
+                file_path = dl_result[0]
+                
+                if not file_path:
+                    print("[ERROR] Download failed or no file found. Moving to next URL.")
+                    continue
+
+                # --- PHASE 3: THE VAULT ---
+                print(f"[PHASE 3] Vault: Tagging and moving {os.path.basename(file_path)} to Z:\\ drive...")
+                success = vault.store_track(file_path, metadata)
+                
+                if success:
+                    print("[PIPELINE COMPLETE] Track secured and CSV updated.")
+                else:
+                    print("[ERROR] Vault storage failed. File may be stuck in staging.")
 
         except KeyboardInterrupt:
             print("\nProcess interrupted by user. Shutting down...")

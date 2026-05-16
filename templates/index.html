@@ -15,14 +15,22 @@
         .log-success { color: #00ff41; font-weight: bold; }
         .log-fail { color: #ff3e3e; }
         .log-info { color: #00e5ff; }
+        .lyrics-badge { background: #00ff41; color: #000; font-weight: bold; font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 5px; }
         button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; padding: 10px; transition: 0.3s; }
         .btn-green { background: #1b5e20; color: white; border: 1px solid #2e7d32; }
         .btn-green:hover { background: #2e7d32; box-shadow: 0 0 10px #2e7d32; }
+        .btn-blue { background: #01579b; color: white; border: 1px solid #0277bd; }
+        .btn-blue:hover { background: #0277bd; box-shadow: 0 0 10px #0277bd; }
         .btn-red { background: #b71c1c; color: white; }
         .btn-red:hover { background: #d32f2f; box-shadow: 0 0 10px #d32f2f; }
         .btn-small-red { background: #b71c1c; color: white; padding: 5px 10px; font-size: 11px; }
-        .results-scroll { max-height: 200px; overflow-y: auto; background: #000; border: 1px solid #333; margin-top: 10px; border-radius: 4px; }
-        .match-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #111; }
+        .results-scroll { max-height: 500px; overflow-y: auto; background: #000; border: 1px solid #333; margin-top: 10px; border-radius: 4px; }
+        .match-row { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid #111; gap: 6px; }
+        .match-row:hover { background: #111; }
+        .match-header { display: flex; justify-content: space-between; align-items: center; }
+        .match-title { font-size: 14px; font-weight: bold; color: #fff; }
+        .match-meta { font-size: 11px; color: #888; display: flex; gap: 12px; align-items: center; }
+        .meta-val { color: #00ff41; }
     </style>
 </head>
 <body>
@@ -37,37 +45,53 @@
     </div>
 
     <div class="card">
-        <h3>Input Pipeline</h3>
-        <textarea id="url-input" class="url-input" placeholder="Drop URLs..."></textarea>
+        <h3>Routing & Input Pipeline</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+            <select id="target-show" style="flex: 2; padding: 10px; background: #000; color: #fff; border: 1px solid #333; font-weight: bold;">
+                <option value="">▶ ROUTE TO MAIN CATALOG (AUTO-SORT ERAS)</option>
+            </select>
+            <button class="btn-blue" style="flex: 1;" onclick="createShow()">+ NEW SHOW</button>
+        </div>
+        
+        <textarea id="url-input" class="url-input" placeholder="Drop YouTube URLs here..."></textarea>
+        
         <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn-green" style="flex: 2;" onclick="addUrls()">START INGESTION</button>
+            <button class="btn-green" style="flex: 2;" onclick="addUrls()">INGEST URLs</button>
+            
+            <input type="file" id="local-file" accept=".mp3,.wav,.m4a" style="display: none;" onchange="handleLocalUpload()">
+            <button class="btn-blue" style="flex: 2;" onclick="document.getElementById('local-file').click()">UPLOAD LOCAL MP3</button>
+            
             <button class="btn-red" style="flex: 1;" onclick="stopProcess()">STOP ENGINE</button>
         </div>
     </div>
 
-    <div class="card" style="border-top: 2px solid #ff3e3e;">
+    <div class="card" style="border-top: 2px solid #ff3e3e; margin-top: 15px;">
         <h3 style="color: #ff3e3e;">The Eraser</h3>
         <div style="display: flex; gap: 5px;">
-            <input type="text" id="scrub-q" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Search Library..." onkeydown="if(event.key==='Enter') search()">
+            <input type="text" id="scrub-q" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Search Master Library..." onkeydown="if(event.key==='Enter') search()">
             <button style="background:#333; color:#fff;" onclick="search()">SEARCH</button>
         </div>
         <div id="results" class="results-scroll" style="display:none;"></div>
-    </div>
-
-    <div class="card" style="border-top: 2px solid #ffaa00; margin-top: 15px;">
-        <h3 style="color: #ffaa00; display: flex; justify-content: space-between; align-items: center;">
-            <span>Quality Control Radar (Sub-256kbps)</span>
-            <button onclick="runQC()" style="background: transparent; border: 1px solid #ffaa00; color: #ffaa00; font-size: 9px; cursor: pointer; padding: 4px 8px;">SCAN VAULT</button>
-        </h3>
-        <div id="qc-results" class="results-scroll">
-            <div style="color: #444; font-size: 11px; padding: 10px; text-align: center;">Click scan to find low-quality audio in your ledger.</div>
-        </div>
     </div>
 
     <div class="log-box" id="log-box"></div>
 </div>
 
 <script>
+    async function loadShows() {
+        try {
+            const res = await fetch('/api/shows');
+            const shows = await res.json();
+            const sel = document.getElementById('target-show');
+            sel.innerHTML = '<option value="">▶ ROUTE TO MAIN CATALOG (AUTO-SORT ERAS)</option>';
+            shows.forEach(s => {
+                sel.innerHTML += `<option value="Shows/${s}">SHOW: ${s}</option>`;
+            });
+        } catch(e) { console.error("Failed to load shows", e); }
+    }
+
+    window.onload = loadShows;
+
     setInterval(async () => {
         try {
             const r = await fetch('/api/status'); const d = await r.json();
@@ -80,7 +104,7 @@
                 let cls = '';
                 if(l.includes('Complete') || l.includes('ERASED')) cls = 'log-success';
                 if(l.includes('failed') || l.includes('Rejected')) cls = 'log-fail';
-                if(l.includes('Phase') || l.includes('PREP')) cls = 'log-info';
+                if(l.includes('Phase') || l.includes('PREP') || l.includes('PURGE') || l.includes('OVERWRITE')) cls = 'log-info';
                 return `<div class="${cls}">> ${l}</div>`;
             }).join('');
             logBox.scrollTop = 9999;
@@ -93,71 +117,78 @@
         } catch(e) {}
     }, 1000);
 
+    async function createShow() {
+        const name = prompt("Enter new show name (e.g., DBMorning, ChiBridge):");
+        if(!name) return;
+        await fetch('/api/new_show', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({show_name: name}) });
+        loadShows();
+    }
+
     async function addUrls() {
         const val = document.getElementById('url-input').value;
+        const target = document.getElementById('target-show').value;
         if(!val.trim()) return;
-        await fetch('/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: val}) });
+        await fetch('/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({urls: val, target: target}) });
         document.getElementById('url-input').value = '';
+    }
+
+    async function handleLocalUpload() {
+        const fileInput = document.getElementById('local-file');
+        const target = document.getElementById('target-show').value;
+        if(fileInput.files.length === 0) return;
+        
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('target', target);
+        
+        await fetch('/upload_local', { method: 'POST', body: formData });
+        fileInput.value = ''; // clear input
     }
 
     async function stopProcess() { await fetch('/stop', { method: 'POST' }); }
 
     async function search() {
         const q = document.getElementById('scrub-q').value;
-        if(!q.trim()) return;
-        const res = await fetch('/search_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
-        const list = await res.json();
         const div = document.getElementById('results');
-        div.style.display = 'block';
-        div.innerHTML = list.length ? '' : '<div style="padding:10px;">No results.</div>';
-        list.forEach(item => {
-            div.innerHTML += `<div class="match-row">
-                <span>${item['Track Name']}</span>
-                <button class="btn-small-red" onclick="scrub('${item['Track Name'].replace(/'/g, "\\'")}')">SCRUB</button>
-            </div>`;
-        });
+        
+        if(!q.trim()) { div.innerHTML = ''; div.style.display = 'none'; return; }
+        
+        try {
+            const res = await fetch('/search_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
+            const list = await res.json();
+            
+            div.style.display = 'block';
+            div.innerHTML = list.length ? '' : '<div style="padding:10px; color: #888;">No results found.</div>';
+            
+            list.forEach(item => {
+                const hasLyrics = item['Lyrics'] === 'True';
+                const lyricsBadge = hasLyrics ? '<span class="lyrics-badge">LYRICS</span>' : '';
+                const year = item['Year'] || 'Unknown';
+                const length = item['Length'] || '--:--';
+                const bitrate = item['Bitrate'] || '320';
+
+                div.innerHTML += `
+                <div class="match-row">
+                    <div class="match-header">
+                        <span class="match-title">${item.name}</span>
+                        <button class="btn-small-red" onclick="scrub('${item.name.replace(/'/g, "\\'")}')">SCRUB</button>
+                    </div>
+                    <div class="match-meta">
+                        <span>Year: <span class="meta-val">${year}</span></span>
+                        <span>Length: <span class="meta-val">${length}</span></span>
+                        <span>Bitrate: <span class="meta-val">${bitrate}k</span></span>
+                        <span>Match: <span class="meta-val">${item.score}%</span></span>
+                        ${lyricsBadge}
+                    </div>
+                </div>`;
+            });
+        } catch(e) { console.error("Search failed on the frontend:", e); }
     }
 
     async function scrub(name) {
         if(!confirm(`Delete ${name}?`)) return;
         await fetch('/execute_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({track_name: name}) });
-        document.getElementById('results').innerHTML = '';
-        document.getElementById('results').style.display = 'none';
-        document.getElementById('scrub-q').value = '';
-    }
-
-    async function runQC() {
-        const div = document.getElementById('qc-results');
-        div.innerHTML = '<div style="padding:10px; color:#00e5ff;">Scanning ledger...</div>';
-        
-        const res = await fetch('/api/qc_scan');
-        const list = await res.json();
-        
-        if (list.length === 0) {
-            div.innerHTML = '<div style="padding:10px; color:#00ff41;">All tracks meet broadcast standards!</div>';
-            return;
-        }
-        
-        div.innerHTML = '';
-        list.forEach(item => {
-            div.innerHTML += `<div class="match-row">
-                <span>${item['Track Name']} <strong style="color:#ffaa00; margin-left:10px;">[${item['Bitrate']} kbps]</strong></span>
-                <button class="btn-small-red" style="background:#ffaa00; color:#000;" data-track="${item['Track Name'].replace(/"/g, '&quot;')}" onclick="upgradeTrack(this.dataset.track)">UPGRADE</button>
-            </div>`;
-        });
-    }
-
-    async function upgradeTrack(trackName) {
-        const newUrl = prompt(`UPGRADE PROTOCOL\n\nPaste the YouTube URL for the high-quality replacement for:\n"${trackName}"\n\nLeave blank to cancel.`);
-        if (!newUrl || !newUrl.trim()) return;
-
-        await fetch('/api/upgrade', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({ old_track_name: trackName, new_url: newUrl.trim() }) 
-        });
-
-        runQC();
+        search();
     }
 </script>
 </body>
