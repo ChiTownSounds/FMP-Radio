@@ -14,6 +14,12 @@ from ftplib import FTP
 
 from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT
 
+# --- CORE MODULE IMPORTS ---
+from modules.ingest import Gatekeeper
+from modules.download import Transporter
+from modules.tagger import AutoMaster
+from modules.storage import VaultManager
+
 # --- LOGGING INFRASTRUCTURE ---
 LOG_DIR = r"C:\FMP_Ultimate\logs"
 BACKUP_DIR = r"C:\FMP_Ultimate\backups"

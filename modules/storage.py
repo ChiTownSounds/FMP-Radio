@@ -269,6 +269,14 @@ class VaultManager:
             except Exception as e:
                 logging.error(f"Local database update failed: {e}")
                 return False, f"Database Error: {e}"
+        except Exception as e:
+            logging.error(f"Vault storage critical failure: {e}")
+            return False, str(e)
+        finally:
+            if task_id:
+                task_dir = os.path.join(STAGING_DIR, task_id)
+                if os.path.exists(task_dir):
+                    shutil.rmtree(task_dir, ignore_errors=True)
 
     def update_track_metadata(self, track_name: str, updates: dict) -> Tuple[bool, str]:
         """
@@ -307,11 +315,3 @@ class VaultManager:
                 return False, "Track not found in database."
             except Exception as e:
                 return False, f"Update failed: {e}"
-        except Exception as e:
-            logging.error(f"Vault storage critical failure: {e}")
-            return False, str(e)
-        finally:
-            if task_id:
-                task_dir = os.path.join(STAGING_DIR, task_id)
-                if os.path.exists(task_dir):
-                    shutil.rmtree(task_dir, ignore_errors=True)
