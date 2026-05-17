@@ -152,6 +152,15 @@ def downloader_worker():
                     handoff_success = False
                     continue
                 
+                # --- NEW FIX: Protect the yt-dlp year ---
+                # If AutoMaster failed to find a true year, check if Gatekeeper got one
+                if updates.get('release_year') in ["Unknown", "Verify Year", ""]:
+                    gk_year = meta.get('release_year')
+                    if gk_year and gk_year not in ["Unknown", "Verify Year", ""]:
+                        # Swap the unknown out for the yt-dlp fallback
+                        updates['release_year'] = gk_year
+                # ----------------------------------------
+                
                 meta.update(updates)
                 state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
                 handoff_success = True

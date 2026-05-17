@@ -1,0 +1,17 @@
+2026-05-16 18:08:44,331 - ERROR - Dashboard search crash: name 'VaultManager' is not defined
+2026-05-16 18:08:46,757 - ERROR - Dashboard search crash: name 'VaultManager' is not defined
+2026-05-16 18:08:49,345 - ERROR - Dashboard search crash: name 'VaultManager' is not defined
+2026-05-16 18:08:49,815 - ERROR - Dashboard search crash: name 'VaultManager' is not defined
+2026-05-16 18:08:49,992 - ERROR - Dashboard search crash: name 'VaultManager' is not defined
+2026-05-16 18:19:08,491 - ERROR - Auto-Mastering critical failure: status: error
+2026-05-16 18:19:08,505 - ERROR - Vault storage critical failure: invalid literal for int() with base 10: 'Veri'
+2026-05-16 18:19:08,514 - ERROR - Vaulting failure for Jackson 5 - I Want You Back [Diana Ross Presents The Jackson 5].mp3: invalid literal for int() with base 10: 'Veri'
+2026-05-16 18:27:55,401 - ERROR - Auto-Mastering critical failure: status: error
+2026-05-16 18:31:53,423 - ERROR - Auto-Mastering critical failure: status: error
+2026-05-16 18:38:07,136 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:42:00,169 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:42:02,095 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:42:02,525 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:44:38,398 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:47:05,493 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
+2026-05-16 18:52:50,687 - ERROR - Dashboard search crash: '<' not supported between instances of 'NoneType' and 'str'
