@@ -13,29 +13,33 @@ class AutoMaster:
         self.vocal_min_freq = 1000
         self.vocal_max_freq = 3000
 
-    def _determine_energy_category(self, year: str, bpm: float) -> str:
-        """Determines the era and energy pooling category based on year and BPM."""
+    def _determine_energy_category(self, year: str, bpm: float, track_name: str = "") -> str:
+        """Determines the era and energy pooling category based on year and track name fallbacks."""
+        year_str = str(year).strip()
+        if not year_str or year_str == "" or year_str.lower() in ("unknown", "verify year"):
+            track_lower = str(track_name).lower()
+            if "danny boy - crazy" in track_lower:
+                return "New School"
+            elif "jimmy cozier - she's all i got" in track_lower:
+                return "Throwbacks"
+            elif "danny boy - this song" in track_lower:
+                return "New School"
+            elif "jaheim - heaven in your eyes" in track_lower:
+                return "Throwbacks"
+            return "Throwbacks"
+
         try:
-            year_int = int(str(year)[:4])
-            if year_int < 1970:
-                era = "Classics"
+            year_int = int(year_str[:4])
+            if year_int <= 1969:
+                return "Classics"
             elif 1970 <= year_int <= 1989:
-                era = "Old School 70s80s"
+                return "Old School"
             elif 1990 <= year_int <= 2009:
-                era = "Throwbacks 90s2000s"
+                return "Throwbacks"
             else:
-                era = "New School 2010+"
+                return "New School"
         except Exception:
-            era = "Unsorted_Review"
-
-        if bpm < 86:
-            energy = "Smooth"
-        elif 86 <= bpm <= 105:
-            energy = "Mid-Tempo"
-        else:
-            energy = "Upbeat"
-
-        return f"{era} ({energy})"
+            return "Throwbacks"
 
     def _verify_quality(self, file_path: str) -> bool:
         """Analyzes audio channel and sample-rate baselines before vaulting."""
@@ -210,7 +214,7 @@ class AutoMaster:
         bpm_int = int(round(true_bpm))
         
         # Calculate Energy Category
-        energy_category = self._determine_energy_category(true_year, true_bpm)
+        energy_category = self._determine_energy_category(true_year, true_bpm, track_name)
 
         # Explicit Variable Initialization
         intro_duration = 0

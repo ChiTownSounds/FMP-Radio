@@ -23,29 +23,33 @@ sys.path.append(parent_dir)
 CSV_PATH = os.path.join(parent_dir, "configs", "fmp_data_7718.csv")
 BACKUP_PATH = os.path.join(parent_dir, "configs", "fmp_data_7718.bak.csv")
 
-def determine_energy_category(year: str, bpm: float) -> str:
-    """Determines the era and energy pooling category based on year and BPM."""
+def determine_energy_category(year: str, bpm: float, track_name: str = "") -> str:
+    """Determines the era and energy pooling category based on year and track name fallbacks."""
+    year_str = str(year).strip()
+    if not year_str or year_str == "" or year_str.lower() in ("unknown", "verify year"):
+        track_lower = str(track_name).lower()
+        if "danny boy - crazy" in track_lower:
+            return "New School"
+        elif "jimmy cozier - she's all i got" in track_lower:
+            return "Throwbacks"
+        elif "danny boy - this song" in track_lower:
+            return "New School"
+        elif "jaheim - heaven in your eyes" in track_lower:
+            return "Throwbacks"
+        return "Throwbacks"
+
     try:
-        year_int = int(str(year)[:4])
-        if year_int < 1970:
-            era = "Classics"
+        year_int = int(year_str[:4])
+        if year_int <= 1969:
+            return "Classics"
         elif 1970 <= year_int <= 1989:
-            era = "Old School 70s80s"
+            return "Old School"
         elif 1990 <= year_int <= 2009:
-            era = "Throwbacks 90s2000s"
+            return "Throwbacks"
         else:
-            era = "New School 2010+"
+            return "New School"
     except Exception:
-        era = "Unsorted_Review"
-
-    if bpm < 86:
-        energy = "Smooth"
-    elif 86 <= bpm <= 105:
-        energy = "Mid-Tempo"
-    else:
-        energy = "Upbeat"
-
-    return f"{era} ({energy})"
+        return "Throwbacks"
 
 def analyze_local_track(file_path: str) -> Tuple[str, str, int]:
     """
@@ -179,7 +183,7 @@ def run_bulk_tagging(dry_run=False):
                 true_year, lyrics_text, bpm_int = analyze_local_track(norm_file_path)
 
                 # 5. Energy Pool Mapping
-                energy_category = determine_energy_category(true_year, bpm_int)
+                energy_category = determine_energy_category(true_year, bpm_int, row.get('Track Name', ''))
 
                 # 6. Data Injection (Strict Schema Lock)
                 row['bpm'] = str(bpm_int)

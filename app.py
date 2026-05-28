@@ -197,7 +197,19 @@ def downloader_worker():
                     except:
                         era_folder = "Unsorted_Review"
             
-            meta['energy_category'] = era_folder
+            # Map the era_folder to a clean era name for energy_category
+            clean_cat = "Throwbacks"
+            folder_lower = era_folder.lower()
+            if "classics" in folder_lower:
+                clean_cat = "Classics"
+            elif "old school" in folder_lower:
+                clean_cat = "Old School"
+            elif "throwbacks" in folder_lower:
+                clean_cat = "Throwbacks"
+            elif "new school" in folder_lower:
+                clean_cat = "New School"
+            
+            meta['energy_category'] = clean_cat
 
             state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
             handoff_success = True
@@ -380,7 +392,19 @@ def upload_local():
                     except:
                         era_folder = "Unsorted_Review"
             
-            meta['energy_category'] = era_folder
+            # Map the era_folder to a clean era name for energy_category
+            clean_cat = "Throwbacks"
+            folder_lower = era_folder.lower()
+            if "classics" in folder_lower:
+                clean_cat = "Classics"
+            elif "old school" in folder_lower:
+                clean_cat = "Old School"
+            elif "throwbacks" in folder_lower:
+                clean_cat = "Throwbacks"
+            elif "new school" in folder_lower:
+                clean_cat = "New School"
+            
+            meta['energy_category'] = clean_cat
 
             state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target})
             handoff_success = True
