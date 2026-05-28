@@ -3,9 +3,9 @@ import re
 import json
 import logging
 import subprocess
-import requests
 from typing import Tuple, Dict
 from mutagen.mp3 import MP3
+import librosa
 
 class AutoMaster:
     def __init__(self):
@@ -13,66 +13,29 @@ class AutoMaster:
         self.vocal_min_freq = 1000
         self.vocal_max_freq = 3000
 
-    def _clean_lucene_string(self, text: str) -> str:
-        """
-        Strips metadata noise (brackets, parentheses, feat. markers) 
-        and removes Lucene reserved characters to prevent API search query failures.
-        """
-        text = re.sub(r'\[.*?\]', '', text)
-        text = re.sub(r'\(.*?\)', '', text)
-        text = re.sub(r'(?i)\b(feat|ft|featuring|official|video|audio|hq|remix)\b.*', '', text)
-        text = re.sub(r'[^a-zA-Z0-9\s\-\']', '', text)
-        return " ".join(text.split()).strip()
-
-    def _fetch_true_year(self, artist: str, title: str) -> str:
-        """Queries the MusicBrainz API for the earliest release group year."""
-        clean_artist = self._clean_lucene_string(artist)
-        clean_title = self._clean_lucene_string(title)
-
-        if not clean_artist or not clean_title:
-            return "Verify Year"
-
-        headers = {
-            'User-Agent': 'FMPUltimateIngestionEngine/4.0.0 ( william.d.mckinney@gmail.com )'
-        }
-        url = "https://musicbrainz.org/ws/v2/recording/"
-        search_query = f'artist:"{clean_artist}" AND recording:"{clean_title}"'
-        params = {
-            'query': search_query,
-            'fmt': 'json',
-            'limit': 5
-        }
-
+    def _determine_energy_category(self, year: str, bpm: float) -> str:
+        """Determines the era and energy pooling category based on year and BPM."""
         try:
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                recordings = data.get('recordings', [])
-                if not recordings:
-                    return "Verify Year"
+            year_int = int(str(year)[:4])
+            if year_int < 1970:
+                era = "Classics"
+            elif 1970 <= year_int <= 1989:
+                era = "Old School 70s80s"
+            elif 1990 <= year_int <= 2009:
+                era = "Throwbacks 90s2000s"
+            else:
+                era = "New School 2010+"
+        except Exception:
+            era = "Unsorted_Review"
 
-                years = []
-                for rec in recordings:
-                    rg_list = rec.get('release-groups', [])
-                    for rg in rg_list:
-                        date_str = rg.get('first-release-date', '')
-                        if date_str and len(date_str) >= 4:
-                            match = re.match(r'^(\d{4})', date_str)
-                            if match: years.append(int(match.group(1)))
+        if bpm < 86:
+            energy = "Smooth"
+        elif 86 <= bpm <= 105:
+            energy = "Mid-Tempo"
+        else:
+            energy = "Upbeat"
 
-                    rel_list = rec.get('releases', [])
-                    for rel in rel_list:
-                        date_str = rel.get('date', '')
-                        if date_str and len(date_str) >= 4:
-                            match = re.match(r'^(\d{4})', date_str)
-                            if match: years.append(int(match.group(1)))
-
-                if years:
-                    return str(min(years)) 
-            return "Verify Year"
-        except Exception as e:
-            logging.error(f"MusicBrainz API lookup failure: {e}")
-            return "Verify Year"
+        return f"{era} ({energy})"
 
     def _verify_quality(self, file_path: str) -> bool:
         """Analyzes audio channel and sample-rate baselines before vaulting."""
@@ -104,20 +67,33 @@ class AutoMaster:
         """Extracts Cue points via FFmpeg silence detection."""
         analysis = {'bpm': 98, 'intro_sec': 0.0, 'cue_in': 0.0, 'cue_out': 0.0}
         silence_cmd = [
-            'ffmpeg', '-i', file_path, '-af', 'silencedetect=noise=-50dB:d=0.5', 
+            'ffmpeg', '-i', file_path, '-af', 'silencedetect=noise=-48dB:duration=2.0', 
             '-f', 'null', '-'
         ]
         try:
-            result = subprocess.run(silence_cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore')
+            result = subprocess.run(silence_cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore', timeout=12)
             output = result.stderr
-            end_matches = re.findall(r'silence_end:\s+([-\d.]+)', output)
-            if end_matches: analysis['cue_in'] = round(float(end_matches[0]), 2)
+            
             start_matches = re.findall(r'silence_start:\s+([-\d.]+)', output)
-            if start_matches: analysis['cue_out'] = round(float(start_matches[-1]), 2)
+            end_matches = re.findall(r'silence_end:\s+([-\d.]+)', output)
+            
+            # Check if there is an authentic front silence block starting at the very beginning (<= 0.5s)
+            if start_matches and end_matches:
+                first_start = float(start_matches[0])
+                first_end = float(end_matches[0])
+                if first_start <= 0.5:
+                    analysis['cue_in'] = first_end
+            
+            if start_matches:
+                analysis['cue_out'] = float(start_matches[-1])
+                
+        except subprocess.TimeoutExpired:
+            print("[-] WARNING: FFmpeg processing timed out on file paths. Skipping structural properties.")
+            return {}
         except Exception as e:
             logging.error(f"FFmpeg silence analysis routine failed: {e}")
         
-        analysis['intro_sec'] = 12.5 
+        analysis['intro_sec'] = analysis['cue_in']
         return analysis
 
     def process_file(self, file_path: str, original_bitrate: str = "320k") -> Tuple[str, Dict]:
@@ -139,20 +115,59 @@ class AutoMaster:
             title = clean_name.strip()
 
         metrics = self._analyze_audio_properties(file_path)
+        if not metrics:
+            return file_path, {}
 
-        # HARVEST EMBEDDED METADATA WRITTEN BY SOMEDL
-        embedded_year = ""
+        # Harvest embedded metadata
+        true_year = "Unknown"
+        lyrics_text = "Not Found"
+        true_bpm = None
         embedded_url = ""
+        
+        # Embedded Cue Point Placeholders
+        embedded_intro = None
+        embedded_punch = None
+        embedded_outro = None
+        
         try:
             audio = MP3(file_path)
             if audio and audio.tags:
-                # Extract year tags (TDRC or TYER)
+                # 1. Year Extraction (TDRC or TYER)
+                tag_year = ""
                 if 'TDRC' in audio.tags:
-                    embedded_year = str(audio.tags['TDRC'].text[0])
+                    tag_year = str(audio.tags['TDRC'].text[0])
                 elif 'TYER' in audio.tags:
-                    embedded_year = str(audio.tags['TYER'].text[0])
+                    tag_year = str(audio.tags['TYER'].text[0])
                 
-                # Extract source URL tags (yt-dlp typical mappings)
+                if tag_year:
+                    year_match = re.search(r'(\d{4})', tag_year)
+                    if year_match:
+                        true_year = year_match.group(1)
+                
+                # 2. Lyrics Extraction (USLT or SYLT)
+                uslt_frames = audio.tags.getall('USLT')
+                if uslt_frames:
+                    lyrics_text = str(uslt_frames[0].text)
+                else:
+                    found_uslt = False
+                    for key in audio.tags.keys():
+                        if key.startswith('USLT'):
+                            lyrics_text = str(audio.tags[key].text)
+                            found_uslt = True
+                            break
+                    if not found_uslt:
+                        sylt_frames = audio.tags.getall('SYLT')
+                        if sylt_frames:
+                            lyrics_text = str(sylt_frames[0].text)
+                
+                # 3. BPM Extraction (TBPM)
+                if 'TBPM' in audio.tags:
+                    try:
+                        true_bpm = float(str(audio.tags['TBPM'].text[0]))
+                    except Exception:
+                        pass
+
+                # 4. Embedded URL Extraction
                 if 'WXXX' in audio.tags:
                     embedded_url = str(audio.tags['WXXX'].url)
                 else:
@@ -162,32 +177,108 @@ class AutoMaster:
                             if "http" in comment_text:
                                 embedded_url = comment_text
                                 break
+                                
+                # 5. Cue points extraction from user-defined TXXX text frames
+                for tag in audio.tags.getall('TXXX'):
+                    desc = tag.desc.upper()
+                    if desc == 'INTRO_DURATION':
+                        try: embedded_intro = int(tag.text[0])
+                        except: pass
+                    elif desc == 'PUNCH_MS':
+                        try: embedded_punch = int(tag.text[0])
+                        except: pass
+                    elif desc == 'OUTRO_DURATION':
+                        try: embedded_outro = int(tag.text[0])
+                        except: pass
         except Exception as e:
             logging.error(f"Failed to extract embedded ID3 metadata: {e}")
 
-        # 1. Run primary deep historical search
-        true_year = self._fetch_true_year(artist, title)
+        # Waveform beat tracking fallback
+        if not true_bpm:
+            try:
+                import librosa
+                y, sr = librosa.load(file_path, sr=22050, offset=30.0, duration=60.0)
+                tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+                if hasattr(tempo, '__len__'):
+                    true_bpm = float(tempo[0])
+                else:
+                    true_bpm = float(tempo)
+            except Exception as e:
+                logging.error(f"librosa BPM calculation failed: {e}")
+                true_bpm = 98.0
+        
+        bpm_int = int(round(true_bpm))
+        
+        # Calculate Energy Category
+        energy_category = self._determine_energy_category(true_year, true_bpm)
 
-        # 2. RECONCILIATION FALLBACK: If web search fails, apply the embedded tag from SomeDL
-        if not true_year or true_year == "Verify Year":
-            if embedded_year:
-                year_match = re.search(r'(\d{4})', str(embedded_year))
-                if year_match:
-                    true_year = year_match.group(1)
+        # Explicit Variable Initialization
+        intro_duration = 0
+        outro_duration = 0
+        punch_ms = 2000
 
-        # Final safety check to protect database row consistency
-        if not true_year or str(true_year).strip() == "" or true_year == "Verify Year":
-            true_year = "Unknown"
+        # Convert silence metrics to integer milliseconds using precise rounding
+        cue_in_ms = int(round(float(metrics.get('cue_in', 0)) * 1000))
+        cue_out_ms = int(round(float(metrics.get('cue_out', 0)) * 1000))
+
+        # Read absolute total track length in milliseconds via mutagen.mp3
+        total_duration_ms = 0
+        try:
+            audio = MP3(file_path)
+            total_duration_ms = int(round(float(audio.info.length) * 1000))
+        except Exception as e:
+            logging.error(f"Failed to read track length via mutagen: {e}")
+
+        # Immediate start means zero: if cue_in_ms is 0, intro_duration strictly stays 0.
+        if cue_in_ms > 0:
+            intro_duration = cue_in_ms
+        else:
+            intro_duration = 0
+
+        # Compute outro_duration as trailing silence length at the end of the file
+        # (Total Duration minus Cue Out point)
+        if cue_out_ms > 0 and total_duration_ms > cue_out_ms:
+            outro_duration = total_duration_ms - cue_out_ms
+            punch_ms = 2000
+        else:
+            outro_duration = 0
+            punch_ms = 2000
+
+        # OVERRIDE with embedded cue points if they exist!
+        if embedded_intro is not None:
+            intro_duration = embedded_intro
+        if embedded_punch is not None:
+            punch_ms = embedded_punch
+        if embedded_outro is not None:
+            outro_duration = embedded_outro
+
+        # Embed the final precision cue points & BPM back into the MP3 tags
+        try:
+            from mutagen.id3 import TXXX, TBPM
+            audio = MP3(file_path)
+            if audio.tags is None:
+                audio.add_tags()
+            audio.tags.add(TXXX(encoding=3, desc='INTRO_DURATION', text=[str(intro_duration)]))
+            audio.tags.add(TXXX(encoding=3, desc='PUNCH_MS', text=[str(punch_ms)]))
+            audio.tags.add(TXXX(encoding=3, desc='OUTRO_DURATION', text=[str(outro_duration)]))
+            audio.tags.add(TBPM(encoding=3, text=[str(bpm_int)]))
+            audio.save()
+        except Exception as e:
+            logging.error(f"Failed to write cue points to MP3 tags: {e}")
 
         metadata_updates = {
             'bitrate': original_bitrate,
-            'lyrics': 'Not Found',
+            'lyrics': lyrics_text,
             'art_ratio': '1.0',
             'release_year': true_year,
-            'bpm': metrics['bpm'],
-            'intro_sec': metrics['intro_sec'],
-            'cue_in': metrics['cue_in'],
-            'cue_out': metrics['cue_out']
+            'bpm': bpm_int,
+            'intro_sec': metrics.get('intro_sec', float(intro_duration) / 1000.0),
+            'cue_in': cue_in_ms,
+            'cue_out': cue_out_ms,
+            'intro_duration': intro_duration,
+            'outro_duration': outro_duration,
+            'punch_ms': punch_ms,
+            'energy_category': energy_category
         }
         
         # Only overwrite the URL if SomeDL successfully embedded one.

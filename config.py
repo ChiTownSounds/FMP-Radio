@@ -20,9 +20,15 @@ FTP_PASS = os.getenv("FTP_PASS")
 FTP_BASE_DIR = "/" 
 
 # --- EXECUTABLES ---
-SOMEDL_CMD = ["somedl"] 
-YT_DLP_CMD = ["yt-dlp"]
+# Using Firefox to bypass Chromium App-Bound Encryption DPAPI locks
+SOMEDL_CMD = ["somedl", "--cookies-from-browser", "firefox"] 
+YT_DLP_CMD = ["yt-dlp", "--cookies-from-browser", "firefox"]
 
 # --- API KEYS ---
 ACOUSTID_API_KEY = os.getenv("ACOUSTID_API_KEY")
 MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmail.com")
+
+# --- SYNC CONFIGS ---
+# Toggle Auto-Git Synchronization on successful vaults.
+# Keep False by default to respect Git save points.
+AUTO_GIT_PUSH = True

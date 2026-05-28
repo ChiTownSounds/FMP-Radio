@@ -21,8 +21,10 @@ from modules.tagger import AutoMaster
 from modules.storage import VaultManager
 
 # --- LOGGING INFRASTRUCTURE ---
-LOG_DIR = r"C:\FMP_Ultimate\logs"
-BACKUP_DIR = r"C:\FMP_Ultimate\backups"
+# Using dynamic relative paths to match config.py setup
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 os.makedirs(LOG_DIR, exist_ok=True)
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
@@ -31,7 +33,6 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
 # [PHASE G] Persistent Error Logging
-# Ensures any critical failures are logged to disk for troubleshooting
 error_log_path = os.path.join(LOG_DIR, "error.log")
 file_handler = logging.FileHandler(error_log_path)
 file_handler.setLevel(logging.ERROR)
@@ -54,7 +55,7 @@ class SystemState:
         self.current_status = "Idle"
         self.current_track_url = "None"
         self.logs = collections.deque(["FMP ULTIMATE ONLINE. AUTO-MASTERING ACTIVE."], maxlen=15)
-        self.boot_cleared = False # [PHASE G] Track if initialization routine has run
+        self.boot_cleared = False
         self.start_spinner()
 
     def update_count(self):
@@ -135,41 +136,76 @@ def downloader_worker():
         try:
             state.log(f"Phase 1: Validating {url}")
             v, meta = gk.process_request(url)
-            if not v and not target_override:
-                state.log(f"Rejected: {meta.get('error', 'Unknown')}")
-                continue
+            
+            # THE GATEKEEPER BLIND PASS-THROUGH
+            if not v:
+                state.log(f"[WARNING] Gatekeeper blind: {meta.get('error', 'Unknown')}. Forcing SomeDL override.")
+                meta = {'release_year': 'Unknown', 'lyrics': 'Not Found', 'url': url}
 
             state.log(f"Phase 2: Downloading via SomeDL")
             raw_path, bitrate = tr.download_track(url, task_id=task_id)
             
-            if raw_path:
-                state.log(f"Phase 2.5: Auto-Mastering (Fingerprinting)")
-                # am.process_file now returns (mastered_path, metadata_updates)
-                # If mastered_path is empty, the track was rejected and deleted
-                mastered_path, updates = am.process_file(raw_path, original_bitrate=bitrate)
+            # --- THE GRACEFUL SKIP & DEAD LINK LOGGER ---
+            # If the download failed entirely or generated a dummy file
+            if not raw_path or "blind_pass_through" in raw_path:
+                state.log(f"[SKIP] Track completely blocked. Logging dead link.")
+                dead_link_log = os.path.join(LOG_DIR, "failed_downloads.txt")
+                with open(dead_link_log, "a", encoding="utf-8") as f:
+                    f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {url}\n")
                 
-                if not mastered_path:
-                    handoff_success = False
-                    continue
-                
-                # --- NEW FIX: Protect the yt-dlp year ---
-                # If AutoMaster failed to find a true year, check if Gatekeeper got one
-                if updates.get('release_year') in ["Unknown", "Verify Year", ""]:
-                    gk_year = meta.get('release_year')
-                    if gk_year and gk_year not in ["Unknown", "Verify Year", ""]:
-                        # Swap the unknown out for the yt-dlp fallback
-                        updates['release_year'] = gk_year
-                # ----------------------------------------
-                
-                meta.update(updates)
-                state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
-                handoff_success = True
+                handoff_success = False
+                continue
+            # --------------------------------------------
+
+            state.log(f"Phase 2.5: Auto-Mastering (Fingerprinting)")
+            mastered_path, updates = am.process_file(raw_path, original_bitrate=bitrate)
+            
+            if not mastered_path:
+                handoff_success = False
+                continue
+            
+            # Protect the yt-dlp year
+            if updates.get('release_year') in ["Unknown", "Verify Year", ""]:
+                gk_year = meta.get('release_year')
+                if gk_year and gk_year not in ["Unknown", "Verify Year", ""]:
+                    updates['release_year'] = gk_year
+            
+            meta.update(updates)
+            
+            # Era-to-Energy Category Folder Interception
+            release_year = meta.get('release_year', 'Unknown')
+            clean_name = os.path.basename(mastered_path)
+            
+            if target_override:
+                era_folder = target_override
+            else:
+                if "live" in clean_name.lower():
+                    era_folder = "Live"
+                elif not release_year or str(release_year).lower() in ['unknown', 'verify year', '']:
+                    era_folder = "Unsorted_Review"
+                else:
+                    try:
+                        year_int = int(str(release_year)[:4])
+                        if year_int < 1970:
+                            era_folder = "Classics"
+                        elif 1970 <= year_int <= 1989:
+                            era_folder = "Old School 70s80s"
+                        elif 1990 <= year_int <= 2009:
+                            era_folder = "Throwbacks 90s2000s"
+                        else:
+                            era_folder = "New School 2010+"
+                    except:
+                        era_folder = "Unsorted_Review"
+            
+            meta['energy_category'] = era_folder
+
+            state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
+            handoff_success = True
+            
         except Exception as e:
             state.log(f"[CRITICAL DOWNLOADER ERROR] {e}")
             logging.exception(f"Downloader Worker CRASH for {url}: {e}")
         finally:
-            # [PHASE C] Downloader Failsafe
-            # If we never reached the vault_queue.put, we must purge the folder here
             if not handoff_success:
                 if os.path.exists(staging_task_dir):
                     shutil.rmtree(staging_task_dir, ignore_errors=True)
@@ -189,7 +225,6 @@ def vault_worker():
         dest = task.get('target') or "Eras"
         state.log(f"Phase 3: Vaulting [{clean_name}] to -> {dest}")
         
-        # storage.VaultManager.store_track now returns (status, message)
         status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'))
         
         if status:
@@ -207,15 +242,12 @@ def vault_worker():
 def start_engines():
     state.stop_event.clear()
     
-    # [PHASE G] Boot-Only Initialization Sequence
     if not state.boot_cleared:
-        # 1. Hard Reset (Staging Purge)
         state.log("System Hard Reset: Purging Staging...")
         if os.path.exists(STAGING_DIR):
             shutil.rmtree(STAGING_DIR, ignore_errors=True)
         os.makedirs(STAGING_DIR, exist_ok=True)
         
-        # 2. Automated CSV Rolling Backup
         if os.path.exists(CSV_BLUEPRINT):
             backup_path = os.path.join(BACKUP_DIR, "fmp_data_7718_backup.csv")
             try:
@@ -314,8 +346,42 @@ def upload_local():
         handoff_success = False
         try:
             state.log(f"Phase 2.5: Auto-Mastering Local Upload [{file.filename}]")
-            mastered_path = am.process_file(raw_path)
+            mastered_path, updates = am.process_file(raw_path)
+            
+            if not mastered_path:
+                handoff_success = False
+                return
+            
             meta = {'abr': 'Local', 'release_year': 'Unknown'}
+            meta.update(updates)
+            
+            # Era-to-Energy Category Folder Interception
+            release_year = meta.get('release_year', 'Unknown')
+            clean_name = os.path.basename(mastered_path)
+            
+            if target:
+                era_folder = target
+            else:
+                if "live" in clean_name.lower():
+                    era_folder = "Live"
+                elif not release_year or str(release_year).lower() in ['unknown', 'verify year', '']:
+                    era_folder = "Unsorted_Review"
+                else:
+                    try:
+                        year_int = int(str(release_year)[:4])
+                        if year_int < 1970:
+                            era_folder = "Classics"
+                        elif 1970 <= year_int <= 1989:
+                            era_folder = "Old School 70s80s"
+                        elif 1990 <= year_int <= 2009:
+                            era_folder = "Throwbacks 90s2000s"
+                        else:
+                            era_folder = "New School 2010+"
+                    except:
+                        era_folder = "Unsorted_Review"
+            
+            meta['energy_category'] = era_folder
+
             state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target})
             handoff_success = True
             state.update_count()

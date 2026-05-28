@@ -14,6 +14,22 @@ def rebuild():
     new_rows = []
     spinner = itertools.cycle(['|', '/', '-', '\\'])
     
+    # 0. Cache existing metadata to prevent data loss
+    cached_metadata = {}
+    if CSV_PATH.exists():
+        try:
+            with open(CSV_PATH, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    track_name = row.get('Track Name')
+                    if track_name:
+                        cached_metadata[track_name] = {
+                            'Energy Category': row.get('Energy Category', 'Unassigned'),
+                            'Intro Sec': row.get('Intro Sec', '0')
+                        }
+        except Exception as e:
+            print(f"Warning: Could not read existing CSV to cache metadata: {e}")
+            
     # 1. Count total files first so we can track progress
     total_files = 0
     for folder in ERA_FOLDERS:
@@ -46,14 +62,19 @@ def rebuild():
                     year_tag = audio.tags.get('TDRC') or audio.tags.get('TYER')
                     if year_tag: year = str(year_tag.text[0])[:4]
                 
+                track_name = file.stem
+                meta = cached_metadata.get(track_name, {'Energy Category': 'Unassigned', 'Intro Sec': '0'})
+                
                 new_rows.append({
-                    'Track Name': file.stem,
+                    'Track Name': track_name,
                     'Bitrate': "320",
                     'Lyrics': "Unknown",
                     'Year': year,
                     'Art Ratio': "1.0",
                     'Length': length,
-                    'Source_URL': ""
+                    'Source_URL': "",
+                    'Energy Category': meta.get('Energy Category', 'Unassigned'),
+                    'Intro Sec': meta.get('Intro Sec', '0')
                 })
             except: pass
 
@@ -64,7 +85,7 @@ def rebuild():
     # 3. Write to the CSV
     print("\nWriting to CSV...")
     with open(CSV_PATH, 'w', encoding='utf-8', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['Track Name', 'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length', 'Source_URL'])
+        writer = csv.DictWriter(f, fieldnames=['Track Name', 'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length', 'Source_URL', 'Energy Category', 'Intro Sec'])
         writer.writeheader()
         writer.writerows(new_rows)
         

@@ -22,6 +22,11 @@ class VaultManager:
     def __init__(self):
         self.era_folders = ["Classics", "Old School 70s80s", "Throwbacks 90s2000s", "New School 2010+", "Live", "Unsorted_Review", "intro", "ondemand", "365 Commercials"]
 
+    def _safe_filename(self, name: str) -> str:
+        if not name:
+            return ""
+        return "".join(c for c in name if c not in r'\/:*?"<>|').strip()
+
     def _connect_ftp(self):
         """Connects to FTP with 3 retry attempts and exponential backoff."""
         attempts = 3
@@ -47,6 +52,22 @@ class VaultManager:
             ftp.cwd(FTP_BASE_DIR)
             ftp.mkd(directory)
             ftp.cwd(directory)
+
+    def _git_auto_push(self, track_name: str):
+        """Helper to push vaulted updates to GitHub in a background thread."""
+        import subprocess
+        try:
+            logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}'...")
+            # 1. Add modified CSV file
+            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+            # 2. Commit change
+            commit_msg = f"Vaulted new track: {track_name}"
+            subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
+            # 3. Push to origin main
+            subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+            logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
+        except Exception as e:
+            logging.error(f"[-] Auto-Git Sync Failed: {e}")
 
     def find_candidates(self, query: str) -> List[Dict]:
         """
@@ -169,8 +190,17 @@ class VaultManager:
     def store_track(self, file_path: str, metadata: dict, task_id: str = "", target_override: str = None) -> Tuple[bool, str]:
         """Restored V3 storage processing pipeline."""
         try:
-            clean_name = os.path.basename(file_path)
-            track_name = clean_name.replace('.mp3', '')
+            # 1. Derive names fresh every time
+            clean_artist = self._safe_filename(metadata.get('artist', 'Unknown Artist'))
+            clean_title = self._safe_filename(metadata.get('title', 'Unknown Title'))
+            
+            # 2. Construct the unique target filename
+            target_filename = f"{clean_artist} - {clean_title}.mp3"
+            
+            # 3. Use that unique target_filename for move/rename logic
+            clean_name = target_filename
+            track_name = f"{clean_artist} - {clean_title}"
+            
             release_year = metadata.get('release_year', 'Unknown')
             
             with self._csv_lock:
@@ -182,6 +212,7 @@ class VaultManager:
                                 return False, "Duplicate Track Detected"
 
             if target_override: 
+                era_folder = target_override
                 remote_target = f"/{target_override}"
             else:
                 if "live" in clean_name.lower():
@@ -214,34 +245,93 @@ class VaultManager:
             try:
                 audio = MP3(file_path)
                 length_str = f"{int(audio.info.length // 60)}:{int(audio.info.length % 60):02d}" if audio else "0:00"
+                duration_ms = int(round(audio.info.length * 1000)) if audio else 210000
 
                 # Read existing physical file headers to prevent structural drift crashes
-                fieldnames = ['Track Name', 'Bitrate', 'Lyrics', 'True_Year', 'Art Ratio', 'Length', 'Source_URL']
+                fieldnames = [
+                    'Track Name', 'File Path', 'Source_URL', 'duration_ms', 'item_type',
+                    'energy_category', 'Intro_Duration', 'Punch_Ms', 'outro_duration', 'bpm',
+                    'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length'
+                ]
                 with self._csv_lock:
                     if os.path.exists(CSV_BLUEPRINT):
                         with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                             r = csv.reader(f)
                             existing_headers = next(r, None)
-                            if existing_headers: 
-                                fieldnames = existing_headers
+                        
+                        if existing_headers:
+                            # Let's ensure all required columns are in existing_headers
+                            missing_cols = [c for c in fieldnames if c not in existing_headers]
+                            if missing_cols:
+                                new_headers = existing_headers + missing_cols
+                                rows = []
+                                with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                                    reader = csv.DictReader(f)
+                                    for row in reader:
+                                        rows.append(row)
+                                
+                                with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
+                                    writer = csv.DictWriter(f, fieldnames=new_headers)
+                                    writer.writeheader()
+                                    writer.writerows(rows)
+                                existing_headers = new_headers
+                            
+                            fieldnames = existing_headers
 
                 new_row = {}
                 for field in fieldnames:
                     lower_field = field.lower()
                     if field == 'Track Name': 
                         new_row[field] = track_name
+                    elif field == 'File Path':
+                        new_row[field] = f"Z:/{era_folder}/{clean_name}"
+                    elif lower_field in ['source_url', 'url', 'source url']: 
+                        new_row[field] = metadata.get('url', "")
+                    elif field == 'duration_ms':
+                        new_row[field] = duration_ms
+                    elif field == 'item_type':
+                        new_row[field] = metadata.get('item_type', 'Music')
+                    elif field == 'energy_category':
+                        new_row[field] = metadata.get('energy_category', 'Unassigned')
+                    elif field == 'Intro_Duration':
+                        new_row[field] = int(metadata.get('intro_duration', 0))
+                    elif field == 'Punch_Ms':
+                        new_row[field] = int(metadata.get('punch_ms', 2000))
+                    elif field == 'outro_duration':
+                        new_row[field] = int(metadata.get('outro_duration', 0))
+                    elif field == 'bpm':
+                        new_row[field] = int(metadata.get('bpm', 0))
                     elif field == 'Bitrate': 
                         new_row[field] = metadata.get('bitrate', '320k')
                     elif field == 'Lyrics': 
-                        new_row[field] = metadata.get('lyrics', 'Not Found')
-                    elif lower_field in ['true_year', 'year', 'true year', 'release_year', 'release year']: 
+                        lyrics_val = metadata.get('lyrics', 'Not Found')
+                        if lyrics_val and lyrics_val.strip() not in ['Not Found', 'Unknown', '', 'False']:
+                            new_row[field] = 'True'
+                            try:
+                                safe_track_name = "".join(c for c in track_name if c not in r'\/:*?"<>|').strip()
+                                lyrics_dir = os.path.join(os.path.dirname(CSV_BLUEPRINT), "lyrics")
+                                os.makedirs(lyrics_dir, exist_ok=True)
+                                txt_filepath = os.path.join(lyrics_dir, f"{safe_track_name}.txt")
+                                with open(txt_filepath, 'w', encoding='utf-8') as lyrics_file:
+                                    lyrics_file.write(lyrics_val)
+                            except Exception as e:
+                                logging.error(f"Failed to write ingested lyrics file: {e}")
+                        else:
+                            new_row[field] = 'Unknown'
+                    elif lower_field in ['year', 'true_year', 'true year', 'release_year', 'release year']: 
                         new_row[field] = release_year
                     elif lower_field in ['art ratio', 'art_ratio']: 
                         new_row[field] = metadata.get('art_ratio', '1.0')
                     elif field == 'Length': 
                         new_row[field] = length_str
-                    elif lower_field in ['source_url', 'url', 'source url']: 
-                        new_row[field] = metadata.get('url', "")
+                    elif field == 'Energy Category':
+                        new_row[field] = metadata.get('energy_category', metadata.get('energy category', 'Unassigned'))
+                    elif field == 'Intro Sec':
+                        intro_dur = metadata.get('intro_duration', 0)
+                        if intro_dur:
+                            new_row[field] = round(intro_dur / 1000.0, 2)
+                        else:
+                            new_row[field] = metadata.get('intro_sec', 0.0)
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 
@@ -251,6 +341,11 @@ class VaultManager:
                         writer = csv.DictWriter(f, fieldnames=fieldnames)
                         if not file_exists: writer.writeheader()
                         writer.writerow(new_row)
+
+                # Trigger Git Auto Push if enabled in configuration
+                from config import AUTO_GIT_PUSH
+                if AUTO_GIT_PUSH:
+                    threading.Thread(target=self._git_auto_push, args=(track_name,), daemon=True).start()
 
                 return True, "Success"
             except Exception as e:

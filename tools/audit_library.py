@@ -5,10 +5,10 @@ from ftplib import FTP
 from config import CSV_BLUEPRINT, FTP_HOST, FTP_PORT, FTP_USER, FTP_PASS, FTP_BASE_DIR
 
 # ==============================================================================
-# FMP ULTIMATE - STANDALONE MAINTENANCE UTILITY (V2 HARDENED)
+# FMP ULTIMATE - STANDALONE MAINTENANCE UTILITY
 # ==============================================================================
 # MISSION: 
-# 1. Deduplicate the local CSV database (respecting Manual Overrides).
+# 1. Deduplicate the local CSV database.
 # 2. Realign "Live" tracks found in historical era folders to the /Live dir.
 # 3. Identify low-quality tracks for high-fidelity replacement.
 # ==============================================================================
@@ -21,7 +21,7 @@ def audit_local_csv():
         print("!! Error: CSV_BLUEPRINT not found.")
         return 0, 0
 
-    seen_tracks = {} # Map track_name -> row_data
+    seen_tracks = set()
     clean_rows = []
     duplicate_count = 0
     total_original = 0
@@ -32,27 +32,21 @@ def audit_local_csv():
         for row in reader:
             total_original += 1
             name = row.get('Track Name', '').strip()
-            is_manual = row.get('Override') == 'Yes'
-
             if name in seen_tracks:
                 duplicate_count += 1
-                # [OVERRIDE PROTECTION]
-                # If we find a duplicate, and the new one is a manual override, replace the old one
-                if is_manual:
-                    seen_tracks[name] = row
-                    print(f"  > [DUPE RESOLVED] Preferring Manual Override for: {name}")
-                else:
+                if DRY_RUN:
                     print(f"  > [FLAGGED DUPE] {name}")
             else:
-                seen_tracks[name] = row
+                seen_tracks.add(name)
+                clean_rows.append(row)
 
     if not DRY_RUN and duplicate_count > 0:
-        print(f"\n[ACTION] Writing {len(seen_tracks)} unique records to database...")
+        print(f"\n[ACTION] Writing {len(clean_rows)} unique records to database...")
         try:
             with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
-                writer.writerows(list(seen_tracks.values()))
+                writer.writerows(clean_rows)
             print("  > Database write complete.")
         except Exception as e:
             print(f"  !! Failed to write CSV: {e}")
@@ -115,7 +109,6 @@ def audit_quality_upgrades():
     """
     [PHASE 3] UPGRADE SCANNER
     Identifies tracks with low bitrate, VBR, or fake transcodes.
-    Skips rows marked as Manual Overrides.
     """
     print("\n[PHASE 3] Scanning for Low-Quality Tracks (Upgrade Queue)...")
     upgrade_list = []
@@ -126,11 +119,6 @@ def audit_quality_upgrades():
     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # [OVERRIDE PROTECTION]
-            # Skip if user has manually locked this track
-            if row.get('Override') == 'Yes':
-                continue
-
             bitrate_str = row.get('Bitrate', '0').lower()
             track_name = row.get('Track Name', 'Unknown')
             
@@ -165,7 +153,7 @@ def audit_quality_upgrades():
 
 def run_audit():
     print("="*80)
-    print(" FMP ULTIMATE - LIBRARY AUDIT & REALIGNMENT UTILITY (V2 HARDENED)")
+    print(" FMP ULTIMATE - LIBRARY AUDIT & REALIGNMENT UTILITY")
     print("="*80)
     if DRY_RUN:
         print(" !!! RUNNING IN DRY_RUN MODE - NO CHANGES WILL BE MADE !!!")

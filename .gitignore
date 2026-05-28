@@ -1,1 +1,29 @@
-.env 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# Logs and Temp Files
+logs/
+staging/
+dropzone/
+cookies.txt
+*.log
+
+# Executables (if you want to track them, comment these out)
+# rclone.exe
+# fpcalc.exe
+*.exe
+
+# Local Data / Backups
+backups/
+REPLACEMENT_NEEDED.csv
+configs/*.bak.csv
+configs/*.mismatch.csv
+configs/*.pre_heal.csv
+configs/missing_tracks_report.txt
+configs/playlist_queue.txt
+tools/loudness_analysis.csv
