@@ -27,6 +27,35 @@ class VaultManager:
             return ""
         return "".join(c for c in name if c not in r'\/:*?"<>|').strip()
 
+    def _normalize_track_key(self, name: str) -> str:
+        if not name:
+            return ""
+        import re
+        if " - " in name:
+            parts = name.split(" - ", 1)
+            artist = parts[0].strip()
+            title = parts[1].strip()
+        else:
+            artist = ""
+            title = name.strip()
+            
+        def clean_part(part: str) -> str:
+            p = part.lower()
+            p = p.replace("’", "'").replace("‘", "'").replace("`", "'")
+            # Strip brackets
+            p = re.sub(r'\[.*?\]', '', p)
+            # Strip parentheses
+            p = re.sub(r'\(.*?\)', '', p)
+            # Strip feat and everything after it
+            p = re.sub(r'\b(feat\.?|featuring|f/)\b.*', '', p)
+            # Strip non-alphanumeric
+            p = re.sub(r'[^a-z0-9]', '', p)
+            return p.strip()
+            
+        clean_artist = clean_part(artist)
+        clean_title = clean_part(title)
+        return clean_artist + clean_title
+
     def _connect_ftp(self):
         """Connects to FTP with 3 retry attempts and exponential backoff."""
         attempts = 3
@@ -177,15 +206,49 @@ class VaultManager:
                     reader = csv.DictReader(f)
                     fieldnames = reader.fieldnames
                     for row in reader:
-                        if row.get('Track Name') == exact_title: found_in_csv = True
-                        else: rows.append(row)
+                        if row.get('Track Name') == exact_title: 
+                            found_in_csv = True
+                        else: 
+                            rows.append(row)
                 
-                with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(rows)
+                if found_in_csv:
+                    with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        writer.writerows(rows)
 
+        # Clean up local lyrics file if it exists
+        lyrics_deleted = False
+        try:
+            safe_track_name = "".join(c for c in exact_title if c not in r'\/:*?"<>|').strip()
+            lyrics_dir = os.path.join(os.path.dirname(CSV_BLUEPRINT), "lyrics")
+            txt_filepath = os.path.join(lyrics_dir, f"{safe_track_name}.txt")
+            if os.path.exists(txt_filepath):
+                os.remove(txt_filepath)
+                lyrics_deleted = True
+        except Exception as e:
+            logging.error(f"Failed to delete lyrics file: {e}")
+
+        # Git push updates if CSV database was modified
+        if found_in_csv:
+            from config import AUTO_GIT_PUSH
+            if AUTO_GIT_PUSH:
+                threading.Thread(target=self._git_auto_push, args=(exact_title,), daemon=True).start()
+
+        if not server_deleted and not found_in_csv and not lyrics_deleted:
+            return False, "Track not found on FTP server, database, or lyrics folders."
+            
         return True, "Sync Completed"
+
+    def _is_video_title(self, title: str) -> bool:
+        t = title.lower()
+        bad_phrases = ["official video", "music video", "official music video", "video clip", "videoclip", "lyric video", "lyrics video"]
+        for phrase in bad_phrases:
+            if phrase in t:
+                return True
+        if "(video)" in t or "[video]" in t:
+            return True
+        return False
 
     def store_track(self, file_path: str, metadata: dict, task_id: str = "", target_override: str = None) -> Tuple[bool, str]:
         """Restored V3 storage processing pipeline."""
@@ -203,15 +266,21 @@ class VaultManager:
             
             release_year = metadata.get('release_year', 'Unknown')
             
+            new_key = self._normalize_track_key(track_name)
             with self._csv_lock:
                 if os.path.exists(CSV_BLUEPRINT):
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                         reader = csv.DictReader(f)
                         for row in reader:
-                            if row.get('Track Name') == track_name:
-                                return False, "Duplicate Track Detected"
-
-            if target_override: 
+                            existing_name = row.get('Track Name')
+                            if existing_name:
+                                if self._normalize_track_key(existing_name) == new_key:
+                                    return False, "Duplicate Track Detected"
+ 
+            if self._is_video_title(track_name) or self._is_video_title(clean_name):
+                era_folder = "Unsorted_Review"
+                remote_target = "/Unsorted_Review"
+            elif target_override: 
                 era_folder = target_override
                 remote_target = f"/{target_override}"
             else:
