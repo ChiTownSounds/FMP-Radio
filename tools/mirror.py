@@ -109,13 +109,10 @@ def strict_mirror():
             if needs_copy:
                 print(f"  [+] SYNCING: {z_file_name} -> {action_text}")
                 try:
-                    if z_online:
-                        shutil.copy2(source_path, target_path)
-                    else:
-                        # Direct rclone download fallback
-                        rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
-                        remote_src = f"citrus3:/{folder}/{z_file_name}"
-                        subprocess.run([rclone_path, "copyto", remote_src, str(target_path)], check=True)
+                    # Always use direct rclone download for speed and reliability, avoiding slow/unstable WinFsp Z: mount I/O
+                    rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+                    remote_src = f"citrus3:/{folder}/{z_file_name}"
+                    subprocess.run([rclone_path, "copyto", remote_src, str(target_path)], check=True)
                     total_copied += 1
                 except Exception as e:
                     print(f"  [ERROR] Failed to copy {z_file_name}: {e}")
