@@ -4,9 +4,14 @@ import re
 import random
 import subprocess
 import shutil
+import sys
+import io
 from datetime import datetime
-from ftplib import FTP
 from typing import List, Tuple
+
+# Set standard output encoding to UTF-8 to prevent print crashes on Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Import credentials from the central config
 from config import FTP_HOST, FTP_PORT, FTP_USER, FTP_PASS, FTP_BASE_DIR
@@ -72,23 +77,18 @@ def run_audit():
     results = []
 
     try:
-        ftp = FTP()
-        print(f"Connecting to {FTP_HOST}:{FTP_PORT}...")
-        ftp.connect(FTP_HOST, FTP_PORT, timeout=15)
-        ftp.login(FTP_USER, FTP_PASS)
-        ftp.set_pasv(True)
-
-        # 1. Collect potential candidates from all era folders
-        print("Gathering remote file list...")
+        import subprocess
+        rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+        print("Gathering remote file list via Rclone...")
         all_candidates = []
         for folder in ERA_FOLDERS:
             try:
-                ftp.cwd(f"/{folder}")
-                files = [f for f in ftp.nlst() if f.lower().endswith(".mp3")]
+                result = subprocess.run([rclone_path, "lsf", f"citrus3:/{folder}"], capture_output=True, text=True, check=True, encoding='utf-8')
+                files = [line.strip() for line in result.stdout.split('\n') if line.strip().lower().endswith(".mp3")]
                 for f in files:
                     all_candidates.append((folder, f))
-            except Exception as e:
-                print(f"  !! Skipping folder /{folder}: {e}")
+            except subprocess.CalledProcessError as e:
+                print(f"  !! Skipping folder /{folder}: {e.stderr}")
 
         if not all_candidates:
             print("!! Error: No MP3 files found on server.")
@@ -105,9 +105,7 @@ def run_audit():
             
             try:
                 # Download
-                ftp.cwd(f"/{folder}")
-                with open(local_path, 'wb') as f:
-                    ftp.retrbinary(f"RETR {filename}", f.write)
+                subprocess.run([rclone_path, "copyto", f"citrus3:/{folder}/{filename}", local_path], check=True, capture_output=True, timeout=120)
                 
                 # Analyze
                 lufs = analyze_lufs(local_path)
@@ -127,6 +125,8 @@ def run_audit():
                 else:
                     print(f"    !! Data Parsing Failure for: {filename}")
 
+            except subprocess.CalledProcessError as e:
+                print(f"    !! Rclone Download Failure: {e.stderr}")
             except Exception as e:
                 print(f"    !! Download/Process Failure: {e}")
             finally:
@@ -136,8 +136,6 @@ def run_audit():
                         os.remove(local_path)
                     except:
                         pass
-
-        ftp.quit()
 
         # 4. Final Summary Report
         if results:

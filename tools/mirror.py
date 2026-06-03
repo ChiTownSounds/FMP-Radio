@@ -1,7 +1,13 @@
 import os
 import shutil
 import time
+import sys
+import io
 from pathlib import Path
+
+# Set standard output encoding to UTF-8 to prevent console printing crashes on Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # THE CORRECTED PATHS
 MASTER_DRIVE = Path("Z:/")
@@ -22,14 +28,16 @@ def strict_mirror():
     print("="*50 + "\n")
 
     # CRITICAL MOUNT CHECK
-    if not MASTER_DRIVE.exists():
-        print(f"[FATAL] Master Drive {MASTER_DRIVE} is offline. Check RaiDrive.")
-        return
+    z_online = MASTER_DRIVE.exists() and os.path.exists(r"Z:/Classics")
+    
+    if not z_online:
+        print("[WARNING] Master Drive Z: is offline. Operating in direct Rclone command-line fallback mode.")
     if not MIRROR_DRIVE.exists():
         print(f"[FATAL] Mirror path not found: {MIRROR_DRIVE}")
         print("Make sure Google Drive is running and you can see this folder in Explorer.")
         return
 
+    import subprocess
     total_deleted = 0
     total_copied = 0
 
@@ -42,17 +50,37 @@ def strict_mirror():
             print(f"[ERROR] Target folder missing on G: {folder}. Skipping to protect structure.")
             continue
 
-        if not master_dir.exists():
+        if z_online and not master_dir.exists():
             print(f"[SKIP] Source folder missing on Z: {folder}")
             continue
 
         print(f"Scanning: [{folder}]...")
 
-        # Get file lists and sizes
-        master_files = {f.name: f.stat().st_size for f in master_dir.glob("*.mp3")}
+        # Get mirror files list
         mirror_files = {f.name: f.stat().st_size for f in mirror_dir.glob("*.mp3")}
 
-        # STEP 1: The Purge (Z is the Boss. If it's not on Z, it dies on G)
+        # Get master files list (from Z: or remote Citrus3 via rclone)
+        if z_online:
+            master_files = {f.name: f.stat().st_size for f in master_dir.glob("*.mp3")}
+        else:
+            # Fallback to direct rclone lsf format sp
+            master_files = {}
+            rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+            cmd = [rclone_path, "lsf", f"citrus3:/{folder}", "--format", "sp", "--files-only", "--separator", ";"]
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
+            if res.returncode == 0:
+                for line in res.stdout.split('\n'):
+                    line = line.strip()
+                    if ";" in line and line.lower().endswith(".mp3"):
+                        parts = line.split(";", 1)
+                        try:
+                            size = int(parts[0])
+                            name = parts[1]
+                            master_files[name] = size
+                        except:
+                            pass
+
+        # STEP 1: The Purge (Z/Citrus3 is the Boss. If it's not on Z/Citrus3, it dies on G)
         for m_file_name in list(mirror_files.keys()):
             if m_file_name not in master_files:
                 target_path = mirror_dir / m_file_name
@@ -81,7 +109,13 @@ def strict_mirror():
             if needs_copy:
                 print(f"  [+] SYNCING: {z_file_name} -> {action_text}")
                 try:
-                    shutil.copy2(source_path, target_path)
+                    if z_online:
+                        shutil.copy2(source_path, target_path)
+                    else:
+                        # Direct rclone download fallback
+                        rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+                        remote_src = f"citrus3:/{folder}/{z_file_name}"
+                        subprocess.run([rclone_path, "copyto", remote_src, str(target_path)], check=True)
                     total_copied += 1
                 except Exception as e:
                     print(f"  [ERROR] Failed to copy {z_file_name}: {e}")
