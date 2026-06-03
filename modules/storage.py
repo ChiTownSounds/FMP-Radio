@@ -4,7 +4,6 @@ import csv
 import logging
 import threading
 import time
-from ftplib import FTP, error_perm
 from typing import List, Tuple, Dict
 from thefuzz import process 
 from mutagen.mp3 import MP3
@@ -18,6 +17,7 @@ class TransmissionError(Exception):
 class VaultManager:
     # Class-level lock to ensure all instances of VaultManager synchronize CSV access
     _csv_lock = threading.Lock()
+    _git_lock = threading.Lock()
 
     def __init__(self):
         self.era_folders = ["Classics", "Old School 70s80s", "Throwbacks 90s2000s", "New School 2010+", "Live", "Unsorted_Review", "intro", "ondemand", "365 Commercials"]
@@ -56,47 +56,25 @@ class VaultManager:
         clean_title = clean_part(title)
         return clean_artist + clean_title
 
-    def _connect_ftp(self):
-        """Connects to FTP with 3 retry attempts and exponential backoff."""
-        attempts = 3
-        delay = 2
-        for i in range(attempts):
-            try:
-                ftp = FTP()
-                ftp.connect(FTP_HOST, FTP_PORT, timeout=15) 
-                ftp.login(FTP_USER, FTP_PASS)
-                ftp.set_pasv(True) 
-                return ftp
-            except Exception as e:
-                if i == attempts - 1:
-                    logging.error(f"FTP Connection failed after {attempts} attempts: {e}")
-                    raise
-                time.sleep(delay)
-                delay *= 2
-
-    def _ensure_remote_dir(self, ftp, directory: str):
-        try:
-            ftp.cwd(directory)
-        except error_perm:
-            ftp.cwd(FTP_BASE_DIR)
-            ftp.mkd(directory)
-            ftp.cwd(directory)
+    def _get_rclone_path(self):
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
 
     def _git_auto_push(self, track_name: str):
         """Helper to push vaulted updates to GitHub in a background thread."""
         import subprocess
-        try:
-            logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}'...")
-            # 1. Add modified CSV file
-            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-            # 2. Commit change
-            commit_msg = f"Vaulted new track: {track_name}"
-            subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
-            # 3. Push to origin main
-            subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
-            logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
-        except Exception as e:
-            logging.error(f"[-] Auto-Git Sync Failed: {e}")
+        with self._git_lock:
+            try:
+                logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}'...")
+                # 1. Add modified CSV file
+                subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                # 2. Commit change
+                commit_msg = f"Vaulted new track: {track_name}"
+                subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
+                # 3. Push to origin main
+                subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
+            except Exception as e:
+                logging.error(f"[-] Auto-Git Sync Failed: {e}")
 
     def find_candidates(self, query: str) -> List[Dict]:
         """
@@ -161,42 +139,73 @@ class VaultManager:
         attempts = 3
         delay = 2
         server_deleted = False
-        target_filename = f"{exact_title}.mp3".lower()
+        target_filename = f"{exact_title}.mp3"
+        rclone_path = self._get_rclone_path()
+        import subprocess
         
-        for i in range(attempts):
-            ftp = None
-            try:
-                ftp = self._connect_ftp()
-                search_dirs = [f"/{folder}" for folder in self.era_folders]
-                
+        # Look up file path in CSV first under lock
+        file_path_on_server = None
+        with self._csv_lock:
+            if os.path.exists(CSV_BLUEPRINT):
                 try:
-                    ftp.cwd("/Shows")
-                    for show in ftp.nlst():
-                        if not show.endswith('.mp3'): search_dirs.append(f"/Shows/{show}")
-                except: pass
-
-                for remote_dir in search_dirs:
-                    try:
-                        ftp.cwd(remote_dir)
-                        items = ftp.nlst()
-                        for item in items:
-                            if item.lower() == target_filename:
-                                ftp.delete(item)
-                                server_deleted = True
+                    with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            if row.get('Track Name') == exact_title:
+                                file_path_on_server = row.get('File Path')
                                 break
-                        if server_deleted: break
-                    except: continue
-                
-                ftp.quit()
-                break 
-            except Exception as e:
-                if i == attempts - 1: break
-                time.sleep(delay)
-                delay *= 2
-            finally:
-                if ftp: 
-                    try: ftp.close() 
-                    except: pass
+                except Exception as e:
+                    logging.error(f"Error checking path in CSV for scrub: {e}")
+
+        last_error = ""
+
+        # Attempt optimized deletefile first if path exists
+        if file_path_on_server:
+            # Clean up Z:/ prefix to map to FTP root
+            clean_rel_path = file_path_on_server.replace('\\', '/')
+            if clean_rel_path.upper().startswith('Z:/'):
+                clean_rel_path = clean_rel_path[3:]
+            
+            ftp_target_path = f"citrus3:/{clean_rel_path}"
+            
+            for i in range(attempts):
+                try:
+                    cmd = [rclone_path, "deletefile", ftp_target_path]
+                    subprocess.run(cmd, check=True, capture_output=True)
+                    server_deleted = True
+                    break
+                except subprocess.CalledProcessError as e:
+                    err_msg = e.stderr.decode('utf-8', errors='ignore').strip()
+                    last_error = f"deletefile failed: {err_msg}"
+                    logging.info(f"Direct deletefile failed, retrying: {err_msg}")
+                    if i < attempts - 1:
+                        time.sleep(delay)
+                        delay *= 2
+
+        # Fallback to global --include delete if direct delete didn't succeed
+        if not server_deleted:
+            escaped_filename = target_filename.replace('[', '\\[').replace(']', '\\]').replace('*', '\\*').replace('?', '\\?')
+            delay = 2
+            for i in range(attempts):
+                try:
+                    # Use Rclone to delete the file globally ignoring case
+                    cmd = [rclone_path, "delete", "citrus3:/", "--include", escaped_filename, "--ignore-case"]
+                    subprocess.run(cmd, check=True, capture_output=True)
+                    server_deleted = True
+                    break
+                except subprocess.CalledProcessError as e:
+                    err_msg = e.stderr.decode('utf-8', errors='ignore').strip()
+                    last_error = f"global delete failed: {err_msg}"
+                    if i == attempts - 1:
+                        logging.error(f"Rclone delete fallback attempt failed: {err_msg}")
+                        break
+                    time.sleep(delay)
+                    delay *= 2
+
+        # If direct delete was attempted or fallback was run, and both encountered real errors (e.g. bad flags or network failure)
+        # We abort and do NOT delete from CSV, so the user knows deletion failed and can retry.
+        if not server_deleted and last_error and "not found" not in last_error.lower():
+            return False, f"FTP server deletion failed: {last_error}"
 
         found_in_csv = False
         with self._csv_lock:
@@ -299,17 +308,13 @@ class VaultManager:
                         era_folder = "Unsorted_Review"
                 remote_target = f"/{era_folder}"
 
-            ftp = self._connect_ftp()
-            if target_override and target_override.startswith("Shows/"):
-                try: ftp.cwd("/Shows")
-                except error_perm: ftp.mkd("/Shows")
-
-            self._ensure_remote_dir(ftp, remote_target)
-            ftp.cwd(remote_target)
-            
-            with open(file_path, 'rb') as local_file:
-                ftp.storbinary(f"STOR {clean_name}", local_file)
-            ftp.quit()
+            import subprocess
+            rclone_path = self._get_rclone_path()
+            try:
+                cmd = [rclone_path, "copyto", file_path, f"citrus3:{remote_target}/{clean_name}"]
+                subprocess.run(cmd, check=True, capture_output=True)
+            except subprocess.CalledProcessError as e:
+                return False, f"Rclone Upload Failure: {e.stderr.decode('utf-8', errors='ignore')}"
 
             try:
                 audio = MP3(file_path)
