@@ -40,28 +40,74 @@
     <div class="grid">
         <div class="card"><h3>Engine</h3><p id="status-text">Idle</p></div>
         <div class="card"><h3>Queue</h3><p id="queue-count">0</p></div>
-        <div class="card"><h3>Vaulted</h3><p id="completed-count">0</p></div>
-        <div class="card"><h3>Current Era</h3><p id="target-year">---</p></div>
+        <div class="card"><h3>Session Vaulted</h3><p id="completed-count">0</p></div>
+        <div class="card"><h3>Total Library</h3><p id="target-year">0</p><div id="folder-breakdown" style="font-size:11px; color:#aaa; margin-top:5px; max-height: 40px; overflow-y: auto;"></div></div>
     </div>
 
-    <div class="card">
-        <h3>Routing & Input Pipeline</h3>
+    <div class="log-box" id="log-box" style="margin-bottom: 15px; margin-top: 0;"></div>
+
+    <div class="card" style="border-top: 2px solid #00e5ff;">
+        <h3 style="color: #00e5ff;">The Hunter (Search & Download) & Input Pipeline</h3>
         <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
             <select id="target-show" style="flex: 2; padding: 10px; background: #000; color: #fff; border: 1px solid #333; font-weight: bold;">
                 <option value="">▶ ROUTE TO MAIN CATALOG (AUTO-SORT ERAS)</option>
             </select>
             <button class="btn-blue" style="flex: 1;" onclick="createShow()">+ NEW SHOW</button>
+            <button class="btn-blue" style="flex: 1; background: #0277bd;" onclick="renameShow()">RENAME SHOW</button>
         </div>
         
-        <textarea id="url-input" class="url-input" placeholder="Drop YouTube URLs here..."></textarea>
-        
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn-green" style="flex: 2;" onclick="addUrls()">INGEST URLs</button>
+        <!-- Interactive Search Mode -->
+        <div style="background: #0a0a0a; border: 1px solid #222; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+            <div style="color: #00e5ff; font-size: 11px; margin-bottom: 5px; font-weight: bold;">[INTERACTIVE MODE] Search for a Track:</div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="yt-search-input" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Artist - Title..." onkeydown="if(event.key==='Enter') searchYt()">
+                <button style="background:#00e5ff; color:#000;" onclick="searchYt()">SEARCH YT</button>
+            </div>
+            <div id="yt-results" style="display: none; background: #000; border: 1px solid #333; margin-top: 10px; max-height: 200px; overflow-y: auto; border-radius: 4px;"></div>
+        </div>
+
+        <!-- Bulk List Mode -->
+        <div style="background: #0a0a0a; border: 1px solid #222; padding: 10px; border-radius: 5px;">
+            <div style="color: #00ff41; font-size: 11px; margin-bottom: 5px; font-weight: bold;">[BULK MODE] Paste URLs or "Artist - Title" lines:</div>
+            <textarea id="url-input" class="url-input" placeholder="Drop YouTube URLs or 'Artist - Title' lines here..."></textarea>
             
-            <input type="file" id="local-file" accept=".mp3,.wav,.m4a" style="display: none;" onchange="handleLocalUpload()">
-            <button class="btn-blue" style="flex: 2;" onclick="document.getElementById('local-file').click()">UPLOAD LOCAL MP3</button>
-            
-            <button class="btn-red" style="flex: 1;" onclick="stopProcess()">STOP ENGINE</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-green" style="flex: 2;" onclick="addUrls()">INGEST LIST</button>
+                
+                <input type="file" id="local-file" accept=".mp3,.wav,.m4a" style="display: none;" onchange="handleLocalUpload()">
+                <button class="btn-blue" style="flex: 2;" onclick="document.getElementById('local-file').click()">UPLOAD LOCAL MP3</button>
+                
+                <button class="btn-red" style="flex: 1;" onclick="stopProcess()">STOP ENGINE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUEUE SECTIONS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; margin-top: 15px; width: 100%;">
+        <!-- Active Download Queue -->
+        <div class="card" style="border-top: 2px solid #00ff41; display: flex; flex-direction: column;">
+            <h3 style="color: #00ff41; display: flex; justify-content: space-between; align-items: center; margin: 0;">
+                <span>Active Download Queue</span>
+                <span id="active-queue-num" style="background: #00ff41; color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold;">0</span>
+            </h3>
+            <div id="active-queue-list" style="max-height: 250px; overflow-y: auto; background: #000; border: 1px solid #222; margin-top: 10px; border-radius: 4px; padding: 5px; min-height: 80px; font-size: 12px;">
+                <div style="padding:15px; color: #555; text-align: center;">Queue is empty</div>
+            </div>
+        </div>
+
+        <!-- Pending Discoveries -->
+        <div class="card" style="border-top: 2px solid #ffb300; display: flex; flex-direction: column;">
+            <h3 style="color: #ffb300; display: flex; justify-content: space-between; align-items: center; margin: 0;">
+                <span>Discoveries</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span id="pending-queue-num" style="background: #ffb300; color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold;">0</span>
+                    <button class="btn-green" style="font-size: 9px; padding: 2px 6px; margin: 0; background: #1b5e20;" onclick="approveAllPending()">DOWNLOAD ALL</button>
+                    <button class="btn-small-red" style="font-size: 9px; padding: 2px 6px; margin: 0;" onclick="clearPending()">CLEAR ALL</button>
+                </div>
+            </h3>
+            <div id="pending-queue-list" style="max-height: 250px; overflow-y: auto; background: #000; border: 1px solid #222; margin-top: 10px; border-radius: 4px; padding: 5px; min-height: 80px; font-size: 12px;">
+                <div style="padding:15px; color: #555; text-align: center;">No pending discoveries</div>
+            </div>
         </div>
     </div>
 
@@ -74,7 +120,6 @@
         <div id="results" class="results-scroll" style="display:none;"></div>
     </div>
 
-    <div class="log-box" id="log-box"></div>
 </div>
 
 <script>
@@ -109,10 +154,69 @@
             }).join('');
             logBox.scrollTop = 9999;
 
-            if(d.logs.length > 0) {
-                const last = d.logs[d.logs.length-1];
-                const match = last.match(/\d{4}/);
-                if(match) document.getElementById('target-year').innerText = match[0];
+            document.getElementById('target-year').innerText = d.vault_total !== undefined ? d.vault_total : '---';
+            if (d.folder_breakdown) {
+                let html = '';
+                for (const [folder, count] of Object.entries(d.folder_breakdown)) {
+                    html += `<div>${folder}: <span style="color:#00ff41">${count}</span></div>`;
+                }
+                const bd = document.getElementById('folder-breakdown');
+                if (bd) bd.innerHTML = html;
+            }
+
+            // Render Active Download Queue
+            const activeQueueList = document.getElementById('active-queue-list');
+            const activeQueueNum = document.getElementById('active-queue-num');
+            if (activeQueueList && activeQueueNum) {
+                activeQueueNum.innerText = d.download_queue.length;
+                if (d.download_queue.length === 0) {
+                    activeQueueList.innerHTML = '<div style="padding:15px; color: #555; text-align: center;">Queue is empty</div>';
+                } else {
+                    activeQueueList.innerHTML = d.download_queue.map(item => {
+                        const targetName = item.target ? item.target : 'Eras (Auto-Sort)';
+                        const isYt = item.is_yt || item.url.startsWith('http://') || item.url.startsWith('https://') || item.url.startsWith('ytsearch');
+                        const colorStyle = isYt ? 'color: #00ff41;' : 'color: #fff;';
+                        const displayName = (item.artist && item.title) ? `${item.artist} - ${item.title}` : item.url;
+                        return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #111;">
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;">
+                                <div style="${colorStyle} font-weight: bold;">${displayName}</div>
+                                <div style="color: #666; font-size: 10px;">Route: ${targetName}</div>
+                            </div>
+                            <button class="btn-small-red" style="padding: 2px 6px; font-size: 10px; margin: 0;" onclick="removeFromQueue(${item.id})">Remove</button>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Render Pending Discoveries
+            const pendingQueueList = document.getElementById('pending-queue-list');
+            const pendingQueueNum = document.getElementById('pending-queue-num');
+            if (pendingQueueList && pendingQueueNum) {
+                pendingQueueNum.innerText = d.pending_iheart_queue.length;
+                if (d.pending_iheart_queue.length === 0) {
+                    pendingQueueList.innerHTML = '<div style="padding:15px; color: #555; text-align: center;">No pending discoveries</div>';
+                } else {
+                    pendingQueueList.innerHTML = d.pending_iheart_queue.map(item => {
+                        const targetName = item.target ? item.target : 'Eras (Auto-Sort)';
+                        const titleArtist = `${item.artist} - ${item.title}`;
+                        const escapedUrl = item.url.replace(/'/g, "\\'");
+                        const escapedTarget = (item.target || '').replace(/'/g, "\\'");
+                        return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #111;">
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;">
+                                <div style="color: #fff; font-weight: bold;">${titleArtist}</div>
+                                <div style="color: #666; font-size: 10px;">Detected: ${item.timestamp} &bull; Route: ${targetName}</div>
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="btn-green" style="padding: 2px 6px; font-size: 10px; margin: 0; background: #1b5e20;" onclick="approvePending('${escapedUrl}', '${escapedTarget}')">Approve</button>
+                                <button class="btn-small-red" style="padding: 2px 6px; font-size: 10px; margin: 0;" onclick="rejectPending('${escapedUrl}')">Reject</button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
             }
         } catch(e) {}
     }, 1000);
@@ -122,6 +226,39 @@
         if(!name) return;
         await fetch('/api/new_show', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({show_name: name}) });
         loadShows();
+    }
+
+    async function renameShow() {
+        const sel = document.getElementById('target-show');
+        const selectedVal = sel.value;
+        if (!selectedVal || !selectedVal.startsWith('Shows/')) {
+            alert('Please select a show from the dropdown to rename.');
+            return;
+        }
+        const oldShowName = selectedVal.substring(6);
+        const name = prompt(`Enter new name for show "${oldShowName}":`, oldShowName);
+        if (!name) return;
+        const cleanName = name.trim();
+        if (!cleanName || cleanName === oldShowName) return;
+        
+        try {
+            const response = await fetch('/api/rename_show', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({old_name: oldShowName, new_name: cleanName})
+            });
+            const data = await response.json();
+            if (data.status === 'ok') {
+                alert(data.message);
+                await loadShows();
+                sel.value = `Shows/${cleanName}`;
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        } catch(e) {
+            console.error("Failed to rename show", e);
+            alert("Failed to connect to the server to rename the show.");
+        }
     }
 
     async function addUrls() {
@@ -147,6 +284,53 @@
 
     async function stopProcess() { await fetch('/stop', { method: 'POST' }); }
 
+    async function searchYt() {
+        const q = document.getElementById('yt-search-input').value;
+        const div = document.getElementById('yt-results');
+        
+        if(!q.trim()) { div.innerHTML = ''; div.style.display = 'none'; return; }
+        
+        div.style.display = 'block';
+        div.innerHTML = '<div style="padding:10px; color: #00e5ff;">Searching YouTube... please wait...</div>';
+        
+        try {
+            const res = await fetch('/api/search_yt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
+            const list = await res.json();
+            
+            div.innerHTML = list.length ? '' : '<div style="padding:10px; color: #ff3e3e;">No results found.</div>';
+            
+            list.forEach(item => {
+                const escapedTitle = item.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedUploader = item.uploader.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                div.innerHTML += `
+                <div class="match-row" style="cursor: pointer;" onclick="downloadYtResult('${item.url}', '${escapedTitle}', '${escapedUploader}')">
+                    <div class="match-header">
+                        <span class="match-title" style="color:#00e5ff">${item.title}</span>
+                    </div>
+                    <div class="match-meta">
+                        <span>Channel: <span class="meta-val">${item.uploader}</span></span>
+                        <span>Duration: <span class="meta-val">${item.duration_string}</span></span>
+                    </div>
+                </div>`;
+            });
+        } catch(e) { 
+            div.innerHTML = '<div style="padding:10px; color: #ff3e3e;">Search Error. Please try again.</div>'; 
+        }
+    }
+
+    async function downloadYtResult(url, title, artist) {
+        const target = document.getElementById('target-show').value;
+        await fetch('/add', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({urls: url, target: target, title: title, artist: artist}) 
+        });
+        
+        const div = document.getElementById('yt-results');
+        div.innerHTML = '<div style="padding:10px; color: #00ff41; font-weight:bold;">Track sent to Downloader Queue!</div>';
+        setTimeout(() => { div.style.display = 'none'; document.getElementById('yt-search-input').value = ''; }, 3000);
+    }
+
     async function search() {
         const q = document.getElementById('scrub-q').value;
         const div = document.getElementById('results');
@@ -166,6 +350,13 @@
                 const year = item['Year'] || 'Unknown';
                 const length = item['Length'] || '--:--';
                 const bitrate = item['Bitrate'] || '320';
+                
+                // New Stats
+                const bpm = item['bpm'] || '0';
+                const energy = item['energy_category'] || 'Unassigned';
+                const intro = item['Intro_Duration'] || '0';
+                const punch = item['Punch_Ms'] || '2000';
+                const outro = item['outro_duration'] || '0';
 
                 div.innerHTML += `
                 <div class="match-row">
@@ -180,6 +371,13 @@
                         <span>Match: <span class="meta-val">${item.score}%</span></span>
                         ${lyricsBadge}
                     </div>
+                    <div class="match-meta" style="margin-top: 4px; color: #666;">
+                        <span>BPM: <span class="meta-val" style="color:#00e5ff">${bpm}</span></span>
+                        <span>Energy: <span class="meta-val" style="color:#00e5ff">${energy}</span></span>
+                        <span>Intro: <span class="meta-val" style="color:#ffb300">${intro}ms</span></span>
+                        <span>Punch: <span class="meta-val" style="color:#ffb300">${punch}ms</span></span>
+                        <span>Outro: <span class="meta-val" style="color:#ffb300">${outro}ms</span></span>
+                    </div>
                 </div>`;
             });
         } catch(e) { console.error("Search failed on the frontend:", e); }
@@ -189,6 +387,41 @@
         if(!confirm(`Delete ${name}?`)) return;
         await fetch('/execute_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({track_name: name}) });
         search();
+    }
+
+    async function removeFromQueue(itemId) {
+        if(!confirm(`Remove this item from the active download queue?`)) return;
+        await fetch('/api/queue/remove', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: itemId})
+        });
+    }
+
+    async function approvePending(url, target) {
+        await fetch('/api/pending/approve', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: url, target: target})
+        });
+    }
+
+    async function rejectPending(url) {
+        await fetch('/api/pending/reject', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: url})
+        });
+    }
+
+    async function clearPending() {
+        if(!confirm("Clear all pending discoveries?")) return;
+        await fetch('/api/pending/clear', { method: 'POST' });
+    }
+
+    async function approveAllPending() {
+        if(!confirm("Download all pending discoveries?")) return;
+        await fetch('/api/pending/approve_all', { method: 'POST' });
     }
 </script>
 </body>

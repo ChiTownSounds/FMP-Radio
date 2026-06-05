@@ -32,3 +32,13 @@ MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmai
 # Toggle Auto-Git Synchronization on successful vaults.
 # Keep False by default to respect Git save points.
 AUTO_GIT_PUSH = True
+
+# --- iHEART SYNC SETTINGS ---
+IHEART_SYNC_ENABLED = True
+IHEART_STATION_ID = "865"  # WVAZ V103 Chicago
+IHEART_POLL_INTERVAL = 30  # seconds
+IHEART_CHURCH_FOLDER = "Shows/InspirationalChurch"
+IHEART_CHURCH_DAYS = [6]  # Sunday (6 in datetime.date.weekday())
+IHEART_CHURCH_START_HOUR = 5  # 5:00 AM
+IHEART_CHURCH_END_HOUR = 13  # 1:00 PM
+IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual"]
