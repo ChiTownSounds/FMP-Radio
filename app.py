@@ -583,7 +583,7 @@ def iheart_poller_worker():
         IHEART_CHURCH_KEYWORDS
     )
     
-    state.log(f"[iHeart Sync] Starting iHeartRadio Poller for Station ID: {IHEART_STATION_ID}")
+    state.log("[iHeart Sync] Listening for missing tracks")
     
     last_track_id = None
     last_track_key = None
@@ -614,7 +614,7 @@ def iheart_poller_worker():
                         if not artist or not title or artist.lower() in ["unknown artist", ""] or title.lower() in ["unknown title", ""]:
                             continue
                             
-                        state.log(f"[iHeart Sync] Now Playing on WVAZ V103: \"{title}\" by {artist}")
+                        logging.info(f"[iHeart Sync] Now Playing on WVAZ V103: \"{title}\" by {artist}")
                         
                         # 1. Determine Target Routing (Sunday Church or Era-based)
                         now = datetime.now()
@@ -629,12 +629,12 @@ def iheart_poller_worker():
                             for kw in IHEART_CHURCH_KEYWORDS:
                                 if kw in search_string:
                                     is_sunday_church = True
-                                    state.log(f"[iHeart Sync] Keyword matched ('{kw}') -> Routing to Gospel/Church.")
+                                    logging.info(f"[iHeart Sync] Keyword matched ('{kw}') -> Routing to Gospel/Church.")
                                     break
                                     
                         if is_sunday_church:
                             target_override = IHEART_CHURCH_FOLDER
-                            state.log(f"[iHeart Sync] Routing \"{title}\" to Church folder -> {IHEART_CHURCH_FOLDER}")
+                            logging.info(f"[iHeart Sync] Routing \"{title}\" to Church folder -> {IHEART_CHURCH_FOLDER}")
                         else:
                             target_override = ""
                             
@@ -679,7 +679,7 @@ def iheart_poller_worker():
                                         break
                                         
                         if is_duplicate:
-                            state.log(f"[iHeart Sync] Skipped (Duplicate): \"{title}\" by {artist} ({duplicate_reason})")
+                            logging.info(f"[iHeart Sync] Skipped (Duplicate): \"{title}\" by {artist} ({duplicate_reason})")
                         else:
                             query_clean = re.sub(r'\[.*?\]', '', f"{artist} - {title}").strip()
                             query_clean = re.sub(r'\s+', ' ', query_clean)
@@ -699,7 +699,7 @@ def iheart_poller_worker():
                             if already_pending:
                                 continue
                                 
-                            state.log(f"[iHeart Sync] Missing Track! Staging in Pending Discoveries: \"{query_clean}\"")
+                            state.log(f"[iHeart Sync] Missing Track! Staging in Discoveries: \"{query_clean}\"")
                             with state.lock:
                                 state.pending_iheart_queue.append({
                                     'url': query_clean,
@@ -1027,9 +1027,9 @@ def pending_approve_all():
     if approved_count > 0:
         state.update_count()
         start_engines()
-        state.log(f"[iHeart Sync] Approved all {approved_count} pending discoveries -> Sent to download queue.")
+        state.log(f"[iHeart Sync] Approved all {approved_count} discoveries -> Sent to download queue.")
         return jsonify({"status": "ok", "message": f"Successfully enqueued {approved_count} tracks."})
-    return jsonify({"status": "ok", "message": "No pending discoveries to approve."})
+    return jsonify({"status": "ok", "message": "No discoveries to approve."})
 
 @app.route('/api/pending/approve', methods=['POST'])
 def pending_approve():
@@ -1073,7 +1073,7 @@ def pending_clear():
         count = len(state.pending_iheart_queue)
         state.pending_iheart_queue.clear()
         state.save_pending()
-    state.log(f"[iHeart Sync] Cleared all {count} pending discoveries.")
+    state.log(f"[iHeart Sync] Cleared all {count} discoveries.")
     return jsonify({"status": "ok"})
 
 @app.route('/api/search_yt', methods=['POST'])
