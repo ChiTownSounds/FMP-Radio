@@ -11,6 +11,7 @@ logs/
 staging/
 dropzone/
 cookies.txt
+configs/cookies.txt
 *.log
 
 # Executables (if you want to track them, comment these out)
@@ -27,3 +28,8 @@ configs/*.pre_heal.csv
 configs/missing_tracks_report.txt
 configs/playlist_queue.txt
 tools/loudness_analysis.csv
+configs/saved_queue.json
+configs/pending_iheart.json
+upgrade_queue.txt
+missing_tracks_report.txt
+scratch/

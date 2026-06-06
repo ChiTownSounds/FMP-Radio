@@ -68,37 +68,69 @@ class AutoMaster:
             return False
 
     def _analyze_audio_properties(self, file_path: str) -> Dict:
-        """Extracts Cue points via FFmpeg silence detection."""
-        analysis = {'bpm': 98, 'intro_sec': 0.0, 'cue_in': 0.0, 'cue_out': 0.0}
-        silence_cmd = [
-            'ffmpeg', '-i', file_path, '-af', 'silencedetect=noise=-48dB:duration=2.0', 
-            '-f', 'null', '-'
-        ]
-        try:
-            result = subprocess.run(silence_cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore', timeout=12)
-            output = result.stderr
-            
-            start_matches = re.findall(r'silence_start:\s+([-\d.]+)', output)
-            end_matches = re.findall(r'silence_end:\s+([-\d.]+)', output)
-            
-            # Check if there is an authentic front silence block starting at the very beginning (<= 0.5s)
-            if start_matches and end_matches:
-                first_start = float(start_matches[0])
-                first_end = float(end_matches[0])
-                if first_start <= 0.5:
-                    analysis['cue_in'] = first_end
-            
-            if start_matches:
-                analysis['cue_out'] = float(start_matches[-1])
-                
-        except subprocess.TimeoutExpired:
-            print("[-] WARNING: FFmpeg processing timed out on file paths. Skipping structural properties.")
-            return {}
-        except Exception as e:
-            logging.error(f"FFmpeg silence analysis routine failed: {e}")
+        """
+        Analyzes audio properties using librosa to calculate precision BPM,
+        harmonic vocal onset (intro), RMS decay (outro), and novelty peaks (punch).
+        """
+        analysis = {'bpm': 98, 'intro_duration': 0, 'outro_duration': 0, 'punch_ms': 2000, 'intro_sec': 0.0}
         
-        analysis['intro_sec'] = analysis['cue_in']
+        try:
+            # Load audio downsampled to 22050Hz for performance
+            y, sr = librosa.load(file_path, sr=22050)
+            duration = librosa.get_duration(y=y, sr=sr)
+            
+            # 1. BPM / Tempo Tracking
+            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+            analysis['bpm'] = int(round(tempo[0] if hasattr(tempo, '__len__') else tempo))
+            
+            # 2. Intro Duration (Harmonic vocal onset detection)
+            harmonic = librosa.effects.harmonic(y)
+            rms_harmonic = librosa.feature.rms(y=harmonic)[0]
+            times = librosa.frames_to_time(range(len(rms_harmonic)), sr=sr)
+            
+            harmonic_threshold = rms_harmonic.mean() * 1.5
+            intro_sec = 0.0
+            for idx, val in enumerate(rms_harmonic):
+                if val > harmonic_threshold:
+                    intro_sec = times[idx]
+                    break
+            analysis['intro_duration'] = int(round(intro_sec * 1000))
+            analysis['intro_sec'] = intro_sec
+            
+            # 3. Outro Duration (Analyze trailing silence / energy decay from end backward)
+            rms_full = librosa.feature.rms(y=y)[0]
+            times_full = librosa.frames_to_time(range(len(rms_full)), sr=sr)
+            outro_threshold = rms_full.mean() * 0.15 # 15% of average energy
+            
+            outro_start_sec = duration
+            for idx in range(len(rms_full) - 1, -1, -1):
+                if rms_full[idx] > outro_threshold:
+                    outro_start_sec = times_full[idx]
+                    break
+            analysis['outro_duration'] = int(round((duration - outro_start_sec) * 1000))
+            
+            # 4. Punch Point (onset of the first major beat/chorus drop within 10s to 60s)
+            onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+            onset_times = librosa.frames_to_time(range(len(onset_env)), sr=sr)
+            
+            if duration < 15.0:
+                onset_window = [i for i, t in enumerate(onset_times) if 0.0 <= t <= duration]
+            elif duration < 60.0:
+                onset_window = [i for i, t in enumerate(onset_times) if 5.0 <= t <= duration]
+            else:
+                onset_window = [i for i, t in enumerate(onset_times) if 10.0 <= t <= 60.0]
+                
+            if onset_window:
+                max_onset_idx = max(onset_window, key=lambda i: onset_env[i])
+                analysis['punch_ms'] = int(round(onset_times[max_onset_idx] * 1000))
+            else:
+                analysis['punch_ms'] = 2000
+                
+        except Exception as e:
+            logging.error(f"Local librosa analysis failed, falling back: {e}")
+            
         return analysis
+
 
     def process_file(self, file_path: str, original_bitrate: str = "320k") -> Tuple[str, Dict]:
         """
@@ -118,15 +150,58 @@ class AutoMaster:
             artist = "Unknown Artist"
             title = clean_name.strip()
 
-        metrics = self._analyze_audio_properties(file_path)
-        if not metrics:
-            return file_path, {}
+        # Check if the file already has valid custom embedded cue points in its ID3 tags to skip librosa analysis
+        has_custom_cues = False
+        embedded_intro = None
+        embedded_punch = None
+        embedded_outro = None
+        embedded_bpm = None
+        
+        try:
+            audio = MP3(file_path)
+            if audio and audio.tags:
+                for tag in audio.tags.getall('TXXX'):
+                    desc = tag.desc.upper()
+                    if desc == 'INTRO_DURATION':
+                        try: embedded_intro = int(tag.text[0])
+                        except: pass
+                    elif desc == 'PUNCH_MS':
+                        try: embedded_punch = int(tag.text[0])
+                        except: pass
+                    elif desc == 'OUTRO_DURATION':
+                        try: embedded_outro = int(tag.text[0])
+                        except: pass
+                if 'TBPM' in audio.tags:
+                    try: embedded_bpm = int(float(str(audio.tags['TBPM'].text[0])))
+                    except: pass
+                    
+                if (embedded_intro is not None and embedded_intro != 10000) and \
+                   (embedded_outro is not None and embedded_outro != 20000) and \
+                   (embedded_punch is not None and embedded_punch not in (0, 2000)):
+                    has_custom_cues = True
+        except Exception:
+            pass
+
+        if has_custom_cues:
+            metrics = {
+                'bpm': embedded_bpm or 98,
+                'intro_duration': embedded_intro,
+                'outro_duration': embedded_outro,
+                'punch_ms': embedded_punch
+            }
+        else:
+            metrics = self._analyze_audio_properties(file_path)
+            if not metrics:
+                return file_path, {}
 
         # Harvest embedded metadata
         true_year = "Unknown"
         lyrics_text = "Not Found"
         true_bpm = None
         embedded_url = ""
+        true_artist = None
+        true_title = None
+        true_album = None
         
         # Embedded Cue Point Placeholders
         embedded_intro = None
@@ -147,6 +222,14 @@ class AutoMaster:
                     year_match = re.search(r'(\d{4})', tag_year)
                     if year_match:
                         true_year = year_match.group(1)
+                
+                # Extract clean artist, title, and album from ID3 tags if present
+                if 'TPE1' in audio.tags:
+                    true_artist = str(audio.tags['TPE1'].text[0]).strip()
+                if 'TIT2' in audio.tags:
+                    true_title = str(audio.tags['TIT2'].text[0]).strip()
+                if 'TALB' in audio.tags:
+                    true_album = str(audio.tags['TALB'].text[0]).strip()
                 
                 # 2. Lyrics Extraction (USLT or SYLT)
                 uslt_frames = audio.tags.getall('USLT')
@@ -199,31 +282,12 @@ class AutoMaster:
 
         # Waveform beat tracking fallback
         if not true_bpm:
-            try:
-                import librosa
-                y, sr = librosa.load(file_path, sr=22050, offset=30.0, duration=60.0)
-                tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-                if hasattr(tempo, '__len__'):
-                    true_bpm = float(tempo[0])
-                else:
-                    true_bpm = float(tempo)
-            except Exception as e:
-                logging.error(f"librosa BPM calculation failed: {e}")
-                true_bpm = 98.0
+            true_bpm = float(metrics.get('bpm', 98.0))
         
         bpm_int = int(round(true_bpm))
         
         # Calculate Energy Category
-        energy_category = self._determine_energy_category(true_year, true_bpm, track_name)
-
-        # Explicit Variable Initialization
-        intro_duration = 0
-        outro_duration = 0
-        punch_ms = 2000
-
-        # Convert silence metrics to integer milliseconds using precise rounding
-        cue_in_ms = int(round(float(metrics.get('cue_in', 0)) * 1000))
-        cue_out_ms = int(round(float(metrics.get('cue_out', 0)) * 1000))
+        energy_category = self._determine_energy_category(true_year, true_bpm, clean_name)
 
         # Read absolute total track length in milliseconds via mutagen.mp3
         total_duration_ms = 0
@@ -233,28 +297,23 @@ class AutoMaster:
         except Exception as e:
             logging.error(f"Failed to read track length via mutagen: {e}")
 
-        # Immediate start means zero: if cue_in_ms is 0, intro_duration strictly stays 0.
-        if cue_in_ms > 0:
-            intro_duration = cue_in_ms
-        else:
-            intro_duration = 0
+        # Explicit Variable Initialization using librosa metrics
+        intro_duration = int(metrics.get('intro_duration', 0))
+        outro_duration = int(metrics.get('outro_duration', 0))
+        punch_ms = int(metrics.get('punch_ms', 2000))
 
-        # Compute outro_duration as trailing silence length at the end of the file
-        # (Total Duration minus Cue Out point)
-        if cue_out_ms > 0 and total_duration_ms > cue_out_ms:
-            outro_duration = total_duration_ms - cue_out_ms
-            punch_ms = 2000
-        else:
-            outro_duration = 0
-            punch_ms = 2000
+        cue_in_ms = intro_duration
+        cue_out_ms = total_duration_ms - outro_duration if total_duration_ms > outro_duration else total_duration_ms
 
-        # OVERRIDE with embedded cue points if they exist!
-        if embedded_intro is not None:
+        # OVERRIDE with embedded cue points if they exist and are not placeholders!
+        if embedded_intro is not None and embedded_intro != 10000:
             intro_duration = embedded_intro
-        if embedded_punch is not None:
+            cue_in_ms = intro_duration
+        if embedded_punch is not None and embedded_punch not in (0, 2000):
             punch_ms = embedded_punch
-        if embedded_outro is not None:
+        if embedded_outro is not None and embedded_outro != 20000:
             outro_duration = embedded_outro
+            cue_out_ms = total_duration_ms - outro_duration if total_duration_ms > outro_duration else total_duration_ms
 
         # Embed the final precision cue points & BPM back into the MP3 tags
         try:
@@ -270,13 +329,23 @@ class AutoMaster:
         except Exception as e:
             logging.error(f"Failed to write cue points to MP3 tags: {e}")
 
+        # Determine clean/final artist and title to return to the pipeline
+        final_artist = true_artist or artist
+        base_title = true_title or title
+        if true_album and f"[{true_album}]" not in base_title and true_album not in base_title:
+            final_title = f"{base_title} [{true_album}]"
+        else:
+            final_title = base_title
+
         metadata_updates = {
+            'artist': final_artist,
+            'title': final_title,
             'bitrate': original_bitrate,
             'lyrics': lyrics_text,
             'art_ratio': '1.0',
             'release_year': true_year,
             'bpm': bpm_int,
-            'intro_sec': metrics.get('intro_sec', float(intro_duration) / 1000.0),
+            'intro_sec': float(intro_duration) / 1000.0,
             'cue_in': cue_in_ms,
             'cue_out': cue_out_ms,
             'intro_duration': intro_duration,

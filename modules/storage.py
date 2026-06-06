@@ -226,6 +226,20 @@ class VaultManager:
                         writer.writeheader()
                         writer.writerows(rows)
 
+        # Delete from local G: drive mirror if it exists
+        try:
+            if file_path_on_server:
+                clean_rel_path_g = file_path_on_server.replace('\\', '/')
+                if clean_rel_path_g.upper().startswith('Z:/'):
+                    clean_rel_path_g = clean_rel_path_g[3:]
+                g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+                g_target_file = os.path.join(g_drive_base, clean_rel_path_g.replace('/', os.sep))
+                if os.path.exists(g_target_file):
+                    os.remove(g_target_file)
+                    logging.info(f"Deleted from G: drive: {g_target_file}")
+        except Exception as e:
+            logging.error(f"Failed to delete from G: drive mirror: {e}")
+
         # Clean up local lyrics file if it exists
         lyrics_deleted = False
         try:
@@ -268,14 +282,18 @@ class VaultManager:
             
             # 2. Construct the unique target filename
             target_filename = f"{clean_artist} - {clean_title}.mp3"
-            
-            # 3. Use that unique target_filename for move/rename logic
             clean_name = target_filename
             track_name = f"{clean_artist} - {clean_title}"
             
             release_year = metadata.get('release_year', 'Unknown')
-            
             new_key = self._normalize_track_key(track_name)
+            
+            # 3. Verify G: drive is mounted
+            g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+            if not os.path.exists(g_drive_base):
+                return False, "Google Drive (G: drive) is not mounted or the music folder is missing. Vaulting aborted."
+
+            # 4. Check for duplicates in CSV database
             with self._csv_lock:
                 if os.path.exists(CSV_BLUEPRINT):
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
@@ -284,8 +302,19 @@ class VaultManager:
                             existing_name = row.get('Track Name')
                             if existing_name:
                                 if self._normalize_track_key(existing_name) == new_key:
-                                    return False, "Duplicate Track Detected"
- 
+                                    return False, "Duplicate Track Detected in CSV"
+
+            # 5. Check G: drive era folders for duplicate files
+            for folder in self.era_folders:
+                folder_path = os.path.join(g_drive_base, folder)
+                if os.path.exists(folder_path):
+                    for f in os.listdir(folder_path):
+                        if f.lower().endswith(".mp3"):
+                            f_name_without_ext = f[:-4]
+                            if self._normalize_track_key(f_name_without_ext) == new_key:
+                                return False, f"Duplicate Track Detected on G Drive: {folder}/{f}"
+
+            # 6. Determine Era Folder
             if self._is_video_title(track_name) or self._is_video_title(clean_name):
                 era_folder = "Unsorted_Review"
                 remote_target = "/Unsorted_Review"
@@ -308,16 +337,19 @@ class VaultManager:
                         era_folder = "Unsorted_Review"
                 remote_target = f"/{era_folder}"
 
-            import subprocess
-            rclone_path = self._get_rclone_path()
+            # 7. Vault to G: drive first (source of truth)
+            g_target_dir = os.path.join(g_drive_base, era_folder)
+            os.makedirs(g_target_dir, exist_ok=True)
+            g_target_file = os.path.join(g_target_dir, clean_name)
             try:
-                cmd = [rclone_path, "copyto", file_path, f"citrus3:{remote_target}/{clean_name}"]
-                subprocess.run(cmd, check=True, capture_output=True)
-            except subprocess.CalledProcessError as e:
-                return False, f"Rclone Upload Failure: {e.stderr.decode('utf-8', errors='ignore')}"
+                shutil.copy2(file_path, g_target_file)
+                logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name}")
+            except Exception as e:
+                return False, f"Failed to write file to G: drive: {e}"
 
+            # 8. Read/Analyze and update metadata using the vaulted file on G: drive
             try:
-                audio = MP3(file_path)
+                audio = MP3(g_target_file)
                 length_str = f"{int(audio.info.length // 60)}:{int(audio.info.length % 60):02d}" if audio else "0:00"
                 duration_ms = int(round(audio.info.length * 1000)) if audio else 210000
 
@@ -420,6 +452,16 @@ class VaultManager:
                 from config import AUTO_GIT_PUSH
                 if AUTO_GIT_PUSH:
                     threading.Thread(target=self._git_auto_push, args=(track_name,), daemon=True).start()
+
+                # 9. Remote FTP Upload (Citrus3) as the absolute last step
+                import subprocess
+                rclone_path = self._get_rclone_path()
+                try:
+                    cmd = [rclone_path, "copyto", "--inplace", g_target_file, f"citrus3:{remote_target}/{clean_name}"]
+                    subprocess.run(cmd, check=True, capture_output=True)
+                    logging.info(f"[✓] Track successfully uploaded to Citrus3 FTP (Z:): {clean_name}")
+                except subprocess.CalledProcessError as e:
+                    return False, f"Rclone FTP Upload Failure from G: drive source: {e.stderr.decode('utf-8', errors='ignore')}"
 
                 return True, "Success"
             except Exception as e:

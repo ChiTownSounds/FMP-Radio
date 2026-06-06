@@ -20,4 +20,4 @@ git push origin main
 
 echo.
 echo Done! The timeline is secure.
-pause
+timeout /t 5

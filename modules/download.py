@@ -38,29 +38,8 @@ class Transporter:
             self._log_to_system(f"[TIMEOUT] SomeDL stalled for >300s on {url}. Killing process.")
         except subprocess.CalledProcessError as e:
             logging.error(f"SomeDL failed: {e.stderr}")
-            logging.info("Attempting fallback to yt-dlp...")
+            self._log_to_system(f"[ERROR] SomeDL failed on {url}.")
         except Exception as e:
             logging.error(f"Unexpected error in SomeDL: {e}")
-
-        # 2. Fallback Attempt: yt-dlp
-        fallback_cmd = YT_DLP_CMD + [
-            "-x", "--audio-format", "mp3",
-            "--audio-quality", "0",
-            "-o", f"{staging_path}/%(title)s.%(ext)s",
-            url
-        ]
-
-        try:
-            logging.info(f"Running Fallback yt-dlp: {' '.join(fallback_cmd)}")
-            # Enforce 300s timeout on fallback as well
-            subprocess.run(fallback_cmd, check=True, capture_output=True, text=True, timeout=300)
-            
-            files = [f for f in os.listdir(staging_path) if f.endswith('.mp3')]
-            if files:
-                return os.path.join(staging_path, files[0]), "320"
-        except subprocess.TimeoutExpired:
-            self._log_to_system(f"[TIMEOUT] Fallback yt-dlp stalled for >300s on {url}. Moving on.")
-        except Exception as e:
-            logging.error(f"Fallback download failed: {e}")
 
         return "", ""

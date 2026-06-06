@@ -18,7 +18,7 @@ class Gatekeeper:
         is_yt_music = "music.youtube.com" in url
         
         if is_youtube and not is_yt_music:
-            return False, {"error": "Standard YouTube video links are strictly prohibited. Use YouTube Music links only."}
+            return False, {"error": "Standard YouTube video links are strictly prohibited. Use YouTube Music links only.", "veto": True}
 
         # Phase 1: Metadata Extraction via yt-dlp
         cmd = YT_DLP_CMD + ["-j", "--flat-playlist", url]

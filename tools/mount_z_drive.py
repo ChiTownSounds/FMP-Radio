@@ -18,7 +18,12 @@ def mount_drive():
     print("      FMP NATIVE RCLONE MOUNT UTILITY               ")
     print("====================================================")
     
-    # 1. Verify rclone exists
+    # 1. Check if Z: drive is already mounted
+    if os.path.exists("Z:/"):
+        print("[*] Z: drive is already mounted. Skipping mount step to prevent stream interruption.")
+        return
+
+    # 2. Verify rclone exists
     if not os.path.exists(RCLONE_PATH):
         print(f"[-] Error: rclone.exe not found at {RCLONE_PATH}. Run installation first!")
         return

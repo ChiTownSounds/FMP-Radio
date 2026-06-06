@@ -16,4 +16,4 @@ git push origin main
 
 echo.
 echo Checkpoint Saved! You can always return to this point using git log / git reset.
-pause
+timeout /t 5
