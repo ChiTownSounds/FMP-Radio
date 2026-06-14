@@ -171,6 +171,30 @@ def search_yt_music_album(artist, title):
         return f"https://music.youtube.com/playlist?list={playlist_ids[0]}"
     return None
 
+def save_csv_database(rows, fieldnames):
+    """Safely saves database rows to CSV using a tempfile swap to prevent corruption."""
+    try:
+        temp_path = CSV_PATH + ".tmp"
+        with open(temp_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+            
+        # Swap files
+        backup_path = CSV_PATH + ".bak"
+        if os.path.exists(backup_path):
+            try:
+                os.remove(backup_path)
+            except:
+                pass
+        if os.path.exists(CSV_PATH):
+            os.rename(CSV_PATH, backup_path)
+        os.rename(temp_path, CSV_PATH)
+        return True
+    except Exception as e:
+        print(f"  [ERROR] Failed to save CSV database: {e}")
+        return False
+
 def audit_library_counterparts(limit=5, query=None, dry_run=False):
     """Audits library tracks to detect explicit status and locate clean counterparts."""
     print(f"Reading library from CSV: {CSV_PATH}")
@@ -193,6 +217,10 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         if query and query.lower() not in name.lower():
             continue
             
+        # Hard exclusion for Danny Boy tracks
+        if "danny boy" in name.lower():
+            continue
+            
         if explicit_val in ['', 'unknown']:
             auditable_tracks.append(r)
 
@@ -207,8 +235,7 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
     print(f"Auditing {len(to_audit)} tracks now...")
     
     results_report = []
-    updated_rows = {row['Track Name']: row for row in rows}
-    csv_updated = False
+    consecutive_rate_limits = 0
     
     for idx, r in enumerate(to_audit, 1):
         name = r['Track Name']
@@ -224,12 +251,27 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         album_url = None
         is_watch = "watch?v=" in url
         
+        # Rate-limiting mitigation: inspect html fetching health
+        def fetch_html_with_ratelimit_check(fetch_url):
+            nonlocal consecutive_rate_limits
+            html_content = get_html_with_headers(fetch_url)
+            if html_content:
+                if "429" in html_content or "too many requests" in html_content.lower() or "captcha" in html_content.lower():
+                    print("  [WARNING] YouTube Music rate-limiting or CAPTCHA detected!")
+                    consecutive_rate_limits += 1
+                    return None
+                consecutive_rate_limits = 0
+                return html_content
+            else:
+                consecutive_rate_limits += 1
+                return None
+
         if url and ("music.youtube.com" in url or "youtube.com/watch" in url):
             if "playlist?list=" in url:
                 album_url = url
             elif is_watch:
                 # Scrape watch page to find playlist ID
-                html = get_html_with_headers(url)
+                html = fetch_html_with_ratelimit_check(url)
                 if html:
                     playlist_ids = re.findall(r'OLAK5uy_[A-Za-z0-9_-]+', html)
                     if playlist_ids:
@@ -238,14 +280,23 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         if not album_url:
             # Fallback: search YouTube Music using artist and title
             print(f"  No Source URL found. Searching YTM for: {artist} - {title}")
-            album_url = search_yt_music_album(artist, title)
-            if album_url:
-                print(f"  [FOUND URL]: {album_url}")
-                if not dry_run:
-                    r['Source_URL'] = album_url
-                    csv_updated = True
+            # Scrape search page
+            query_escaped = urllib.parse.quote(f"{artist} {title} album")
+            search_url = f"https://music.youtube.com/search?q={query_escaped}"
+            search_html = fetch_html_with_ratelimit_check(search_url)
+            if search_html:
+                playlist_ids = re.findall(r'OLAK5uy_[A-Za-z0-9_-]+', search_html)
+                if playlist_ids:
+                    album_url = f"https://music.youtube.com/playlist?list={playlist_ids[0]}"
+                    print(f"  [FOUND URL]: {album_url}")
+                    if not dry_run:
+                        r['Source_URL'] = album_url
                 else:
-                    print(f"  [DRY RUN] Would save URL: {album_url}")
+                    print("  Could not find any album playlists in search results.")
+            
+        if consecutive_rate_limits >= 3:
+            print("\n[CRITICAL] Too many consecutive network/rate-limiting errors. Saving progress and stopping to protect your IP address.")
+            break
 
         if album_url:
             print(f"  Album URL: {album_url}")
@@ -255,7 +306,7 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                 is_explicit = False
                 if is_watch:
                     # Check watch page HTML directly for the explicit badge
-                    watch_html = get_html_with_headers(url)
+                    watch_html = fetch_html_with_ratelimit_check(url)
                     if watch_html and 'MUSIC_EXPLICIT_BADGE' in watch_html:
                         is_explicit = True
                 else:
@@ -267,10 +318,10 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                 print(f"  Explicit Status: {'EXPLICIT' if is_explicit else 'CLEAN'}")
                 
                 if not dry_run:
-                    # Update CSV row
+                    # Update row in memory
                     r['Explicit'] = 'True' if is_explicit else 'False'
-                    updated_rows[name] = r
-                    csv_updated = True
+                    # Save CSV instantly to preserve progress
+                    save_csv_database(rows, fieldnames)
                 else:
                     print(f"  [DRY RUN] Would set Explicit = {'True' if is_explicit else 'False'}")
                 
@@ -291,18 +342,7 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         else:
             print("  Could not resolve album URL.")
             
-        time.sleep(1.5) # rate limit politeness
-
-    # Write updates to CSV if any
-    if csv_updated and not dry_run:
-        with open(CSV_PATH, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            for r in rows:
-                writer.writerow(r)
-        print("\n[UPDATED] Master CSV database updated with verified Explicit/Clean tags.")
-    elif csv_updated and dry_run:
-        print("\n[DRY RUN] Skipping database CSV update.")
+        time.sleep(1.8) # rate limit politeness
 
     if results_report:
         print("\n=== CLEAN COUNTERPARTS SUMMARY REPORT ===")
