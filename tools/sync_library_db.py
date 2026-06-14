@@ -15,7 +15,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 # Append root dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, is_non_song
 
 try:
     from mutagen.mp3 import MP3
@@ -316,7 +316,9 @@ def run_sync():
                             new_row[field] = length_str
                         elif field == 'Explicit':
                             title_lower = new_filename.lower()
-                            if 'explicit' in title_lower:
+                            if is_non_song(new_filename, str(rel_path)):
+                                new_row[field] = 'False'
+                            elif 'explicit' in title_lower:
                                 new_row[field] = 'True'
                             elif 'clean' in title_lower:
                                 new_row[field] = 'False'

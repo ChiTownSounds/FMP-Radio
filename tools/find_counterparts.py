@@ -9,7 +9,9 @@ import time
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-CSV_PATH = r"C:\FMP_Ultimate\configs\fmp_data_7718.csv"
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import is_non_song, CSV_BLUEPRINT
+CSV_PATH = CSV_BLUEPRINT
 
 def get_html_with_headers(url):
     headers = {
@@ -327,6 +329,7 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
     auditable_tracks = []
     for r in rows:
         name = r['Track Name']
+        path = r.get('File Path', '')
         explicit_val = r.get('Explicit', '').strip().lower()
         
         # Apply query filter if provided
@@ -335,6 +338,14 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
             
         # Hard exclusion for Danny Boy tracks
         if "danny boy" in name.lower():
+            continue
+            
+        # Exclude non-songs: set Explicit to False if not already, and skip auditing
+        if is_non_song(name, path):
+            if explicit_val != 'false':
+                r['Explicit'] = 'False'
+                r['Source_URL'] = ''
+                save_csv_database(rows, fieldnames)
             continue
             
         if explicit_val in ['', 'unknown']:

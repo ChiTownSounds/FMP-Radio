@@ -48,3 +48,20 @@ IHEART_CHURCH_DAYS = [6]  # Sunday (6 in datetime.date.weekday())
 IHEART_CHURCH_START_HOUR = 5  # 5:00 AM
 IHEART_CHURCH_END_HOUR = 13  # 1:00 PM
 IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual"]
+
+# --- NON-SONG EXCLUSION LOGIC ---
+def is_non_song(track_name, file_path):
+    path_lower = file_path.lower() if file_path else ""
+    name_lower = track_name.lower() if track_name else ""
+    
+    # Directory/Path keywords
+    non_song_dirs = ['ondemand', 'sweeper', 'promo', 'drop', 'commercial', 'sfx', 'effect', 'liner', 'branding', 'shows', 'adbreak', 'ad break']
+    if any(x in path_lower for x in non_song_dirs):
+        return True
+        
+    # Track Name keywords
+    non_song_names = ['sweeper', 'chicago l announcement', 'liner', 'celebrity drop', 'fmp radio', 'ad break', 'commercial', 'sfx']
+    if any(x in name_lower for x in non_song_names):
+        return True
+        
+    return False

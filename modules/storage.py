@@ -282,6 +282,37 @@ class VaultManager:
             clean_artist = self._safe_filename(metadata.get('artist', 'Unknown Artist'))
             clean_title = self._safe_filename(metadata.get('title', 'Unknown Title'))
             
+            # Check if this is a clean counterpart upgrade for an existing explicit track in the database
+            new_explicit_tag = str(metadata.get('explicit', 'False')).strip().lower()
+            
+            base_title = clean_title
+            if base_title.lower().endswith(" (clean)"):
+                base_title = base_title[:-8].strip()
+            
+            original_track_name = f"{clean_artist} - {base_title}"
+            original_key = self._normalize_track_key(original_track_name)
+            
+            is_clean_upgrade = False
+            
+            if new_explicit_tag in ['false', '0']:
+                with self._csv_lock:
+                    if os.path.exists(CSV_BLUEPRINT):
+                        with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                            reader = csv.DictReader(f)
+                            for row in reader:
+                                existing_name = row.get('Track Name')
+                                if existing_name:
+                                    if self._normalize_track_key(existing_name) == original_key:
+                                        existing_explicit = row.get('Explicit', '').strip().lower()
+                                        if existing_explicit in ['true', '', 'unknown']:
+                                            is_clean_upgrade = True
+                                            break
+            
+            if is_clean_upgrade:
+                if not clean_title.lower().endswith(" (clean)"):
+                    clean_title = f"{clean_title} (Clean)"
+                logging.info(f"[Upgrade] Clean counterpart detected. Ensured ' (Clean)' is appended to track title: {clean_artist} - {clean_title}")
+
             # 2. Construct the unique target filename
             target_filename = f"{clean_artist} - {clean_title}.mp3"
             clean_name = target_filename
@@ -296,9 +327,6 @@ class VaultManager:
                 return False, "Google Drive (G: drive) is not mounted or the music folder is missing. Vaulting aborted."
 
             # 4. Check for duplicates in CSV database
-            is_upgrade = False
-            existing_row_to_replace = None
-            
             with self._csv_lock:
                 if os.path.exists(CSV_BLUEPRINT):
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
@@ -307,66 +335,17 @@ class VaultManager:
                             existing_name = row.get('Track Name')
                             if existing_name:
                                 if self._normalize_track_key(existing_name) == new_key:
-                                    # Check if the existing track is explicit or unknown, AND the new track is clean
-                                    existing_explicit = row.get('Explicit', '').strip().lower()
-                                    new_explicit_tag = str(metadata.get('explicit', 'False')).strip().lower()
-                                    
-                                    if existing_explicit in ['true', '', 'unknown'] and new_explicit_tag in ['false', '0']:
-                                        is_upgrade = True
-                                        existing_row_to_replace = row
-                                    else:
-                                        return False, "Duplicate Track Detected in CSV"
+                                    return False, "Duplicate Track Detected in CSV"
 
             # 5. Check G: drive era folders for duplicate files
-            if not is_upgrade:
-                for folder in self.era_folders:
-                    folder_path = os.path.join(g_drive_base, folder)
-                    if os.path.exists(folder_path):
-                        for f in os.listdir(folder_path):
-                            if f.lower().endswith(".mp3"):
-                                f_name_without_ext = f[:-4]
-                                if self._normalize_track_key(f_name_without_ext) == new_key:
-                                    return False, f"Duplicate Track Detected on G Drive: {folder}/{f}"
-
-            # If this is a clean upgrade, delete the old file on G: Drive, remote FTP, and CSV row first
-            if is_upgrade and existing_row_to_replace:
-                old_relative_path = existing_row_to_replace.get('File Path', '').replace("Z:/", "")
-                old_g_file = os.path.join(g_drive_base, old_relative_path.replace("/", os.sep))
-                
-                # Delete from G: drive
-                if os.path.exists(old_g_file):
-                    try:
-                        os.remove(old_g_file)
-                        logging.info(f"[Upgrade] Deleted old explicit/unknown G: drive file: {old_g_file}")
-                    except Exception as e:
-                        logging.error(f"[Upgrade] Failed to delete old G: drive file: {e}")
-                        
-                # Delete from Citrus3 FTP using rclone
-                import subprocess
-                rclone_path = self._get_rclone_path()
-                try:
-                    cmd = [rclone_path, "deletefile", f"citrus3:/{old_relative_path}"]
-                    subprocess.run(cmd, check=True, capture_output=True)
-                    logging.info(f"[Upgrade] Deleted old explicit/unknown Citrus3 FTP file: {old_relative_path}")
-                except Exception as e:
-                    logging.error(f"[Upgrade] Failed to delete old Citrus3 FTP file: {e}")
-                    
-                # Delete row from CSV database
-                with self._csv_lock:
-                    if os.path.exists(CSV_BLUEPRINT):
-                        rows_to_keep = []
-                        with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
-                            reader = csv.DictReader(f)
-                            fieldnames = reader.fieldnames
-                            for row in reader:
-                                existing_name = row.get('Track Name')
-                                if not existing_name or self._normalize_track_key(existing_name) != new_key:
-                                    rows_to_keep.append(row)
-                        with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
-                            writer = csv.DictWriter(f, fieldnames=fieldnames)
-                            writer.writeheader()
-                            writer.writerows(rows_to_keep)
-                        logging.info(f"[Upgrade] Removed old duplicate row from CSV for {track_name}")
+            for folder in self.era_folders:
+                folder_path = os.path.join(g_drive_base, folder)
+                if os.path.exists(folder_path):
+                    for f in os.listdir(folder_path):
+                        if f.lower().endswith(".mp3"):
+                            f_name_without_ext = f[:-4]
+                            if self._normalize_track_key(f_name_without_ext) == new_key:
+                                return False, f"Duplicate Track Detected on G Drive: {folder}/{f}"
 
             # 6. Determine Era Folder
             if self._is_video_title(track_name) or self._is_video_title(clean_name):
