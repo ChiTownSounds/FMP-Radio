@@ -31,6 +31,11 @@ class VaultManager:
         if not name:
             return ""
         import re
+        import unicodedata
+        
+        # Decompose accents/diacritics and convert to ASCII (e.g. Ÿ -> Y, ‐ -> -)
+        name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
+        
         parts = name.split(' - ', 1)
         if len(parts) == 2:
             artist, title = parts

@@ -200,7 +200,87 @@ def save_csv_database(rows, fieldnames):
         print(f"  [ERROR] Failed to save CSV database: {e}")
         return False
 
-def trigger_clean_download(counterpart_url, target_folder):
+def find_clean_track_url(counterpart_album_id, target_title):
+    """Fetches the counterpart album page and finds the video URL of the track matching target_title."""
+    album_url = f"https://music.youtube.com/playlist?list={counterpart_album_id}"
+    html = get_html_with_headers(album_url)
+    if not html:
+        return None, None
+        
+    scripts = re.findall(r'<script.*?>.*?</script>', html, re.DOTALL)
+    data_script = None
+    for script in scripts:
+        if 'initialData' in script and 'musicResponsiveListItemRenderer' in script:
+            data_script = script
+            break
+            
+    if not data_script:
+        return None, None
+        
+    matches = re.findall(r"data:\s*'([\s\S]*?)'", data_script)
+    if len(matches) < 2:
+        return None, None
+        
+    try:
+        decoded = matches[1].encode('utf-8').decode('unicode_escape')
+        data = json.loads(decoded)
+    except:
+        return None, None
+        
+    items = find_nodes(data, 'musicResponsiveListItemRenderer')
+    best_match_score = -1
+    best_video_id = None
+    best_title = None
+    
+    for item in items:
+        title = "Unknown"
+        try:
+            title = item['flexColumns'][0]['musicResponsiveListItemFlexColumnRenderer']['text']['runs'][0]['text']
+        except:
+            pass
+            
+        video_id = None
+        try:
+            video_id = item['playlistItemData']['videoId']
+        except:
+            try:
+                video_id = item['flexColumns'][0]['musicResponsiveListItemFlexColumnRenderer']['text']['runs'][0]['navigationEndpoint']['watchEndpoint']['videoId']
+            except:
+                pass
+                
+        if not video_id:
+            continue
+            
+        # Score the title match
+        clean_item = re.sub(r'[^a-z0-9]', '', title.lower())
+        clean_target = re.sub(r'[^a-z0-9]', '', target_title.lower())
+        
+        # Strip common suffixes/versions
+        core_item = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_item)
+        core_target = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_target)
+        
+        score = 0
+        if clean_item == clean_target:
+            score = 100
+        elif core_item == core_target and core_item:
+            score = 90
+        elif clean_target in clean_item or clean_item in clean_target:
+            len_diff = abs(len(clean_item) - len(clean_target))
+            if min(len(clean_item), len(clean_target)) <= 3:
+                score = 80 if len_diff == 0 else 0
+            else:
+                score = 50 - len_diff
+                
+        if score > 0 and score > best_match_score:
+            best_match_score = score
+            best_video_id = video_id
+            best_title = title
+            
+    if best_match_score >= 40 and best_video_id:
+        return f"https://music.youtube.com/watch?v={best_video_id}", best_title
+    return None, None
+
+def trigger_clean_download(counterpart_url, target_folder, explicit=None):
     import json
     import urllib.request
     
@@ -210,6 +290,9 @@ def trigger_clean_download(counterpart_url, target_folder):
         "target": target_folder,
         "auto_linked": True
     }
+    if explicit is not None:
+        payload["explicit"] = explicit
+        
     data = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
         url, 
@@ -361,26 +444,31 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                 
                 if is_explicit:
                     if counterpart_id:
-                        counterpart_url = f"https://music.youtube.com/playlist?list={counterpart_id}"
-                        print(f"  [FOUND CLEAN COUNTERPART]: \"{counterpart_title}\"")
-                        print(f"  URL: {counterpart_url}")
-                        results_report.append({
-                            'Song': name,
-                            'Album': counterpart_title,
-                            'URL': counterpart_url
-                        })
+                        print(f"  [FOUND CLEAN COUNTERPART ALBUM]: \"{counterpart_title}\"")
+                        clean_track_url, clean_track_title = find_clean_track_url(counterpart_id, title)
                         
-                        # Trigger automatic clean download replacement
-                        if not dry_run:
-                            file_path = r.get('File Path', '')
-                            file_path_clean = file_path.replace("\\", "/")
-                            parts = file_path_clean.split("/")
-                            target_folder = "New School 2010+" # fallback
-                            if len(parts) >= 2:
-                                target_folder = parts[-2]
-                                
-                            print(f"  [AUTO-DOWNLOAD] Triggering clean replacement download in target: {target_folder}...")
-                            trigger_clean_download(counterpart_url, target_folder)
+                        if clean_track_url:
+                            print(f"  [FOUND SPECIFIC CLEAN TRACK]: \"{clean_track_title}\"")
+                            print(f"  URL: {clean_track_url}")
+                            results_report.append({
+                                'Song': name,
+                                'Album': counterpart_title,
+                                'URL': clean_track_url
+                            })
+                            
+                            # Trigger automatic clean download replacement
+                            if not dry_run:
+                                file_path = r.get('File Path', '')
+                                file_path_clean = file_path.replace("\\", "/")
+                                parts = file_path_clean.split("/")
+                                target_folder = "New School 2010+" # fallback
+                                if len(parts) >= 2:
+                                    target_folder = parts[-2]
+                                    
+                                print(f"  [AUTO-DOWNLOAD] Triggering clean replacement download in target: {target_folder}...")
+                                trigger_clean_download(clean_track_url, target_folder, explicit=False)
+                        else:
+                            print("  [-] Could not resolve specific clean track in the counterpart album. Skipping download.")
                     else:
                         print("  No counterpart clean album found in 'Other versions' shelf.")
             else:
