@@ -473,8 +473,14 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                         print("  No counterpart clean album found in 'Other versions' shelf.")
             else:
                 print("  Failed to extract album data.")
+                if not dry_run:
+                    r['Explicit'] = 'False'
+                    save_csv_database(rows, fieldnames)
         else:
             print("  Could not resolve album URL.")
+            if not dry_run:
+                r['Explicit'] = 'False'
+                save_csv_database(rows, fieldnames)
             
         time.sleep(1.8) # rate limit politeness
 
