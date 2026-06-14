@@ -1,0 +1,404 @@
+import os
+import sys
+import csv
+import io
+import shutil
+import sqlite3
+import subprocess
+import urllib.request
+import re
+from pathlib import Path
+
+# Fix console encoding for Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+# Append root dir to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH
+
+try:
+    from mutagen.mp3 import MP3
+except ImportError:
+    print("[*] Installing mutagen library for audio metadata parsing...")
+    subprocess.run([sys.executable, "-m", "pip", "install", "mutagen"], check=True, capture_output=True)
+    from mutagen.mp3 import MP3
+
+from modules.tagger import AutoMaster
+
+# --- CONFIGURATIONS ---
+G_DRIVE_MUSIC = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
+BROADCASTER_DB = Path(r"C:\FMP_Broadcaster\fmp_radio.db")
+RCLONE_EXE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+DRY_RUN = False  # Change to True to print actions without committing them
+
+def normalize_track_key(name: str) -> str:
+    if not name:
+        return ""
+    parts = name.split(' - ', 1)
+    if len(parts) == 2:
+        artist, title = parts
+    else:
+        artist = ""
+        title = name
+        
+    artist_clean = artist.lower()
+    artist_clean = re.split(r'\s+(feat\.?|featuring|with|w/|f/|and|&)\s+', artist_clean)[0]
+    artist_clean = re.sub(r'[^a-z0-9]', '', artist_clean)
+    
+    title_clean = title.lower()
+    title_clean = re.sub(r'\[.*?\]', '', title_clean)
+    title_clean = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', title_clean)
+    title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
+    
+    return f"{artist_clean}_{title_clean}"
+
+def get_era_category(folder_name: str) -> str:
+    folder_lower = folder_name.lower()
+    if "classics" in folder_lower:
+        return "Classics"
+    elif "old school" in folder_lower:
+        return "Old School"
+    elif "throwbacks" in folder_lower:
+        return "Throwbacks"
+    elif "new school" in folder_lower:
+        return "New School"
+    elif "live" in folder_lower:
+        return "Live"
+    elif "shows" in folder_lower:
+        return "Shows"
+    return "Unassigned"
+
+def get_relative_path(path: Path) -> str:
+    # Get path relative to the local G_DRIVE_MUSIC root
+    try:
+        return path.relative_to(G_DRIVE_MUSIC).as_posix()
+    except ValueError:
+        return path.name
+
+def run_sync():
+    print("="*80)
+    print(" FMP ULTIMATE - AUTOMATED LIBRARY & BROADCASTER DATABASE SYNC ENGINE")
+    print("="*80)
+    if DRY_RUN:
+        print(" !!! RUNNING IN DRY_RUN MODE - NO PHYSICAL OR DATABASE CHANGES WILL OCCUR !!!")
+        print("="*80)
+
+    # 0. Git Pull to avoid collisions
+    if not DRY_RUN:
+        print("[*] Pulling latest updates from GitHub...")
+        try:
+            subprocess.run(["git", "pull", "--rebase"], check=True, capture_output=True)
+            print("  [OK] Git pull complete.")
+        except Exception as e:
+            print(f"  [WARNING] Git pull failed: {e}")
+
+    # 1. Scan local G: Drive
+    print(f"\n[*] Scanning local G: Drive: {G_DRIVE_MUSIC}...")
+    if not G_DRIVE_MUSIC.exists():
+        print(f"[-] ERROR: G: Drive music directory not found at: {G_DRIVE_MUSIC}")
+        print("Please check Google Drive mount and try again.")
+        sys.exit(1)
+
+    local_files = {}  # key: normalized_key -> value: {local_path, rel_path, filename_no_ext, folder}
+    for root, dirs, files in os.walk(G_DRIVE_MUSIC):
+        for file in files:
+            if file.lower().endswith('.mp3'):
+                filepath = Path(root) / file
+                rel_path = get_relative_path(filepath)
+                folder = rel_path.split('/')[0] if '/' in rel_path else ''
+                filename_no_ext = filepath.stem
+                key = normalize_track_key(filename_no_ext)
+                if key:
+                    local_files[key] = {
+                        'local_path': filepath,
+                        'rel_path': rel_path,
+                        'filename_no_ext': filename_no_ext,
+                        'folder': folder
+                    }
+
+    print(f"  [OK] Scanned {len(local_files)} tracks from G: Drive.")
+
+    # 2. Load CSV Master Database
+    print(f"\n[*] Loading master CSV database: {CSV_BLUEPRINT}...")
+    if not os.path.exists(CSV_BLUEPRINT):
+        print(f"[-] ERROR: CSV master database not found at: {CSV_BLUEPRINT}")
+        sys.exit(1)
+
+    rows = []
+    fieldnames = []
+    with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
+        for row in reader:
+            rows.append(row)
+
+    print(f"  [OK] Loaded {len(rows)} database records.")
+
+    # 3. Check for Broadcaster SQLite DB
+    broadcaster_conn = None
+    if BROADCASTER_DB.exists():
+        print(f"\n[+] Detected Broadcaster SQLite Database: {BROADCASTER_DB}")
+        if not DRY_RUN:
+            broadcaster_conn = sqlite3.connect(BROADCASTER_DB, timeout=10.0)
+            broadcaster_conn.row_factory = sqlite3.Row
+    else:
+        print("\n[-] Broadcaster SQLite Database not found locally. Skipping direct DB sync.")
+
+    # 4. Resolve Discrepancies
+    print("\n[*] Processing database rows for realignment...")
+    realigned_count = 0
+    missing_count = 0
+    unchanged_count = 0
+
+    local_keys_matched = set()
+
+    for row in rows:
+        track_name = row.get('Track Name', '').strip()
+        csv_filepath_z = row.get('File Path', '').strip()
+        
+        # Get relative path from CSV file path (e.g. Z:/Era/Filename.mp3 -> Era/Filename.mp3)
+        csv_rel_path = csv_filepath_z.replace('\\', '/')
+        if csv_rel_path.upper().startswith('Z:/'):
+            csv_rel_path = csv_rel_path[3:]
+
+        # Path where the file should be locally on G: Drive
+        expected_g_path = G_DRIVE_MUSIC / csv_rel_path
+
+        if expected_g_path.exists():
+            # Matches exactly!
+            key = normalize_track_key(track_name)
+            local_keys_matched.add(key)
+            unchanged_count += 1
+            continue
+
+        # File does not exist at the CSV path! Search G: Drive by normalized key
+        key = normalize_track_key(track_name)
+        if key in local_files:
+            match = local_files[key]
+            new_rel_path = match['rel_path']
+            new_filename = match['filename_no_ext']
+            new_folder = match['folder']
+            new_local_path = match['local_path']
+
+            local_keys_matched.add(key)
+            realigned_count += 1
+
+            old_z_path = csv_filepath_z
+            new_z_path = f"Z://{new_rel_path}".replace("//", "/")
+
+            print(f"\n  [REALIGNMENT DETECTED] '{track_name}'")
+            print(f"    - Old: {old_z_path}")
+            print(f"    - New: {new_z_path}")
+
+            if not DRY_RUN:
+                # A. Rename/move the file on Citrus3 FTP remote
+                print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
+                cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
+                res = subprocess.run(cmd, capture_output=True)
+                if res.returncode != 0:
+                    print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
+                    upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
+                    subprocess.run(upload_cmd, check=True)
+                    print("      [OK] Uploaded to remote.")
+                else:
+                    print("      [OK] Realigned on remote FTP.")
+
+                # B. Update Broadcaster SQLite Database directly
+                if broadcaster_conn:
+                    cursor = broadcaster_conn.cursor()
+                    try:
+                        # Split new track name to artist & title
+                        if " - " in new_filename:
+                            artist_part, title_part = new_filename.split(" - ", 1)
+                            artist = artist_part.strip()
+                            title = title_part.strip()
+                        else:
+                            artist = "Unknown Artist"
+                            title = new_filename
+
+                        new_cat = get_era_category(new_folder)
+                        
+                        # Update the file path, title, artist, energy_category in media_library
+                        cursor.execute('''
+                            UPDATE media_library
+                            SET file_path = ?, title = ?, artist = ?, energy_category = ?
+                            WHERE file_path = ?
+                        ''', (new_z_path, title, artist, new_cat, old_z_path))
+                        
+                        if cursor.rowcount > 0:
+                            print(f"      [OK] Updated Broadcaster SQLite DB row (preserved custom cues/history).")
+                        else:
+                            print(f"      [-] No matching row found in Broadcaster DB for: {old_z_path}")
+                    except Exception as ex:
+                        print(f"      [-] Failed to update Broadcaster DB: {ex}")
+
+                # C. Update CSV Row memory representation
+                row['File Path'] = new_z_path
+                row['Track Name'] = new_filename
+                row['energy_category'] = get_era_category(new_folder)
+        else:
+            print(f"  [WARNING] Track missing from G: Drive: '{track_name}' (Path: {csv_filepath_z})")
+            missing_count += 1
+
+    # 5. Process New Untracked Files from G: Drive
+    untracked_keys = set(local_files.keys()) - local_keys_matched
+    new_imported_rows = []
+    
+    if untracked_keys:
+        print(f"\n[*] Found {len(untracked_keys)} new untracked tracks on G: Drive. Importing...")
+        am = AutoMaster()
+        
+        for key in untracked_keys:
+            match = local_files[key]
+            filepath = match['local_path']
+            rel_path = match['rel_path']
+            new_filename = match['filename_no_ext']
+            folder = match['folder']
+            category = get_era_category(folder)
+            
+            print(f"  > Processing: {new_filename}...")
+            
+            if not DRY_RUN:
+                # A. Copy to Citrus3 FTP server
+                print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
+                upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}"]
+                subprocess.run(upload_cmd, check=True)
+                print("    [OK] Upload completed.")
+                
+                # B. Extract tags & cues using AutoMaster
+                print("    [*] Analyzing tags and cue points...")
+                try:
+                    audio = MP3(filepath)
+                    length_sec = audio.info.length
+                    length_str = f"{int(length_sec // 60)}:{int(length_sec % 60):02d}"
+                    duration_ms = int(round(length_sec * 1000))
+                    
+                    file_path_str, meta_updates = am.process_file(str(filepath), original_bitrate="320k")
+                    
+                    new_row = {}
+                    for field in fieldnames:
+                        lower_field = field.lower()
+                        if field == 'Track Name':
+                            new_row[field] = new_filename
+                        elif field == 'File Path':
+                            new_row[field] = f"Z:/{rel_path}"
+                        elif lower_field in ['source_url', 'url', 'source url']:
+                            new_row[field] = ""
+                        elif field == 'duration_ms':
+                            new_row[field] = duration_ms
+                        elif field == 'item_type':
+                            new_row[field] = 'Music'
+                        elif field in ['energy_category', 'Energy Category']:
+                            new_row[field] = category
+                        elif field == 'Intro_Duration':
+                            new_row[field] = meta_updates.get('intro_duration', 0)
+                        elif field == 'Punch_Ms':
+                            new_row[field] = meta_updates.get('punch_ms', 2000)
+                        elif field == 'outro_duration':
+                            new_row[field] = meta_updates.get('outro_duration', 0)
+                        elif field == 'bpm':
+                            new_row[field] = meta_updates.get('bpm', 98)
+                        elif field == 'Bitrate':
+                            new_row[field] = '320k'
+                        elif field == 'Lyrics':
+                            new_row[field] = 'True' if meta_updates.get('lyrics') and meta_updates.get('lyrics') != 'Not Found' else 'Unknown'
+                        elif lower_field in ['year', 'true_year', 'release_year']:
+                            new_row[field] = meta_updates.get('release_year', 'Unknown')
+                        elif lower_field in ['art ratio', 'art_ratio']:
+                            new_row[field] = '1.0'
+                        elif field == 'Length':
+                            new_row[field] = length_str
+                        else:
+                            new_row[field] = ""
+                    new_imported_rows.append(new_row)
+                    print(f"    [✓] Generated metadata for: {new_filename}")
+                except Exception as e:
+                    print(f"    [-] Failed to process metadata: {e}")
+
+    # 6. Save DB and Commit SQLite transactions
+    if not DRY_RUN:
+        if realigned_count > 0 or len(new_imported_rows) > 0:
+            # Backup CSV first
+            csv_path = Path(CSV_BLUEPRINT)
+            backup_csv = csv_path.with_name(csv_path.name + ".sync_backup")
+            shutil.copy2(CSV_BLUEPRINT, backup_csv)
+            print(f"\n[*] Backed up master database to {backup_csv.name}")
+
+            # Save CSV
+            all_rows = rows + new_imported_rows
+            with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(all_rows)
+            print(f"[✓] Saved updated CSV master database with {len(all_rows)} records.")
+
+            # Commit SQLite database changes
+            if broadcaster_conn:
+                broadcaster_conn.commit()
+                broadcaster_conn.close()
+                print("[✓] Committed Broadcaster SQLite database changes.")
+
+            # 7. Git Commit & Push
+            if AUTO_GIT_PUSH:
+                try:
+                    print("\n[*] Committing database updates to GitHub...")
+                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                    msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
+                    subprocess.run(["git", "commit", "-m", msg], check=True, capture_output=True)
+                    subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                    print("  [OK] Pushed successfully to GitHub.")
+                except Exception as e:
+                    print(f"  [-] Git push failed: {e}")
+
+            # 8. Trigger MediaCP reindex
+            print("\n[*] Triggering MediaCP play server reindex...")
+            try:
+                # Call MediaCP reindex endpoint
+                url = "https://hello.citrus3.com:2020/controller/Media/1073/reindex"
+                req = urllib.request.Request(url, headers={'User-Agent': 'FMP-Sync-Engine'})
+                urllib.request.urlopen(req, timeout=5)
+                print("  [OK] MediaCP reindex triggered.")
+            except Exception as e:
+                print(f"  [-] MediaCP reindex trigger failed (play server may require manual reindex): {e}")
+
+            # 9. Trigger Broadcaster Sync (FastAPI / Route)
+            print("\n[*] Triggering Broadcaster local server sync...")
+            try:
+                url = "http://127.0.0.1:8000/"
+                req = urllib.request.Request(url, headers={'User-Agent': 'FMP-Sync-Engine'})
+                urllib.request.urlopen(req, timeout=2)
+                print("  [OK] Broadcaster notified. Local database sync scheduled.")
+            except Exception as e:
+                print("  [-] Broadcaster server is currently offline or unreachable. (Will sync upon next boot).")
+        else:
+            print("\n[OK] No database updates or realignments were needed. Everything is already in sync.")
+            if broadcaster_conn:
+                broadcaster_conn.close()
+
+    # 10. Print beautiful Summary
+    print("\n" + "="*80)
+    print(" AUTOMATED SYNC ENGINE SUMMARY REPORT")
+    print("-"*80)
+    print(f" Unchanged Tracks (Perfect Alignment): {unchanged_count}")
+    print(f" Realigned Tracks (Moved/Renamed):     {realigned_count}")
+    print(f" New Untracked Tracks Imported:        {len(new_imported_rows)}")
+    print(f" Missing Tracks (Flagged/Unresolved):  {missing_count}")
+    print("="*80 + "\n")
+
+    # 11. Write to local persistent log file for explicit tracking
+    log_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "logs"
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / "sync_history.log"
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"[{timestamp}] Unchanged: {unchanged_count} | Realigned: {realigned_count} | Imported: {len(new_imported_rows)} | Missing: {missing_count}\n"
+    try:
+        with open(log_file, "a", encoding="utf-8") as lf:
+            lf.write(log_line)
+        print(f"  [OK] Sync results logged to {log_file.name}")
+    except Exception as le:
+        print(f"  [-] Failed to write to log file: {le}")
+
+if __name__ == '__main__':
+    run_sync()
