@@ -125,7 +125,9 @@ class SystemState:
         self.vault_total = 0
         self.folder_breakdown = {}
         self.pending_iheart_queue = []
+        self.rejected_iheart = []
         self.load_pending()
+        self.load_rejected()
         self.load_saved_queue()
         self.start_spinner()
 
@@ -154,6 +156,32 @@ class SystemState:
                 json.dump(self.pending_iheart_queue, f, indent=4)
         except Exception as e:
             self.log(f"[ERROR] Failed to save pending discoveries: {e}")
+
+    def load_rejected(self):
+        import json
+        configs_dir = os.path.join(BASE_DIR, "configs")
+        os.makedirs(configs_dir, exist_ok=True)
+        rejected_file = os.path.join(configs_dir, "rejected_iheart.json")
+        if os.path.exists(rejected_file):
+            try:
+                with open(rejected_file, "r", encoding="utf-8") as f:
+                    self.rejected_iheart = json.load(f)
+            except Exception as e:
+                self.log(f"[ERROR] Failed to load rejected discoveries: {e}")
+                self.rejected_iheart = []
+        else:
+            self.rejected_iheart = []
+
+    def save_rejected(self):
+        import json
+        configs_dir = os.path.join(BASE_DIR, "configs")
+        os.makedirs(configs_dir, exist_ok=True)
+        rejected_file = os.path.join(configs_dir, "rejected_iheart.json")
+        try:
+            with open(rejected_file, "w", encoding="utf-8") as f:
+                json.dump(self.rejected_iheart, f, indent=4)
+        except Exception as e:
+            self.log(f"[ERROR] Failed to save rejected discoveries: {e}")
 
     def load_saved_queue(self):
         import json
@@ -684,7 +712,7 @@ def iheart_poller_worker():
                             query_clean = re.sub(r'\[.*?\]', '', f"{artist} - {title}").strip()
                             query_clean = re.sub(r'\s+', ' ', query_clean)
                             
-                            # Check if already in pending_iheart_queue or download_queue
+                            # Check if already in pending_iheart_queue, download_queue, or rejected
                             already_pending = False
                             with state.lock:
                                 for item in state.pending_iheart_queue:
@@ -693,6 +721,10 @@ def iheart_poller_worker():
                                         break
                                 for item in state.url_queue.get_all():
                                     if item.get('url', '').lower() == query_clean.lower():
+                                        already_pending = True
+                                        break
+                                for rej_url in state.rejected_iheart:
+                                    if rej_url.lower() == query_clean.lower():
                                         already_pending = True
                                         break
                                         
@@ -1060,6 +1092,9 @@ def pending_reject():
             if item['url'] == url:
                 state.pending_iheart_queue.pop(i)
                 found = True
+                if url not in state.rejected_iheart:
+                    state.rejected_iheart.append(url)
+                    state.save_rejected()
                 state.save_pending()
                 break
     if found:

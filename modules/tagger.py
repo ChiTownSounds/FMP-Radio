@@ -332,10 +332,7 @@ class AutoMaster:
         # Determine clean/final artist and title to return to the pipeline
         final_artist = true_artist or artist
         base_title = true_title or title
-        if true_album and f"[{true_album}]" not in base_title and true_album not in base_title:
-            final_title = f"{base_title} [{true_album}]"
-        else:
-            final_title = base_title
+        final_title = base_title
 
         metadata_updates = {
             'artist': final_artist,
