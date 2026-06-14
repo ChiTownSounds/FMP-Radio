@@ -31,30 +31,25 @@ class VaultManager:
         if not name:
             return ""
         import re
-        if " - " in name:
-            parts = name.split(" - ", 1)
-            artist = parts[0].strip()
-            title = parts[1].strip()
+        parts = name.split(' - ', 1)
+        if len(parts) == 2:
+            artist, title = parts
         else:
             artist = ""
-            title = name.strip()
+            title = name
             
-        def clean_part(part: str) -> str:
-            p = part.lower()
-            p = p.replace("’", "'").replace("‘", "'").replace("`", "'")
-            # Strip brackets
-            p = re.sub(r'\[.*?\]', '', p)
-            # Strip parentheses
-            p = re.sub(r'\(.*?\)', '', p)
-            # Strip feat and everything after it
-            p = re.sub(r'\b(feat\.?|featuring|f/)\b.*', '', p)
-            # Strip non-alphanumeric
-            p = re.sub(r'[^a-z0-9]', '', p)
-            return p.strip()
-            
-        clean_artist = clean_part(artist)
-        clean_title = clean_part(title)
-        return clean_artist + clean_title
+        # Clean artist: only keep first artist before feat
+        artist_clean = artist.lower()
+        artist_clean = re.split(r'\s+(feat\.?|featuring|with|w/|f/|and|&)\s+', artist_clean)[0]
+        artist_clean = re.sub(r'[^a-z0-9]', '', artist_clean)
+        
+        # Clean title: strip brackets and parenthesized features
+        title_clean = title.lower()
+        title_clean = re.sub(r'\[.*?\]', '', title_clean)
+        title_clean = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', title_clean)
+        title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
+        
+        return f"{artist_clean}_{title_clean}"
 
     def _get_rclone_path(self):
         return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
@@ -65,6 +60,8 @@ class VaultManager:
         with self._git_lock:
             try:
                 logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}'...")
+                # 0. Pull remote changes to prevent push collisions
+                subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True, capture_output=True)
                 # 1. Add modified CSV file
                 subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
                 # 2. Commit change
@@ -441,19 +438,7 @@ class VaultManager:
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 
-                with self._csv_lock:
-                    file_exists = os.path.exists(CSV_BLUEPRINT)
-                    with open(CSV_BLUEPRINT, 'a', encoding='utf-8', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        if not file_exists: writer.writeheader()
-                        writer.writerow(new_row)
-
-                # Trigger Git Auto Push if enabled in configuration
-                from config import AUTO_GIT_PUSH
-                if AUTO_GIT_PUSH:
-                    threading.Thread(target=self._git_auto_push, args=(track_name,), daemon=True).start()
-
-                # 9. Remote FTP Upload (Citrus3) as the absolute last step
+                # 9. Remote FTP Upload (Citrus3) first
                 import subprocess
                 rclone_path = self._get_rclone_path()
                 try:
@@ -462,6 +447,19 @@ class VaultManager:
                     logging.info(f"[✓] Track successfully uploaded to Citrus3 FTP (Z:): {clean_name}")
                 except subprocess.CalledProcessError as e:
                     return False, f"Rclone FTP Upload Failure from G: drive source: {e.stderr.decode('utf-8', errors='ignore')}"
+
+                # 10. Update local CSV database
+                with self._csv_lock:
+                    file_exists = os.path.exists(CSV_BLUEPRINT)
+                    with open(CSV_BLUEPRINT, 'a', encoding='utf-8', newline='') as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        if not file_exists: writer.writeheader()
+                        writer.writerow(new_row)
+
+                # 11. Trigger Git Auto Push if enabled in configuration
+                from config import AUTO_GIT_PUSH
+                if AUTO_GIT_PUSH:
+                    threading.Thread(target=self._git_auto_push, args=(track_name,), daemon=True).start()
 
                 return True, "Success"
             except Exception as e:
