@@ -200,6 +200,34 @@ def save_csv_database(rows, fieldnames):
         print(f"  [ERROR] Failed to save CSV database: {e}")
         return False
 
+def trigger_clean_download(counterpart_url, target_folder):
+    import json
+    import urllib.request
+    
+    url = "http://localhost:5000/add"
+    payload = {
+        "urls": counterpart_url,
+        "target": target_folder,
+        "auto_linked": True
+    }
+    data = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(
+        url, 
+        data=data, 
+        headers={'Content-Type': 'application/json'}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            if res_data.get("status") == "ok":
+                print(f"  [✓ AUTO-DOWNLOAD SUCCESS] Enqueued clean counterpart in downloader queue: {counterpart_url}")
+                return True
+            else:
+                print(f"  [-] Downloader response: {res_data}")
+    except Exception as e:
+        print(f"  [-] Downloader communication error: {e} (Is app.py running on port 5000?)")
+    return False
+
 def audit_library_counterparts(limit=5, query=None, dry_run=False):
     """Audits library tracks to detect explicit status and locate clean counterparts."""
     print(f"Reading library from CSV: {CSV_PATH}")
@@ -341,6 +369,18 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                             'Album': counterpart_title,
                             'URL': counterpart_url
                         })
+                        
+                        # Trigger automatic clean download replacement
+                        if not dry_run:
+                            file_path = r.get('File Path', '')
+                            file_path_clean = file_path.replace("\\", "/")
+                            parts = file_path_clean.split("/")
+                            target_folder = "New School 2010+" # fallback
+                            if len(parts) >= 2:
+                                target_folder = parts[-2]
+                                
+                            print(f"  [AUTO-DOWNLOAD] Triggering clean replacement download in target: {target_folder}...")
+                            trigger_clean_download(counterpart_url, target_folder)
                     else:
                         print("  No counterpart clean album found in 'Other versions' shelf.")
             else:
