@@ -310,7 +310,7 @@ def is_video_title(title: str) -> bool:
 def extract_playlist_urls(playlist_url: str) -> list:
     cmd = YT_DLP_CMD + ["--flat-playlist", "--print", "url", playlist_url]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         return [line.strip() for line in result.stdout.split('\n') if 'watch?v=' in line or 'youtu.be/' in line]
     except Exception as e:
         state.log(f"[ERROR] Playlist Extraction Failed: {e}")
@@ -846,7 +846,7 @@ def get_shows():
     try:
         rclone_path = os.path.join(BASE_DIR, "rclone.exe")
         cmd = [rclone_path, "lsf", "citrus3:/Shows/", "--dirs-only"]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         shows = [line.strip().rstrip('/') for line in result.stdout.split('\n') if line.strip()]
         return jsonify(shows)
     except Exception as e:
@@ -890,7 +890,7 @@ def background_rename_task(old_name, new_name):
         rclone_path = os.path.join(BASE_DIR, "rclone.exe")
         state.log(f"[RENAME] Starting remote Citrus3 FTP folder move: Shows/{old_name} -> Shows/{new_name}")
         cmd = [rclone_path, "moveto", f"citrus3:/Shows/{old_name}", f"citrus3:/Shows/{new_name}"]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
         if res.returncode != 0:
             state.log(f"[WARNING] Remote move returned non-zero code. Folder may not exist on FTP yet. Output: {res.stderr.strip()}")
         else:
@@ -1004,7 +1004,7 @@ def rename_show():
 def resolve_yt_meta_bg(item_id, url):
     try:
         cmd = ["yt-dlp", "--skip-download", "--dump-json", "--no-warnings", url]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         import json
         data = json.loads(result.stdout.strip().split('\n')[0])
         title = data.get('title')
@@ -1024,7 +1024,7 @@ def resolve_yt_meta_bg(item_id, url):
                     item['title'] = title
                     item['artist'] = artist
                     item['is_yt'] = True
-                    if explicit_status is not None:
+                    if explicit_status is not None and item.get('explicit') is None:
                         item['explicit'] = explicit_status
                     break
             state.url_queue._save_to_disk()
@@ -1173,12 +1173,16 @@ def add():
     title = request.json.get('title')
     artist = request.json.get('artist')
     auto_linked = request.json.get('auto_linked', False)
+    explicit = request.json.get('explicit')
     
     for u in raw_urls:
         u = u.strip()
         if not u: continue
         
         item_data = {'url': u, 'type': 'ingest', 'target': target}
+        if explicit is not None:
+            item_data['explicit'] = explicit
+            
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title
             item_data['artist'] = artist
@@ -1316,7 +1320,7 @@ def search_yt():
         # If the user pasted a direct link, just dump its metadata.
         if query.startswith("http://") or query.startswith("https://"):
             cmd = ["yt-dlp", query, "--dump-json", "--no-warnings"]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
             results = []
             for line in result.stdout.strip().split('\n'):
                 if not line: continue

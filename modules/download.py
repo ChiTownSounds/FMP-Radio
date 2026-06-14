@@ -18,6 +18,10 @@ class Transporter:
 
     def download_track(self, url: str, task_id: str = "temp") -> Tuple[str, str]:
         """Downloads audio using SomeDL with fallback to yt-dlp, enforcing strict timeouts."""
+        # Normalize music.youtube.com watch URLs to www.youtube.com to bypass SomeDL parser bugs
+        if "music.youtube.com/watch" in url:
+            url = url.replace("music.youtube.com/watch", "www.youtube.com/watch")
+            
         staging_path = os.path.join(STAGING_DIR, task_id)
         os.makedirs(staging_path, exist_ok=True)
 
@@ -27,7 +31,7 @@ class Transporter:
         try:
             logging.info(f"Running SomeDL: {' '.join(cmd)}")
             # Enforce 300s timeout to prevent thread hangs
-            res = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
+            res = subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8', timeout=300)
             
             # Find the downloaded file
             files = [f for f in os.listdir(staging_path) if f.endswith('.mp3')]

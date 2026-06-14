@@ -24,7 +24,7 @@ class Gatekeeper:
         cmd = YT_DLP_CMD + ["-j", "--flat-playlist", url]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
             meta = json.loads(result.stdout)
             
             # Extract relevant fields (lyrics is set to 'Not Found' since SomeDL handles it)
