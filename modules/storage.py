@@ -354,7 +354,7 @@ class VaultManager:
                 fieldnames = [
                     'Track Name', 'File Path', 'Source_URL', 'duration_ms', 'item_type',
                     'energy_category', 'Intro_Duration', 'Punch_Ms', 'outro_duration', 'bpm',
-                    'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length'
+                    'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length', 'Pool', 'Explicit'
                 ]
                 with self._csv_lock:
                     if os.path.exists(CSV_BLUEPRINT):
@@ -435,6 +435,20 @@ class VaultManager:
                             new_row[field] = round(intro_dur / 1000.0, 2)
                         else:
                             new_row[field] = metadata.get('intro_sec', 0.0)
+                    elif field == 'Explicit':
+                        explicit_val = metadata.get('explicit')
+                        if explicit_val is True:
+                            new_row[field] = 'True'
+                        elif explicit_val is False:
+                            new_row[field] = 'False'
+                        else:
+                            val_str = str(explicit_val or '').lower()
+                            if val_str in ['true', '1', 'yes']:
+                                new_row[field] = 'True'
+                            elif val_str in ['false', '0', 'no']:
+                                new_row[field] = 'False'
+                            else:
+                                new_row[field] = 'Unknown'
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 

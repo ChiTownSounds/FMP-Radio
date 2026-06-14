@@ -129,9 +129,14 @@ def run_sync():
     fieldnames = []
     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
+        fieldnames = list(reader.fieldnames) if reader.fieldnames else []
         for row in reader:
             rows.append(row)
+
+    # Ensure Pool and Explicit are in the fields list
+    for field in ['Pool', 'Explicit']:
+        if field not in fieldnames:
+            fieldnames.append(field)
 
     print(f"  [OK] Loaded {len(rows)} database records.")
 
@@ -309,6 +314,14 @@ def run_sync():
                             new_row[field] = '1.0'
                         elif field == 'Length':
                             new_row[field] = length_str
+                        elif field == 'Explicit':
+                            title_lower = new_filename.lower()
+                            if 'explicit' in title_lower:
+                                new_row[field] = 'True'
+                            elif 'clean' in title_lower:
+                                new_row[field] = 'False'
+                            else:
+                                new_row[field] = 'Unknown'
                         else:
                             new_row[field] = ""
                     new_imported_rows.append(new_row)

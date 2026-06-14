@@ -559,6 +559,17 @@ def downloader_worker():
             
             meta['energy_category'] = clean_cat
 
+            # Pass explicit status from queue item
+            if 'explicit' in task:
+                meta['explicit'] = task['explicit']
+            else:
+                # Fallback: check track title for keywords
+                title_lower = track_title.lower()
+                if 'explicit' in title_lower:
+                    meta['explicit'] = True
+                elif 'clean' in title_lower:
+                    meta['explicit'] = False
+
             state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
             handoff_success = True
             
@@ -957,16 +968,161 @@ def resolve_yt_meta_bg(item_id, url):
         title = data.get('title')
         artist = data.get('artist') or data.get('creator') or data.get('uploader')
         
+        # Check title for explicit/clean keywords
+        explicit_status = None
+        title_lower = (title or '').lower()
+        if 'explicit' in title_lower:
+            explicit_status = True
+        elif 'clean' in title_lower:
+            explicit_status = False
+
         with state.url_queue.lock:
             for item in state.url_queue.items:
                 if item.get('id') == item_id:
                     item['title'] = title
                     item['artist'] = artist
                     item['is_yt'] = True
+                    if explicit_status is not None:
+                        item['explicit'] = explicit_status
                     break
             state.url_queue._save_to_disk()
     except Exception as e:
         logging.error(f"Failed to resolve meta for queue item {item_id}: {e}")
+
+def get_playlist_explicit_statuses_and_other_versions(playlist_url: str):
+    """
+    Downloads the playlist page, extracts:
+    1. A list of booleans representing track explicit status by index.
+    2. The other version playlist ID and title if present in the 'Other versions' shelf.
+    """
+    import urllib.request
+    import re
+    import json
+    import codecs
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+    req = urllib.request.Request(playlist_url, headers=headers)
+    try:
+        html = urllib.request.urlopen(req, timeout=15).read().decode('utf-8', errors='ignore')
+        
+        # Parse initialData
+        scripts = re.findall(r'<script.*?>.*?</script>', html, re.DOTALL)
+        data_script = None
+        for script in scripts:
+            if 'initialData' in script and ('MUSIC_EXPLICIT_BADGE' in script or 'musicResponsiveListItemRenderer' in script):
+                data_script = script
+                break
+                
+        if not data_script:
+            return [], None, None
+            
+        matches = re.findall(r"data:\s*'([\s\S]*?)'", data_script)
+        if len(matches) < 2:
+            return [], None, None
+            
+        decoded = matches[1].encode('utf-8').decode('unicode_escape')
+        data = json.loads(decoded)
+        
+        def find_nodes(node, key):
+            results = []
+            if isinstance(node, dict):
+                if key in node:
+                    results.append(node[key])
+                for k, v in node.items():
+                    results.extend(find_nodes(v, key))
+            elif isinstance(node, list):
+                for item in node:
+                    results.extend(find_nodes(item, key))
+            return results
+
+        # Extract explicit statuses
+        items = find_nodes(data, 'musicResponsiveListItemRenderer')
+        statuses = []
+        for item in items:
+            is_explicit = False
+            badges = item.get('badges', [])
+            for badge in badges:
+                try:
+                    badge_type = badge['musicInlineBadgeRenderer']['icon']['iconType']
+                    if badge_type == 'MUSIC_EXPLICIT_BADGE':
+                        is_explicit = True
+                except:
+                    pass
+            statuses.append(is_explicit)
+            
+        # Find other versions
+        other_version_id = None
+        other_version_title = None
+        
+        current_album_title = None
+        try:
+            current_album_title = data['header']['musicDetailHeaderRenderer']['title']['runs'][0]['text']
+        except:
+            pass
+            
+        if not current_album_title:
+            try:
+                current_album_title = data.get('title', '')
+            except:
+                pass
+                
+        shelves = find_nodes(data, 'musicCarouselShelfRenderer')
+        for shelf in shelves:
+            try:
+                shelf_title = shelf['header']['musicCarouselShelfBasicHeaderRenderer']['title']['runs'][0]['text']
+                if 'Other versions' in shelf_title:
+                    for version_item in shelf.get('contents', []):
+                        renderer = version_item.get('musicTwoRowItemRenderer', {})
+                        version_title = "Unknown"
+                        try:
+                            version_title = renderer['title']['runs'][0]['text']
+                        except:
+                            pass
+                            
+                        if not current_album_title or version_title.strip().lower() == current_album_title.strip().lower():
+                            playlist_ids = find_nodes(renderer, 'playlistId')
+                            if playlist_ids:
+                                other_version_id = playlist_ids[0]
+                                other_version_title = version_title
+                                break
+                    if other_version_id:
+                        break
+            except:
+                pass
+                
+        return statuses, other_version_id, other_version_title
+    except Exception as e:
+        logging.error(f"Error parsing playlist details from URL {playlist_url}: {e}")
+        return [], None, None
+
+def process_playlist_addition(u, target, auto_linked):
+    """Parses playlist details, enqueues tracks with explicit status, and auto-links counterpart album."""
+    explicit_statuses, counterpart_id, counterpart_title = get_playlist_explicit_statuses_and_other_versions(u)
+    track_urls = extract_playlist_urls(u)
+    
+    for idx, track_url in enumerate(track_urls):
+        is_explicit = False
+        if idx < len(explicit_statuses):
+            is_explicit = explicit_statuses[idx]
+            
+        item_id = state.url_queue.put({
+            'url': track_url, 
+            'type': 'ingest', 
+            'target': target,
+            'explicit': is_explicit
+        })
+        threading.Thread(target=resolve_yt_meta_bg, args=(item_id, track_url), daemon=True).start()
+        
+    if counterpart_id and not auto_linked:
+        counterpart_url = f"https://music.youtube.com/playlist?list={counterpart_id}"
+        state.log(f"[Auto-Link] Found counterpart album: \"{counterpart_title}\" ({counterpart_id}) -> Auto-queuing counterpart...")
+        def enqueue_counterpart():
+            process_playlist_addition(counterpart_url, target, auto_linked=True)
+            state.update_count()
+        threading.Thread(target=enqueue_counterpart, daemon=True).start()
 
 @app.route('/add', methods=['POST'])
 def add():
@@ -974,6 +1130,7 @@ def add():
     target = request.json.get('target', '')
     title = request.json.get('title')
     artist = request.json.get('artist')
+    auto_linked = request.json.get('auto_linked', False)
     
     for u in raw_urls:
         u = u.strip()
@@ -986,11 +1143,8 @@ def add():
             item_data['is_yt'] = True
             
         if "list=" in u or "playlist" in u.lower():
-            for track_url in extract_playlist_urls(u): 
-                item_id = state.url_queue.put({'url': track_url, 'type': 'ingest', 'target': target})
-                threading.Thread(target=resolve_yt_meta_bg, args=(item_id, track_url), daemon=True).start()
+            process_playlist_addition(u, target, auto_linked)
         elif not u.startswith("http://") and not u.startswith("https://") and not u.startswith("ytsearch"):
-            # Auto-wrap raw strings so yt-dlp grabs the #1 exact match
             state.url_queue.put({'url': f"ytsearch1:{u}", 'type': 'ingest', 'target': target})
         else: 
             item_id = state.url_queue.put(item_data)
