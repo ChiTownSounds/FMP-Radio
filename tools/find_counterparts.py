@@ -20,6 +20,11 @@ def get_html_with_headers(url):
     try:
         with urllib.request.urlopen(req, timeout=10) as response:
             return response.read().decode('utf-8', errors='ignore')
+    except urllib.error.HTTPError as e:
+        if e.code in [403, 429]:
+            raise e
+        print(f"HTTP Error fetching {url}: {e.code} - {e.reason}")
+        return None
     except Exception as e:
         print(f"Error fetching {url}: {e}")
         return None
@@ -254,15 +259,16 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         # Rate-limiting mitigation: inspect html fetching health
         def fetch_html_with_ratelimit_check(fetch_url):
             nonlocal consecutive_rate_limits
-            html_content = get_html_with_headers(fetch_url)
-            if html_content:
-                if "429" in html_content or "too many requests" in html_content.lower() or "captcha" in html_content.lower():
-                    print("  [WARNING] YouTube Music rate-limiting or CAPTCHA detected!")
-                    consecutive_rate_limits += 1
-                    return None
+            try:
+                html_content = get_html_with_headers(fetch_url)
                 consecutive_rate_limits = 0
                 return html_content
-            else:
+            except urllib.error.HTTPError as e:
+                if e.code in [403, 429]:
+                    print(f"  [WARNING] YouTube Music rate-limiting or security block (HTTP {e.code}) detected!")
+                    consecutive_rate_limits += 1
+                return None
+            except Exception as e:
                 consecutive_rate_limits += 1
                 return None
 
