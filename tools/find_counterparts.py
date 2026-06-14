@@ -36,11 +36,11 @@ def find_nodes(node, key):
             results.extend(find_nodes(item, key))
     return results
 
-def audit_album_page(album_url):
+def audit_album_page(album_url, target_title=None):
     """Scrapes a YouTube Music album playlist page to get track explicit statuses and counterparts."""
     html = get_html_with_headers(album_url)
     if not html:
-        return None, None, None
+        return None, None, None, None
 
     # Parse initialData
     scripts = re.findall(r'<script.*?>.*?</script>', html, re.DOTALL)
@@ -51,23 +51,31 @@ def audit_album_page(album_url):
             break
             
     if not data_script:
-        return None, None, None
+        return None, None, None, None
         
     matches = re.findall(r"data:\s*'([\s\S]*?)'", data_script)
     if len(matches) < 2:
-        return None, None, None
+        return None, None, None, None
         
     try:
         decoded = matches[1].encode('utf-8').decode('unicode_escape')
         data = json.loads(decoded)
     except Exception as e:
         print(f"JSON decode failed: {e}")
-        return None, None, None
+        return None, None, None, None
 
     # Extract explicit statuses
     items = find_nodes(data, 'musicResponsiveListItemRenderer')
     statuses = []
+    found_specific_explicit = None
+    
     for item in items:
+        title = "Unknown"
+        try:
+            title = item['flexColumns'][0]['musicResponsiveListItemFlexColumnRenderer']['text']['runs'][0]['text']
+        except:
+            pass
+            
         is_explicit = False
         badges = item.get('badges', [])
         for badge in badges:
@@ -78,6 +86,13 @@ def audit_album_page(album_url):
             except:
                 pass
         statuses.append(is_explicit)
+        
+        # If target_title is provided, check if it matches the item title
+        if target_title:
+            clean_item_title = re.sub(r'[^a-z0-9]', '', title.lower())
+            clean_target_title = re.sub(r'[^a-z0-9]', '', target_title.lower())
+            if clean_target_title in clean_item_title or clean_item_title in clean_target_title:
+                found_specific_explicit = is_explicit
 
     # Find other versions
     other_version_id = None
@@ -116,7 +131,7 @@ def audit_album_page(album_url):
         except:
             pass
             
-    return statuses, other_version_id, other_version_title
+    return statuses, found_specific_explicit, other_version_id, other_version_title
 
 def search_yt_music_album(artist, title):
     """Searches YouTube Music for the album matching the song and returns the album playlist URL."""
@@ -133,7 +148,7 @@ def search_yt_music_album(artist, title):
     return None
 
 def audit_library_counterparts(limit=5, query=None, dry_run=False):
-    """Audits library tracks with Source_URLs to detect explicit status and locate clean counterparts."""
+    """Audits library tracks to detect explicit status and locate clean counterparts."""
     print(f"Reading library from CSV: {CSV_PATH}")
     if dry_run:
         print("[DRY RUN] Running in dry-run mode. CSV file will not be modified.")
@@ -144,23 +159,20 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         fieldnames = reader.fieldnames
         rows = list(reader)
 
-    # Let's count how many have YTM URLs and need auditing
+    # Count how many need auditing (blank or "unknown" explicit status)
     auditable_tracks = []
     for r in rows:
         name = r['Track Name']
-        url = r.get('Source_URL', '').strip()
         explicit_val = r.get('Explicit', '').strip().lower()
         
         # Apply query filter if provided
         if query and query.lower() not in name.lower():
             continue
             
-        # Check if the song has a YTM URL and is not yet audited (blank or "unknown")
-        if url and ("music.youtube.com" in url or "youtube.com/watch" in url):
-            if explicit_val in ['', 'unknown']:
-                auditable_tracks.append(r)
+        if explicit_val in ['', 'unknown']:
+            auditable_tracks.append(r)
 
-    print(f"Found {len(auditable_tracks)} tracks with source URLs that match your filters and need auditing.")
+    print(f"Found {len(auditable_tracks)} tracks that match your filters and need auditing.")
     
     if not auditable_tracks:
         print("No tracks found matching your query that need auditing.")
@@ -176,7 +188,7 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
     
     for idx, r in enumerate(to_audit, 1):
         name = r['Track Name']
-        url = r['Source_URL']
+        url = r.get('Source_URL', '').strip()
         
         # Parse artist / title
         parts = name.split(" - ", 1)
@@ -188,23 +200,32 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
         album_url = None
         is_watch = "watch?v=" in url
         
-        if "playlist?list=" in url:
-            album_url = url
-        elif is_watch:
-            # Scrape watch page to find playlist ID
-            html = get_html_with_headers(url)
-            if html:
-                playlist_ids = re.findall(r'OLAK5uy_[A-Za-z0-9_-]+', html)
-                if playlist_ids:
-                    album_url = f"https://music.youtube.com/playlist?list={playlist_ids[0]}"
+        if url and ("music.youtube.com" in url or "youtube.com/watch" in url):
+            if "playlist?list=" in url:
+                album_url = url
+            elif is_watch:
+                # Scrape watch page to find playlist ID
+                html = get_html_with_headers(url)
+                if html:
+                    playlist_ids = re.findall(r'OLAK5uy_[A-Za-z0-9_-]+', html)
+                    if playlist_ids:
+                        album_url = f"https://music.youtube.com/playlist?list={playlist_ids[0]}"
         
         if not album_url:
             # Fallback: search YouTube Music using artist and title
+            print(f"  No Source URL found. Searching YTM for: {artist} - {title}")
             album_url = search_yt_music_album(artist, title)
+            if album_url:
+                print(f"  [FOUND URL]: {album_url}")
+                if not dry_run:
+                    r['Source_URL'] = album_url
+                    csv_updated = True
+                else:
+                    print(f"  [DRY RUN] Would save URL: {album_url}")
 
         if album_url:
             print(f"  Album URL: {album_url}")
-            statuses, counterpart_id, counterpart_title = audit_album_page(album_url)
+            statuses, found_specific_explicit, counterpart_id, counterpart_title = audit_album_page(album_url, target_title=title)
             
             if statuses:
                 is_explicit = False
@@ -214,14 +235,20 @@ def audit_library_counterparts(limit=5, query=None, dry_run=False):
                     if watch_html and 'MUSIC_EXPLICIT_BADGE' in watch_html:
                         is_explicit = True
                 else:
-                    is_explicit = any(statuses)
+                    if found_specific_explicit is not None:
+                        is_explicit = found_specific_explicit
+                    else:
+                        is_explicit = any(statuses)
                 
                 print(f"  Explicit Status: {'EXPLICIT' if is_explicit else 'CLEAN'}")
                 
-                # Update CSV row
-                r['Explicit'] = 'True' if is_explicit else 'False'
-                updated_rows[name] = r
-                csv_updated = True
+                if not dry_run:
+                    # Update CSV row
+                    r['Explicit'] = 'True' if is_explicit else 'False'
+                    updated_rows[name] = r
+                    csv_updated = True
+                else:
+                    print(f"  [DRY RUN] Would set Explicit = {'True' if is_explicit else 'False'}")
                 
                 if is_explicit:
                     if counterpart_id:
