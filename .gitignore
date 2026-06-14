@@ -33,3 +33,5 @@ configs/pending_iheart.json
 upgrade_queue.txt
 missing_tracks_report.txt
 scratch/
+configs/lyrics/
+
