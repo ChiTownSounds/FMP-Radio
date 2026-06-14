@@ -68,6 +68,7 @@ def audit_album_page(album_url, target_title=None):
     items = find_nodes(data, 'musicResponsiveListItemRenderer')
     statuses = []
     found_specific_explicit = None
+    best_match_score = -1
     
     for item in items:
         title = "Unknown"
@@ -87,11 +88,34 @@ def audit_album_page(album_url, target_title=None):
                 pass
         statuses.append(is_explicit)
         
-        # If target_title is provided, check if it matches the item title
+        # If target_title is provided, check match score
         if target_title:
-            clean_item_title = re.sub(r'[^a-z0-9]', '', title.lower())
-            clean_target_title = re.sub(r'[^a-z0-9]', '', target_title.lower())
-            if clean_target_title in clean_item_title or clean_item_title in clean_target_title:
+            clean_item = re.sub(r'[^a-z0-9]', '', title.lower())
+            clean_target = re.sub(r'[^a-z0-9]', '', target_title.lower())
+            
+            # Strip common suffixes/versions to find the core title
+            core_item = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_item)
+            core_target = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_target)
+            
+            score = 0
+            if clean_item == clean_target:
+                score = 100  # Perfect match
+            elif core_item == core_target and core_item:
+                score = 90   # Core match
+            elif clean_target in clean_item or clean_item in clean_target:
+                # Substring match: calculate length difference
+                len_diff = abs(len(clean_item) - len(clean_target))
+                # Reject broad substring matches for extremely short track names (e.g. 'U')
+                if min(len(clean_item), len(clean_target)) <= 3:
+                    if len_diff == 0:
+                        score = 80
+                    else:
+                        score = 0
+                else:
+                    score = 50 - len_diff  # Closer lengths rank higher
+                    
+            if score > 0 and score > best_match_score:
+                best_match_score = score
                 found_specific_explicit = is_explicit
 
     # Find other versions
