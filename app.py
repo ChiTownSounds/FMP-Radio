@@ -677,11 +677,51 @@ def iheart_poller_worker():
                         else:
                             target_override = ""
                             
-                        # 2. Check for duplicates in library
+                        # 2. Check for duplicates in library using smart matching
                         from modules.storage import VaultManager
                         vm = VaultManager()
-                        norm_key = vm._normalize_track_key(f"{artist} - {title}")
                         
+                        def is_smart_duplicate(existing_name, check_artist, check_title):
+                            # First try direct normalized key match (fast path)
+                            norm_key = vm._normalize_track_key(f"{check_artist} - {check_title}")
+                            if vm._normalize_track_key(existing_name) == norm_key:
+                                return True, "Already in library (normalized match)"
+                                
+                            # Fallback to smart parsing
+                            parts = existing_name.split(' - ', 1)
+                            if len(parts) == 2:
+                                ex_artist, ex_title = parts
+                            else:
+                                ex_artist, ex_title = "", existing_name
+                                
+                            def norm_title(t):
+                                t = re.sub(r'\[.*?\]', '', t)
+                                t = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', t, flags=re.I)
+                                return re.sub(r'[^a-z0-9]', '', t.lower())
+                                
+                            if norm_title(ex_title) != norm_title(check_title):
+                                return False, ""
+                                
+                            # Titles match! Now extract and clean co-artists
+                            def get_primary_artists(a):
+                                a_clean = a.lower()
+                                a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and|&)\s+', a_clean)[0]
+                                parts = re.split(r'[,/;]', a_clean)
+                                return [re.sub(r'[^a-z0-9]', '', x).strip() for x in parts if re.sub(r'[^a-z0-9]', '', x).strip()]
+                                
+                            ex_artists = get_primary_artists(ex_artist)
+                            check_artists = get_primary_artists(check_artist)
+                            
+                            if set(ex_artists) & set(check_artists):
+                                return True, "Already in library (smart artist match)"
+                                
+                            ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower())
+                            check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower())
+                            if ex_artist_clean in check_artist_clean or check_artist_clean in ex_artist_clean:
+                                return True, "Already in library (substring artist match)"
+                                
+                            return False, ""
+
                         is_duplicate = False
                         duplicate_reason = ""
                         
@@ -694,9 +734,10 @@ def iheart_poller_worker():
                                         for row in reader:
                                             existing_name = row.get('Track Name')
                                             if existing_name:
-                                                if vm._normalize_track_key(existing_name) == norm_key:
+                                                is_dup, reason = is_smart_duplicate(existing_name, artist, title)
+                                                if is_dup:
                                                     is_duplicate = True
-                                                    duplicate_reason = "Already in CSV database"
+                                                    duplicate_reason = reason
                                                     break
                                 except Exception as e:
                                     logging.error(f"Error checking CSV in iHeart poller: {e}")
@@ -710,9 +751,10 @@ def iheart_poller_worker():
                                         for f in os.listdir(folder_path):
                                             if f.lower().endswith(".mp3"):
                                                 f_name_without_ext = f[:-4]
-                                                if vm._normalize_track_key(f_name_without_ext) == norm_key:
+                                                is_dup, reason = is_smart_duplicate(f_name_without_ext, artist, title)
+                                                if is_dup:
                                                     is_duplicate = True
-                                                    duplicate_reason = f"Already exists on G Drive: {folder}/{f}"
+                                                    duplicate_reason = f"Already exists on G Drive: {folder}/{f} ({reason})"
                                                     break
                                     if is_duplicate:
                                         break
