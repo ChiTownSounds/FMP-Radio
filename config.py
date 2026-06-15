@@ -65,3 +65,7 @@ def is_non_song(track_name, file_path):
         return True
         
     return False
+
+# --- WEB SERVER SETTINGS ---
+APP_HOST = os.getenv("APP_HOST", "127.0.0.1")
+APP_PORT = int(os.getenv("APP_PORT", 5000))

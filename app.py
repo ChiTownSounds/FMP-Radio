@@ -11,7 +11,7 @@ import collections
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 
-from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT
+from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT
 
 # --- CORE MODULE IMPORTS ---
 from modules.ingest import Gatekeeper
@@ -307,6 +307,12 @@ def is_video_title(title: str) -> bool:
         return True
     return False
 
+def is_karaoke_or_tribute(title: str, artist: str = "") -> bool:
+    t = title.lower()
+    a = artist.lower() if artist else ""
+    exclude_keywords = ["karaoke", "tribute", "instrumental", "backing track", "originally performed", "originally by", "cover version", "piano cover", "acoustic cover"]
+    return any(k in t or k in a for k in exclude_keywords)
+
 def extract_playlist_urls(playlist_url: str) -> list:
     cmd = YT_DLP_CMD + ["--flat-playlist", "--print", "url", playlist_url]
     try:
@@ -435,10 +441,12 @@ def downloader_worker():
                     best_match = None
                     for res in results:
                         title_candidate = res.get('title', '')
-                        if not is_video_title(title_candidate):
+                        artists_list = res.get('artists', [])
+                        artist_candidate = ", ".join(x.get('name', '') for x in artists_list) if isinstance(artists_list, list) else ""
+                        if not is_video_title(title_candidate) and not is_karaoke_or_tribute(title_candidate, artist_candidate):
                             best_match = res
                             break
-                    # Fallback to the top result if all contain video keywords
+                    # Fallback to the top result if all contain video/karaoke keywords
                     if not best_match:
                         best_match = results[0]
                         
@@ -1412,4 +1420,4 @@ if __name__ == '__main__':
         
     state.update_count()
     start_engines()
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    app.run(host=APP_HOST, port=APP_PORT, debug=False)
