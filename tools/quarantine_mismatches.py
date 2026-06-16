@@ -11,15 +11,29 @@ from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-sys.path.append(r"c:\FMP_Ultimate")
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(ROOT_DIR)
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR
 CSV_BLUEPRINT = Path(CSV_BLUEPRINT)
 
-REPORT_PATH = Path(r"c:\FMP_Ultimate\logs\final_audio_mismatches.txt")
-G_DRIVE_MUSIC = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
-G_DRIVE_QUARANTINE = Path(r"G:\My Drive\FMP MUSIC\BASE\Quarantine")
-LYRICS_DIR = Path(r"c:\FMP_Ultimate\configs\lyrics")
-RCLONE_EXE = r"c:\FMP_Ultimate\rclone.exe"
+REPORT_PATH = Path(os.path.join(ROOT_DIR, "logs", "final_audio_mismatches.txt"))
+G_DRIVE_MUSIC = Path(MUSIC_DIR)
+G_DRIVE_QUARANTINE = Path(os.path.join(os.path.dirname(MUSIC_DIR), "Quarantine"))
+LYRICS_DIR = Path(os.path.join(ROOT_DIR, "configs", "lyrics"))
+
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(ROOT_DIR, "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
+RCLONE_EXE = get_rclone_path()
 
 def parse_mismatches():
     if not REPORT_PATH.exists():

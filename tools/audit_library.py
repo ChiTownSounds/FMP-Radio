@@ -166,7 +166,20 @@ def audit_missing_tracks():
             
     # 2. Get all remote files via rclone
     import subprocess
-    rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+    import platform
+    import shutil
+    
+    def get_rclone_path():
+        if platform.system() == "Windows":
+            path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+            if os.path.exists(path):
+                return path
+        resolved = shutil.which("rclone")
+        if resolved:
+            return resolved
+        return "rclone"
+
+    rclone_path = get_rclone_path()
     remote_files = []
     try:
         # Use rclone lsf with recursive
@@ -185,7 +198,8 @@ def audit_missing_tracks():
             missing_files.append(r_file)
             
     # 4. Generate Text Report
-    report_path = r"C:\FMP_Ultimate\missing_tracks_report.txt"
+    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    report_path = os.path.join(repo_dir, "missing_tracks_report.txt")
     try:
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(f"--- FMP Ultimate: Missing Tracks Report ---\n")

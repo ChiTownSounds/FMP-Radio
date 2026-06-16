@@ -13,11 +13,23 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 # Ensure the root dir is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR
 
-RCLONE_EXE = r"c:\FMP_Ultimate\rclone.exe"
-G_DRIVE_MUSIC = Path = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
-LYRICS_DIR = r"c:\FMP_Ultimate\configs\lyrics"
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
+RCLONE_EXE = get_rclone_path()
+G_DRIVE_MUSIC = MUSIC_DIR
+LYRICS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs", "lyrics")
 
 # Set to True to only report duplicates without deleting anything
 DRY_RUN = False 
@@ -63,12 +75,16 @@ def get_absolute_gpath(file_path_on_server):
     clean_rel = file_path_on_server.replace('\\', '/')
     if clean_rel.upper().startswith('Z:/'):
         clean_rel = clean_rel[3:]
+    elif clean_rel.lower().startswith('/home/ubuntu/music/'):
+        clean_rel = clean_rel[len('/home/ubuntu/music/'):]
     return os.path.join(G_DRIVE_MUSIC, clean_rel.replace('/', os.sep))
 
 def get_ftp_path(z_path):
     clean_rel = z_path.replace('\\', '/')
     if clean_rel.upper().startswith('Z:/'):
         clean_rel = clean_rel[3:]
+    elif clean_rel.lower().startswith('/home/ubuntu/music/'):
+        clean_rel = clean_rel[len('/home/ubuntu/music/'):]
     return f"citrus3:/{clean_rel}"
 
 def evaluate_row_quality(row):

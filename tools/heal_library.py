@@ -3,6 +3,7 @@ import csv
 import sys
 import io
 import shutil
+import platform
 from pathlib import Path
 from mutagen.mp3 import MP3
 from mutagen.id3 import TXXX, TBPM
@@ -11,12 +12,17 @@ from mutagen.id3 import TXXX, TBPM
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-sys.path.append(r"c:\FMP_Ultimate")
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(ROOT_DIR)
 from modules.tagger import AutoMaster
-from config import CSV_BLUEPRINT
+from config import CSV_BLUEPRINT, MUSIC_DIR
 
-BACKUP_PATH = Path(r"c:\FMP_Ultimate\configs\fmp_data_7718_heal_backup.csv")
-Z_DIR = Path(r"Z:/")
+BACKUP_PATH = Path(os.path.join(ROOT_DIR, "configs", "fmp_data_7718_heal_backup.csv"))
+
+if platform.system() == "Windows":
+    Z_DIR = Path("Z:/")
+else:
+    Z_DIR = Path(MUSIC_DIR)
 
 # 1. Back up CSV database
 def backup_database():
@@ -152,12 +158,25 @@ def heal_library():
         }
     ]
     
-    z_online = Z_DIR.exists() and os.path.exists(r"Z:/Classics")
-    rclone_path = r"c:\FMP_Ultimate\rclone.exe"
+    # On Linux, Classics folder is lowercase or mixed, check Z_DIR/Classics or Z_DIR/classics
+    z_online = Z_DIR.exists() and (os.path.exists(Z_DIR / "Classics") or os.path.exists(Z_DIR / "classics"))
+    
+    def get_rclone_path():
+        import shutil
+        if platform.system() == "Windows":
+            path = os.path.join(ROOT_DIR, "rclone.exe")
+            if os.path.exists(path):
+                return path
+        resolved = shutil.which("rclone")
+        if resolved:
+            return resolved
+        return "rclone"
+
+    rclone_path = get_rclone_path()
     
     if not z_online:
-        print("[WARNING] Z: drive is offline. Operating in direct Rclone command-line fallback mode.")
-        HEAL_TEMP = Path(r"c:\FMP_Ultimate\staging\_heal_temp")
+        print("[WARNING] Z: drive / music storage is offline. Operating in direct Rclone command-line fallback mode.")
+        HEAL_TEMP = Path(os.path.join(ROOT_DIR, "staging", "_heal_temp"))
         HEAL_TEMP.mkdir(parents=True, exist_ok=True)
     else:
         HEAL_TEMP = None

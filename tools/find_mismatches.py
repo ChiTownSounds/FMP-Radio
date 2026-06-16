@@ -10,8 +10,11 @@ from thefuzz import fuzz
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-CSV_PATH = Path(r"c:\FMP_Ultimate\configs\fmp_data_7718.csv")
-G_DRIVE_BASE = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import CSV_BLUEPRINT, MUSIC_DIR
+
+CSV_PATH = Path(CSV_BLUEPRINT)
+G_DRIVE_BASE = Path(MUSIC_DIR)
 
 def check_mismatches():
     print("=" * 60)
@@ -35,13 +38,14 @@ def check_mismatches():
             if not track_name or not z_path:
                 continue
 
-            # Convert Z:/ path to G:/ path
-            if z_path.upper().startswith("Z:/"):
-                rel_path = z_path[3:]
-            elif z_path.upper().startswith("Z:\\"):
-                rel_path = z_path[3:]
+            # Convert Z:/ or VM path to relative path
+            clean_z = z_path.replace('\\', '/')
+            if clean_z.upper().startswith("Z:/"):
+                rel_path = clean_z[3:]
+            elif clean_z.lower().startswith("/home/ubuntu/music/"):
+                rel_path = clean_z[len("/home/ubuntu/music/"):]
             else:
-                rel_path = z_path
+                rel_path = clean_z
 
             g_path = G_DRIVE_BASE / rel_path
 

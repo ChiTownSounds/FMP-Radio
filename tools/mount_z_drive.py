@@ -14,6 +14,12 @@ from config import FTP_HOST, FTP_PORT, FTP_USER, FTP_PASS
 RCLONE_PATH = os.path.join(parent_dir, "rclone.exe")
 
 def mount_drive():
+    import platform
+    if platform.system() != "Windows":
+        print("[*] Mount Citrus3 remote as Z: drive is only applicable on Windows.")
+        print("[*] On Linux, the system uses local playout and caching at /home/ubuntu/music/.")
+        return
+
     print("====================================================")
     print("      FMP NATIVE RCLONE MOUNT UTILITY               ")
     print("====================================================")

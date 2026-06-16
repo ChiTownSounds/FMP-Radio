@@ -24,9 +24,12 @@ from config import FTP_HOST, FTP_PORT, FTP_USER, FTP_PASS, FTP_BASE_DIR
 # Hardened to ignore initial -70.0 baseline and capture the FINAL summary value.
 # ==============================================================================
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(ROOT_DIR)
+
 SAMPLE_LIMIT = 20
-TEMP_DIR = r"C:\FMP_Ultimate\staging\_loudness_temp"
-REPORT_PATH = r"C:\FMP_Ultimate\loudness_analysis.csv"
+TEMP_DIR = os.path.join(ROOT_DIR, "staging", "_loudness_temp")
+REPORT_PATH = os.path.join(ROOT_DIR, "loudness_analysis.csv")
 ERA_FOLDERS = ["Classics", "Old School 70s80s", "Throwbacks 90s2000s", "New School 2010+", "Live"]
 
 def analyze_lufs(file_path: str) -> float:
@@ -77,8 +80,19 @@ def run_audit():
     results = []
 
     try:
-        import subprocess
-        rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+        import platform
+        import shutil
+        def get_rclone_path():
+            if platform.system() == "Windows":
+                path = os.path.join(ROOT_DIR, "rclone.exe")
+                if os.path.exists(path):
+                    return path
+            resolved = shutil.which("rclone")
+            if resolved:
+                return resolved
+            return "rclone"
+        
+        rclone_path = get_rclone_path()
         print("Gathering remote file list via Rclone...")
         all_candidates = []
         for folder in ERA_FOLDERS:

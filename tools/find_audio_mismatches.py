@@ -12,18 +12,22 @@ from mutagen.mp3 import MP3
 from thefuzz import fuzz
 from dotenv import load_dotenv
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(ROOT_DIR)
+from config import CSV_BLUEPRINT, MUSIC_DIR
+
 # Fix encoding for Windows consoles
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Load environment
-load_dotenv(dotenv_path=Path(r"c:\FMP_Ultimate\.env"))
+load_dotenv(dotenv_path=Path(os.path.join(ROOT_DIR, ".env")))
 
-CSV_PATH = Path(r"c:\FMP_Ultimate\configs\fmp_data_7718.csv")
-G_DRIVE_BASE = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
-CACHE_PATH = Path(r"c:\FMP_Ultimate\configs\audio_fingerprint_cache.json")
-LOG_PATH = Path(r"c:\FMP_Ultimate\logs\audio_mismatches.txt")
-MISMATCHES_TXT_PATH = Path(r"c:\FMP_Ultimate\logs\mismatches.txt")
+CSV_PATH = Path(CSV_BLUEPRINT)
+G_DRIVE_BASE = Path(MUSIC_DIR)
+CACHE_PATH = Path(os.path.join(ROOT_DIR, "configs", "audio_fingerprint_cache.json"))
+LOG_PATH = Path(os.path.join(ROOT_DIR, "logs", "audio_mismatches.txt"))
+MISMATCHES_TXT_PATH = Path(os.path.join(ROOT_DIR, "logs", "mismatches.txt"))
 
 DEFAULT_API_KEY = os.getenv("ACOUSTID_API_KEY")
 # Fallback to working public/example client key if invalid or default placeholder
@@ -70,7 +74,14 @@ def get_id3_tags(file_path):
         pass
     return artist, title
 
-def get_audio_fingerprint(file_path, fpcalc_path=r"c:\FMP_Ultimate\fpcalc.exe"):
+def get_audio_fingerprint(file_path, fpcalc_path=None):
+    if not fpcalc_path:
+        import platform
+        import shutil
+        if platform.system() == "Windows":
+            fpcalc_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fpcalc.exe")
+        else:
+            fpcalc_path = shutil.which("fpcalc") or "fpcalc"
     try:
         cmd = [fpcalc_path, "-json", str(file_path)]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -225,11 +236,14 @@ def main():
             if not track_name or not z_path:
                 continue
 
-            # Convert Z:/ path to G:/ path
-            if z_path.upper().startswith("Z:/") or z_path.upper().startswith("Z:\\"):
-                rel_path = z_path[3:]
+            # Convert Z:/ or VM path to relative path
+            clean_z = z_path.replace('\\', '/')
+            if clean_z.upper().startswith("Z:/"):
+                rel_path = clean_z[3:]
+            elif clean_z.lower().startswith("/home/ubuntu/music/"):
+                rel_path = clean_z[len("/home/ubuntu/music/"):]
             else:
-                rel_path = z_path
+                rel_path = clean_z
 
             g_path = G_DRIVE_BASE / rel_path
             resolved_g_path = g_path.resolve()

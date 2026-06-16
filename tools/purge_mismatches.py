@@ -10,10 +10,27 @@ from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-CSV_PATH = Path(r"c:\FMP_Ultimate\configs\fmp_data_7718.csv")
-LOG_PATH = Path(r"c:\FMP_Ultimate\logs\mismatches.txt")
-LYRICS_DIR = Path(r"c:\FMP_Ultimate\configs\lyrics")
-RCLONE_EXE = r"c:\FMP_Ultimate\rclone.exe"
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import CSV_BLUEPRINT, MUSIC_DIR
+
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CSV_PATH = Path(CSV_BLUEPRINT)
+LOG_PATH = Path(os.path.join(ROOT_DIR, "logs", "mismatches.txt"))
+LYRICS_DIR = Path(os.path.join(ROOT_DIR, "configs", "lyrics"))
+
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(ROOT_DIR, "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
+RCLONE_EXE = get_rclone_path()
 
 def purge_mismatches():
     print("=" * 60)

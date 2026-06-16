@@ -57,7 +57,16 @@ class VaultManager:
         return f"{artist_clean}_{title_clean}"
 
     def _get_rclone_path(self):
-        return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+        import platform
+        import shutil
+        if platform.system() == "Windows":
+            path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+            if os.path.exists(path):
+                return path
+        resolved = shutil.which("rclone")
+        if resolved:
+            return resolved
+        return "rclone"
 
     def _git_auto_push(self, track_name: str):
         """Helper to push vaulted updates to GitHub in a background thread."""
@@ -161,12 +170,13 @@ class VaultManager:
 
         last_error = ""
 
-        # Attempt optimized deletefile first if path exists
         if file_path_on_server:
-            # Clean up Z:/ prefix to map to FTP root
+            # Clean up prefix to map to FTP root
             clean_rel_path = file_path_on_server.replace('\\', '/')
             if clean_rel_path.upper().startswith('Z:/'):
                 clean_rel_path = clean_rel_path[3:]
+            elif clean_rel_path.lower().startswith('/home/ubuntu/music/'):
+                clean_rel_path = clean_rel_path[len('/home/ubuntu/music/'):]
             
             ftp_target_path = f"citrus3:/{clean_rel_path}"
             
@@ -234,11 +244,22 @@ class VaultManager:
                 clean_rel_path_g = file_path_on_server.replace('\\', '/')
                 if clean_rel_path_g.upper().startswith('Z:/'):
                     clean_rel_path_g = clean_rel_path_g[3:]
-                g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+                elif clean_rel_path_g.lower().startswith('/home/ubuntu/music/'):
+                    clean_rel_path_g = clean_rel_path_g[len('/home/ubuntu/music/'):]
+                
+                from config import MUSIC_DIR
+                g_drive_base = MUSIC_DIR
                 g_target_file = os.path.join(g_drive_base, clean_rel_path_g.replace('/', os.sep))
                 if os.path.exists(g_target_file):
                     os.remove(g_target_file)
-                    logging.info(f"Deleted from G: drive: {g_target_file}")
+                    logging.info(f"Deleted from local storage: {g_target_file}")
+                
+                # Delete from remote Google Drive if on Linux
+                if os.name != "nt":
+                    gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{clean_rel_path_g}"
+                    cmd_delete = [rclone_path, "deletefile", gdrive_target]
+                    subprocess.run(cmd_delete, check=False, capture_output=True)
+                    logging.info(f"Deleted from remote Google Drive: {gdrive_target}")
         except Exception as e:
             logging.error(f"Failed to delete from G: drive mirror: {e}")
 
@@ -321,10 +342,11 @@ class VaultManager:
             release_year = metadata.get('release_year', 'Unknown')
             new_key = self._normalize_track_key(track_name)
             
-            # 3. Verify G: drive is mounted
-            g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+            # 3. Verify music folder/G: drive is mounted
+            from config import MUSIC_DIR
+            g_drive_base = MUSIC_DIR
             if not os.path.exists(g_drive_base):
-                return False, "Google Drive (G: drive) is not mounted or the music folder is missing. Vaulting aborted."
+                return False, "Music folder (G: drive) is not mounted or missing. Vaulting aborted."
 
             # 4. Check for duplicates in CSV database
             with self._csv_lock:
@@ -496,7 +518,17 @@ class VaultManager:
                     subprocess.run(cmd, check=True, capture_output=True)
                     logging.info(f"[✓] Track successfully uploaded to Citrus3 FTP (Z:): {clean_name}")
                 except subprocess.CalledProcessError as e:
-                    return False, f"Rclone FTP Upload Failure from G: drive source: {e.stderr.decode('utf-8', errors='ignore')}"
+                    return False, f"Rclone FTP Upload Failure to Citrus3: {e.stderr.decode('utf-8', errors='ignore')}"
+
+                # 9.5 Remote Google Drive Mirror Upload (G:) if running on Linux/VM
+                if os.name != "nt":
+                    try:
+                        gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{era_folder}/{clean_name}"
+                        cmd_gdrive = [rclone_path, "copyto", "--inplace", g_target_file, gdrive_target]
+                        subprocess.run(cmd_gdrive, check=True, capture_output=True)
+                        logging.info(f"[✓] Track successfully uploaded to Google Drive Mirror (G:): {clean_name}")
+                    except subprocess.CalledProcessError as e:
+                        logging.error(f"[-] Rclone Google Drive Upload failed: {e.stderr.decode('utf-8', errors='ignore')}")
 
                 # 10. Update local CSV database
                 with self._csv_lock:

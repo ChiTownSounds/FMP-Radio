@@ -12,13 +12,27 @@ from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-sys.path.append(r"c:\FMP_Ultimate")
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(ROOT_DIR)
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR
 CSV_BLUEPRINT = Path(CSV_BLUEPRINT)
 
-G_DRIVE_MUSIC = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
-LYRICS_DIR = Path(r"c:\FMP_Ultimate\configs\lyrics")
-RCLONE_EXE = r"c:\FMP_Ultimate\rclone.exe"
+G_DRIVE_MUSIC = Path(MUSIC_DIR)
+LYRICS_DIR = Path(os.path.join(ROOT_DIR, "configs", "lyrics"))
+
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(ROOT_DIR, "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
+RCLONE_EXE = get_rclone_path()
 
 def clean_track_name(name):
     # Strip bracketed album details
@@ -36,10 +50,12 @@ def clean_path_brackets(path_str):
     return "/".join(parts)
 
 def get_absolute_gpath(file_path_on_server):
-    # Map Z:/ relative path to local G: drive path
+    # Map Z:/ or VM relative path to local storage path
     clean_rel_path = file_path_on_server.replace('\\', '/')
     if clean_rel_path.upper().startswith('Z:/'):
         clean_rel_path = clean_rel_path[3:]
+    elif clean_rel_path.lower().startswith('/home/ubuntu/music/'):
+        clean_rel_path = clean_rel_path[len('/home/ubuntu/music/'):]
     return G_DRIVE_MUSIC / clean_rel_path.replace('/', os.sep)
 
 def main():

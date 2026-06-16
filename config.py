@@ -10,6 +10,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STAGING_DIR = os.path.join(BASE_DIR, "staging")
 CSV_BLUEPRINT = os.path.join(BASE_DIR, "configs", "fmp_data_7718.csv")
 
+import platform
+# Centralized cross-platform directories
+if platform.system() == "Windows":
+    MUSIC_DIR = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+    BROADCASTER_DB = r"C:\FMP_Broadcaster\fmp_radio.db"
+else:
+    MUSIC_DIR = "/home/ubuntu/music"
+    BROADCASTER_DB = "/home/ubuntu/FMP-Broadcaster/fmp_radio.db"
+
+
 # --- FTP SERVER SETTINGS ---
 # Loaded securely from .env
 FTP_HOST = os.getenv("FTP_HOST", "hello.citrus3.com")

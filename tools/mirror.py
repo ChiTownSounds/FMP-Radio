@@ -9,8 +9,11 @@ from pathlib import Path
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import MUSIC_DIR
+
 # Source of Truth (Google Drive)
-SOURCE_DIR = Path("G:/My Drive/FMP MUSIC/BASE/MUSIC")
+SOURCE_DIR = Path(MUSIC_DIR)
 DESTINATION_REMOTE = "citrus3:"
 
 # System folders that should be synchronized
@@ -38,14 +41,24 @@ def run_sync(live_mode=False):
     # 1. CRITICAL MOUNT CHECK
     if not SOURCE_DIR.exists():
         print(f"[FATAL ERROR] Source path not found: {SOURCE_DIR}")
-        print("Make sure Google Drive is running and you can see this folder in Explorer.")
+        print("Make sure music storage directory is active and reachable.")
         print("Aborting to prevent accidental deletion on remote server.")
         sys.exit(1)
 
-    rclone_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
-    if not os.path.exists(rclone_path):
-        print(f"[FATAL ERROR] rclone.exe not found at {rclone_path}")
-        sys.exit(1)
+    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    def get_rclone_path():
+        import platform
+        import shutil
+        if platform.system() == "Windows":
+            path = os.path.join(ROOT_DIR, "rclone.exe")
+            if os.path.exists(path):
+                return path
+        resolved = shutil.which("rclone")
+        if resolved:
+            return resolved
+        return "rclone"
+
+    rclone_path = get_rclone_path()
 
     # 2. Iterate through folders and run rclone sync
     for folder in ERA_FOLDERS:

@@ -751,7 +751,8 @@ def iheart_poller_worker():
                                     logging.error(f"Error checking CSV in iHeart poller: {e}")
                                     
                         if not is_duplicate:
-                            g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+                            from config import MUSIC_DIR
+                            g_drive_base = MUSIC_DIR
                             if os.path.exists(g_drive_base):
                                 for folder in vm.era_folders:
                                     folder_path = os.path.join(g_drive_base, folder)
@@ -845,6 +846,18 @@ def start_engines():
             state.iheart_thread = threading.Thread(target=iheart_poller_worker, daemon=True)
             state.iheart_thread.start()
 
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(BASE_DIR, "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
 # --- WEB ROUTES ---
 @app.route('/')
 def index(): return render_template('index.html')
@@ -852,7 +865,7 @@ def index(): return render_template('index.html')
 @app.route('/api/shows')
 def get_shows():
     try:
-        rclone_path = os.path.join(BASE_DIR, "rclone.exe")
+        rclone_path = get_rclone_path()
         cmd = [rclone_path, "lsf", "citrus3:/Shows/", "--dirs-only"]
         result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         shows = [line.strip().rstrip('/') for line in result.stdout.split('\n') if line.strip()]
@@ -868,7 +881,7 @@ def new_show():
     if show_name:
         safe_name = "".join(c for c in show_name if c.isalnum() or c in (' ', '_', '-')).strip()
         try:
-            rclone_path = os.path.join(BASE_DIR, "rclone.exe")
+            rclone_path = get_rclone_path()
             cmd = [rclone_path, "mkdir", f"citrus3:/Shows/{safe_name}"]
             subprocess.run(cmd, check=True)
         except Exception as e:
@@ -895,7 +908,7 @@ def background_rename_task(old_name, new_name):
     import csv
     try:
         # 1. Run Rclone moveto
-        rclone_path = os.path.join(BASE_DIR, "rclone.exe")
+        rclone_path = get_rclone_path()
         state.log(f"[RENAME] Starting remote Citrus3 FTP folder move: Shows/{old_name} -> Shows/{new_name}")
         cmd = [rclone_path, "moveto", f"citrus3:/Shows/{old_name}", f"citrus3:/Shows/{new_name}"]
         res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
@@ -903,6 +916,16 @@ def background_rename_task(old_name, new_name):
             state.log(f"[WARNING] Remote move returned non-zero code. Folder may not exist on FTP yet. Output: {res.stderr.strip()}")
         else:
             state.log(f"[RENAME] Remote Citrus3 FTP folder move completed successfully.")
+
+        # 1b. Rename folder on remote Google Drive if on Linux/VM
+        if os.name != "nt":
+            state.log(f"[RENAME] Starting remote Google Drive folder move: Shows/{old_name} -> Shows/{new_name}")
+            cmd_gdrive = [rclone_path, "moveto", f"gdrive:FMP MUSIC/BASE/MUSIC/Shows/{old_name}", f"gdrive:FMP MUSIC/BASE/MUSIC/Shows/{new_name}"]
+            res_gd = subprocess.run(cmd_gdrive, capture_output=True, text=True, encoding='utf-8')
+            if res_gd.returncode != 0:
+                state.log(f"[WARNING] Remote Google Drive move returned non-zero code. Output: {res_gd.stderr.strip()}")
+            else:
+                state.log(f"[RENAME] Remote Google Drive folder move completed successfully.")
 
         # 2. Backup configs/fmp_data_7718.csv
         state.log(f"[RENAME] Creating database backup before rewrite...")
@@ -979,7 +1002,8 @@ def rename_show():
         return jsonify({"status": "error", "message": "Old name and new name are identical"}), 400
 
     # Local G: drive folder rename
-    g_drive_base = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+    from config import MUSIC_DIR
+    g_drive_base = MUSIC_DIR
     old_local_dir = os.path.join(g_drive_base, "Shows", safe_old)
     new_local_dir = os.path.join(g_drive_base, "Shows", safe_new)
     

@@ -27,9 +27,23 @@ except ImportError:
 from modules.tagger import AutoMaster
 
 # --- CONFIGURATIONS ---
-G_DRIVE_MUSIC = Path(r"G:\My Drive\FMP MUSIC\BASE\MUSIC")
-BROADCASTER_DB = Path(r"C:\FMP_Broadcaster\fmp_radio.db")
-RCLONE_EXE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+from config import MUSIC_DIR, BROADCASTER_DB
+G_DRIVE_MUSIC = Path(MUSIC_DIR)
+BROADCASTER_DB = Path(BROADCASTER_DB)
+
+def get_rclone_path():
+    import platform
+    import shutil
+    if platform.system() == "Windows":
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rclone.exe")
+        if os.path.exists(path):
+            return path
+    resolved = shutil.which("rclone")
+    if resolved:
+        return resolved
+    return "rclone"
+
+RCLONE_EXE = get_rclone_path()
 DRY_RUN = False  # Change to True to print actions without committing them
 
 def normalize_track_key(name: str) -> str:
@@ -166,6 +180,8 @@ def run_sync():
         csv_rel_path = csv_filepath_z.replace('\\', '/')
         if csv_rel_path.upper().startswith('Z:/'):
             csv_rel_path = csv_rel_path[3:]
+        elif csv_rel_path.lower().startswith('/home/ubuntu/music/'):
+            csv_rel_path = csv_rel_path[len('/home/ubuntu/music/'):]
 
         # Path where the file should be locally on G: Drive
         expected_g_path = G_DRIVE_MUSIC / csv_rel_path
@@ -243,8 +259,25 @@ def run_sync():
                 row['Track Name'] = new_filename
                 row['energy_category'] = get_era_category(new_folder)
         else:
-            print(f"  [WARNING] Track missing from G: Drive: '{track_name}' (Path: {csv_filepath_z})")
-            missing_count += 1
+            print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Attempting download from Citrus3 FTP...")
+            if not DRY_RUN:
+                try:
+                    expected_g_path.parent.mkdir(parents=True, exist_ok=True)
+                    cmd = [RCLONE_EXE, "copyto", f"citrus3:/{csv_rel_path}", str(expected_g_path)]
+                    res = subprocess.run(cmd, capture_output=True, text=True)
+                    if res.returncode == 0:
+                        print(f"    [✓] Successfully downloaded: {csv_rel_path}")
+                        local_keys_matched.add(key)
+                    else:
+                        print(f"    [-] Download failed: {res.stderr.strip()}")
+                        missing_count += 1
+                except Exception as de:
+                    print(f"    [-] Download crashed: {de}")
+                    missing_count += 1
+            else:
+                print(f"    [DRY RUN] Would download from citrus3:/{csv_rel_path} to {expected_g_path}")
+                missing_count += 1
+
 
     # 5. Process New Untracked Files from G: Drive
     untracked_keys = set(local_files.keys()) - local_keys_matched
