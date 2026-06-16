@@ -206,7 +206,7 @@ def run_sync():
             realigned_count += 1
 
             old_z_path = csv_filepath_z
-            new_z_path = f"Z://{new_rel_path}".replace("//", "/")
+            new_z_path = new_rel_path
 
             print(f"\n  [REALIGNMENT DETECTED] '{track_name}'")
             print(f"    - Old: {old_z_path}")
@@ -320,7 +320,7 @@ def run_sync():
                         if field == 'Track Name':
                             new_row[field] = new_filename
                         elif field == 'File Path':
-                            new_row[field] = f"Z:/{rel_path}"
+                            new_row[field] = rel_path
                         elif lower_field in ['source_url', 'url', 'source url']:
                             new_row[field] = ""
                         elif field == 'duration_ms':

@@ -10,7 +10,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STAGING_DIR = os.path.join(BASE_DIR, "staging")
 CSV_BLUEPRINT = os.path.join(BASE_DIR, "configs", "fmp_data_7718.csv")
 
-import platform
 # Centralized cross-platform directories
 if platform.system() == "Windows":
     MUSIC_DIR = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
@@ -18,6 +17,41 @@ if platform.system() == "Windows":
 else:
     MUSIC_DIR = "/home/ubuntu/music"
     BROADCASTER_DB = "/home/ubuntu/FMP-Broadcaster/fmp_radio.db"
+
+
+def resolve_physical_path(db_path: str) -> str:
+    """
+    Resolves a database relative path to the physical path of the current environment.
+    If the path already exists directly as-is on the disk, it is returned directly.
+    """
+    if not db_path:
+        return ""
+    
+    # Normalize separators to forward slashes first
+    clean_path = db_path.replace('\\', '/')
+    
+    # If the file exists directly as-is on the disk, return it
+    if os.path.exists(clean_path):
+        return clean_path
+    
+    # Strip legacy prefixes if any
+    if clean_path.upper().startswith('Z:/'):
+        clean_path = clean_path[3:]
+    elif clean_path.lower().startswith('/home/ubuntu/music/'):
+        clean_path = clean_path[len('/home/ubuntu/music/'):]
+    elif clean_path.lower().startswith('g:/my drive/fmp music/base/music/'):
+        clean_path = clean_path[len('g:/my drive/fmp music/base/music/'):]
+        
+    if platform.system() == "Windows":
+        # Check G: drive first, fall back to Z: drive if G: is unavailable
+        g_drive_path = os.path.join(MUSIC_DIR, clean_path)
+        if os.path.exists(g_drive_path):
+            return g_drive_path.replace('/', '\\')
+        return os.path.join("Z:", clean_path).replace('/', '\\')
+    else:
+        # Linux playout server path
+        return os.path.join(MUSIC_DIR, clean_path).replace('\\', '/')
+
 
 
 # --- FTP SERVER SETTINGS ---

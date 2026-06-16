@@ -69,23 +69,67 @@ class VaultManager:
         return "rclone"
 
     def _git_auto_push(self, track_name: str):
-        """Helper to push vaulted updates to GitHub in a background thread."""
+        """Helper to push vaulted updates to GitHub in a background thread with retries."""
         import subprocess
-        with self._git_lock:
+        import time
+        import os
+        
+        # Use a file-based lock for cross-process synchronization
+        lock_file = os.path.join(os.path.dirname(CSV_BLUEPRINT), "git_commit.lock")
+        
+        for attempt in range(5):
+            lock_acquired = False
             try:
-                logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}'...")
-                # 0. Pull remote changes to prevent push collisions
-                subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True, capture_output=True)
-                # 1. Add modified CSV file
-                subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-                # 2. Commit change
-                commit_msg = f"Vaulted new track: {track_name}"
-                subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
-                # 3. Push to origin main
-                subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
-                logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
+                # Acquire file-based lock
+                for _ in range(50): # try for 5 seconds
+                    try:
+                        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                        os.close(fd)
+                        lock_acquired = True
+                        break
+                    except FileExistsError:
+                        time.sleep(0.1)
+                
+                if not lock_acquired:
+                    logging.warning(f"[Git Sync] Could not acquire lock file. Retrying attempt {attempt+1}/5...")
+                    time.sleep(1 + attempt)
+                    continue
+                
+                # Synchronize with self._git_lock for in-process safety
+                with self._git_lock:
+                    logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}' (attempt {attempt+1})...")
+                    
+                    # Clean up any stale index.lock file in our repo if it exists
+                    git_index_lock = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".git", "index.lock")
+                    if os.path.exists(git_index_lock):
+                        try:
+                            os.remove(git_index_lock)
+                            logging.warning("[Git Sync] Removed stale git index.lock file.")
+                        except Exception as lock_err:
+                            logging.warning(f"[Git Sync] Could not remove index.lock: {lock_err}")
+                            
+                    # 0. Pull remote changes to prevent push collisions
+                    subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True, capture_output=True)
+                    # 1. Add modified CSV file
+                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                    # 2. Commit change
+                    commit_msg = f"Vaulted new track: {track_name}"
+                    subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
+                    # 3. Push to origin main
+                    subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                    logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
+                    return # Success!
             except Exception as e:
-                logging.error(f"[-] Auto-Git Sync Failed: {e}")
+                logging.error(f"[-] Auto-Git Sync Attempt {attempt+1} Failed: {e}")
+                time.sleep(1 + attempt * 2)
+            finally:
+                if lock_acquired:
+                    try:
+                        os.remove(lock_file)
+                    except:
+                        pass
+                        
+        logging.error(f"[FATAL] Auto-Git Sync completely failed for '{track_name}' after 5 attempts.")
 
     def find_candidates(self, query: str) -> List[Dict]:
         """
@@ -445,7 +489,7 @@ class VaultManager:
                     if field == 'Track Name': 
                         new_row[field] = track_name
                     elif field == 'File Path':
-                        new_row[field] = f"Z:/{era_folder}/{clean_name}"
+                        new_row[field] = f"{era_folder}/{clean_name}"
                     elif lower_field in ['source_url', 'url', 'source url']: 
                         new_row[field] = metadata.get('url', "")
                     elif field == 'duration_ms':
