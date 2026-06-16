@@ -1,0 +1,84 @@
+{
+  "fields": [
+    {
+      "name": "Track Name",
+      "type": "string",
+      "constraints": {
+        "required": true
+      }
+    },
+    {
+      "name": "File Path",
+      "type": "string",
+      "constraints": {
+        "required": true
+      }
+    },
+    {
+      "name": "Source_URL",
+      "type": "string"
+    },
+    {
+      "name": "duration_ms",
+      "type": "integer"
+    },
+    {
+      "name": "item_type",
+      "type": "string"
+    },
+    {
+      "name": "energy_category",
+      "type": "string"
+    },
+    {
+      "name": "Intro_Duration",
+      "type": "integer"
+    },
+    {
+      "name": "Punch_Ms",
+      "type": "integer"
+    },
+    {
+      "name": "outro_duration",
+      "type": "integer"
+    },
+    {
+      "name": "bpm",
+      "type": "integer"
+    },
+    {
+      "name": "Bitrate",
+      "type": "string"
+    },
+    {
+      "name": "Lyrics",
+      "type": "string"
+    },
+    {
+      "name": "Year",
+      "type": "integer"
+    },
+    {
+      "name": "Art Ratio",
+      "type": "number"
+    },
+    {
+      "name": "Length",
+      "type": "string"
+    },
+    {
+      "name": "Pool",
+      "type": "string"
+    },
+    {
+      "name": "Explicit",
+      "type": "string"
+    }
+  ],
+  "missingValues": [
+    "",
+    "Unknown",
+    "Not Found",
+    "None"
+  ]
+}

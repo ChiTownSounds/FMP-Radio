@@ -3,6 +3,12 @@ import sys
 import os
 import subprocess
 
+# Reconfigure stdout/stderr error handlers to prevent Windows encoding crashes when printing Unicode
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(errors='replace')
+
 VALID_DIRS = [
     'Classics', 'Old School 70s80s', 'Throwbacks 90s2000s', 'New School 2010+',
     'Live', 'Unsorted_Review', '365 Commercials', '90s2000s', '80s', 'Today',
@@ -115,6 +121,23 @@ def check_and_clean_csv():
             sys.exit(1)
     else:
         print("[PRE-COMMIT GUARD] [OK] Database is already sorted and formatted properly.")
+
+    # 5. Run Frictionless Data Schema validation
+    print("[PRE-COMMIT GUARD] Running Frictionless Data Schema validation...")
+    try:
+        cmd = [sys.executable, "-m", "frictionless", "validate", "configs/fmp_data_7718.csv", "--schema", "configs/schema.json"]
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=root_dir)
+        if res.returncode != 0:
+            print("\n" + "!" * 80)
+            print(" [COMMIT BLOCKED] Frictionless Schema Validation Failed!")
+            print("!" * 80)
+            print(res.stdout or res.stderr)
+            print("!" * 80 + "\n")
+            sys.exit(1)
+        else:
+            print("[PRE-COMMIT GUARD] [OK] Frictionless Schema Validation Passed.")
+    except Exception as e:
+        print(f"[PRE-COMMIT GUARD] Warning: Frictionless validation skipped: {e}")
 
     sys.exit(0)
 

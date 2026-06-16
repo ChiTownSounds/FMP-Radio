@@ -111,15 +111,46 @@ class VaultManager:
                         except Exception as lock_err:
                             logging.warning(f"[Git Sync] Could not remove index.lock: {lock_err}")
                             
-                    # 0. Pull remote changes to prevent push collisions
-                    subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True, capture_output=True)
+                    # Get current branch name dynamically
+                    res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                    branch_name = res_branch.stdout.strip()
+
                     # 1. Add modified CSV file
                     subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-                    # 2. Commit change
-                    commit_msg = f"Vaulted new track: {track_name}"
-                    subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
-                    # 3. Push to origin main
-                    subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                    
+                    # Check if there are any staged changes for the CSV file
+                    status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv"], capture_output=True, text=True, check=True)
+                    if status_res.stdout.strip():
+                        # 2. Commit change
+                        commit_msg = f"Vaulted new track: {track_name}"
+                        commit_res = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
+                        if commit_res.returncode != 0:
+                            stdout_lower = commit_res.stdout.lower()
+                            stderr_lower = commit_res.stderr.lower()
+                            clean_messages = ["nothing to commit", "working tree clean", "no changes added to commit", "nothing added to commit"]
+                            if not any(msg in stdout_lower or msg in stderr_lower for msg in clean_messages):
+                                # Real commit failure
+                                raise Exception(f"git commit failed with code {commit_res.returncode}: {commit_res.stderr or commit_res.stdout}")
+                            else:
+                                logging.info("[Git Sync] Commit skipped (clean message match). Proceeding to pull and push.")
+                    else:
+                        logging.info("[Git Sync] CSV database file has no changes to commit. Proceeding to pull and push.")
+                    
+                    # 3. Stash other unstaged modifications (e.g., active development files)
+                    stashed = False
+                    stash_res = subprocess.run(["git", "stash"], capture_output=True, text=True)
+                    if stash_res.returncode == 0 and "No local changes to save" not in stash_res.stdout and "No local changes to save" not in stash_res.stderr:
+                        stashed = True
+                    
+                    try:
+                        # 4. Pull remote changes to prevent push collisions and rebase on top of them
+                        subprocess.run(["git", "pull", "--rebase", "origin", branch_name], check=True, capture_output=True)
+                        # 5. Push to origin branch
+                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
+                    finally:
+                        if stashed:
+                            subprocess.run(["git", "stash", "pop"], check=False, capture_output=True)
+                            
                     logging.info(f"[✓] Auto-Git Sync Successful! '{track_name}' synced to GitHub.")
                     return # Success!
             except Exception as e:

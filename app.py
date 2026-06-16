@@ -975,11 +975,40 @@ def background_rename_task(old_name, new_name):
             state.log(f"[RENAME] Synchronizing updated database to GitHub...")
             with vm._git_lock:
                 try:
+                    # Get current branch name dynamically
+                    res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                    branch_name = res_branch.stdout.strip()
+
                     subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-                    commit_msg = f"Rename show {old_name} to {new_name}"
-                    subprocess.run(["git", "commit", "-m", commit_msg], check=True, capture_output=True)
-                    subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
-                    state.log(f"[RENAME] GitHub database synchronization successful.")
+                    
+                    # Check if there are any staged changes for the CSV file
+                    status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv"], capture_output=True, text=True, check=True)
+                    if status_res.stdout.strip():
+                        commit_msg = f"Rename show {old_name} to {new_name}"
+                        commit_res = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
+                        if commit_res.returncode != 0:
+                            stdout_lower = commit_res.stdout.lower()
+                            stderr_lower = commit_res.stderr.lower()
+                            clean_messages = ["nothing to commit", "working tree clean", "no changes added to commit", "nothing added to commit"]
+                            if not any(msg in stdout_lower or msg in stderr_lower for msg in clean_messages):
+                                raise Exception(f"git commit failed with code {commit_res.returncode}: {commit_res.stderr or commit_res.stdout}")
+                            else:
+                                state.log(f"[RENAME] Commit skipped (clean message match). Proceeding to pull and push.")
+                    else:
+                        state.log(f"[RENAME] CSV database file has no changes to commit. Proceeding to pull and push.")
+
+                    stashed = False
+                    stash_res = subprocess.run(["git", "stash"], capture_output=True, text=True)
+                    if stash_res.returncode == 0 and "No local changes to save" not in stash_res.stdout and "No local changes to save" not in stash_res.stderr:
+                        stashed = True
+
+                    try:
+                        subprocess.run(["git", "pull", "--rebase", "origin", branch_name], check=True, capture_output=True)
+                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
+                        state.log(f"[RENAME] GitHub database synchronization successful.")
+                    finally:
+                        if stashed:
+                            subprocess.run(["git", "stash", "pop"], check=False, capture_output=True)
                 except Exception as git_err:
                     state.log(f"[ERROR] GitHub synchronization failed: {git_err}")
 
