@@ -703,9 +703,13 @@ def iheart_poller_worker():
                                 ex_artist, ex_title = "", existing_name
                                 
                             def norm_title(t):
+                                t = t.lower()
                                 t = re.sub(r'\[.*?\]', '', t)
-                                t = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', t, flags=re.I)
-                                return re.sub(r'[^a-z0-9]', '', t.lower())
+                                t = re.sub(r'\(.*?\)', '', t)
+                                removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
+                                for r in removals:
+                                    t = t.replace(r, "")
+                                return re.sub(r'[^a-z0-9]', '', t)
                                 
                             if norm_title(ex_title) != norm_title(check_title):
                                 return False, ""

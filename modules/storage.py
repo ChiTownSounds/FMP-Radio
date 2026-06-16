@@ -48,10 +48,13 @@ class VaultManager:
         artist_clean = re.split(r'\s+(feat\.?|featuring|with|w/|f/|and|&)\s+', artist_clean)[0]
         artist_clean = re.sub(r'[^a-z0-9]', '', artist_clean)
         
-        # Clean title: strip brackets and parenthesized features
+        # Clean title: strip brackets and parenthesized features/version details
         title_clean = title.lower()
         title_clean = re.sub(r'\[.*?\]', '', title_clean)
-        title_clean = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', title_clean)
+        title_clean = re.sub(r'\(.*?\)', '', title_clean)
+        removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
+        for r in removals:
+            title_clean = title_clean.replace(r, "")
         title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
         
         return f"{artist_clean}_{title_clean}"

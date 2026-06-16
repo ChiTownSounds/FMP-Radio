@@ -15,7 +15,7 @@ from config import CSV_BLUEPRINT, FTP_HOST, FTP_PORT, FTP_USER, FTP_PASS, FTP_BA
 # 3. Identify low-quality tracks for high-fidelity replacement.
 # ==============================================================================
 
-DRY_RUN = False  # Set to False to commit changes to CSV and FTP server
+DRY_RUN = True  # Set to False to commit changes to CSV and FTP server
 
 def audit_local_csv():
     print("\n[PHASE 1] Scanning Local Database for Duplicates...")
@@ -151,8 +151,13 @@ def audit_missing_tracks():
     if not os.path.exists(CSV_BLUEPRINT):
         return 0
     
-    # 1. Load all known paths from CSV
+    # 1. Load all known paths and keys from CSV
+    from modules.storage import VaultManager
+    from config import is_non_song
+    vm = VaultManager()
+    
     known_paths = set()
+    known_keys = set()
     fieldnames = []
     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
@@ -163,6 +168,12 @@ def audit_missing_tracks():
             if path.startswith('z:/'):
                 path = path[3:]
             known_paths.add(path)
+            
+            track_name = row.get('Track Name', '')
+            if track_name:
+                key = vm._normalize_track_key(track_name)
+                if key:
+                    known_keys.add(key)
             
     # 2. Get all remote files via rclone
     import subprocess
@@ -194,8 +205,23 @@ def audit_missing_tracks():
     for r_file in remote_files:
         # r_file format: e.g. "Throwbacks 90s2000s/Artist - Song.mp3"
         normalized_remote = r_file.replace('\\', '/').lower()
-        if normalized_remote not in known_paths:
+        if normalized_remote in known_paths:
+            continue
+            
+        # Skip duplicate music files if already tracked
+        basename = os.path.basename(r_file)
+        filename_no_ext = os.path.splitext(basename)[0]
+        
+        if is_non_song(filename_no_ext, r_file):
             missing_files.append(r_file)
+            continue
+            
+        key = vm._normalize_track_key(filename_no_ext)
+        if key in known_keys:
+            # Already tracked in database under a cleaner name/path
+            continue
+            
+        missing_files.append(r_file)
             
     # 4. Generate Text Report
     repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
