@@ -1,1 +1,1 @@
-*.csv diff=csv
+*.csv diff=csv text eol=lf
