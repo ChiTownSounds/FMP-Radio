@@ -10,6 +10,19 @@ from mutagen.mp3 import MP3
 
 from config import CSV_BLUEPRINT, STAGING_DIR, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT
 
+def clean_version_tags(text: str) -> str:
+    if not text:
+        return ""
+    import re
+    # 1. Strip parenthesized/bracketed exact version phrases (case-insensitive)
+    text = re.sub(r'\s*[([]\s*(?:clean|explicit|radio edit|radio version|album version|explicit version|clean version|clean edit|explicit edit)\s*[\])]', '', text, flags=re.I)
+    # 2. Strip trailing version suffixes after hyphens
+    text = re.sub(r'\s*-\s*(?:clean|explicit|radio edit|radio version|album version|explicit version|clean version|clean edit|explicit edit)\b', '', text, flags=re.I)
+    # 3. Strip trailing standalone version words
+    text = re.sub(r'\s+(?:clean|explicit|radio edit|radio version)\s*$', '', text, flags=re.I)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 class TransmissionError(Exception):
     """Custom exception for FTP transmission failures."""
     pass
@@ -397,14 +410,13 @@ class VaultManager:
             clean_artist = self._safe_filename(metadata.get('artist', 'Unknown Artist'))
             clean_title = self._safe_filename(metadata.get('title', 'Unknown Title'))
             
-            # Remove any explicit/clean tags from the filename to keep it clean
-            import re
-            clean_title_filename = re.sub(r'\((?:explicit|clean)\)', '', clean_title, flags=re.I).strip()
-            clean_title_filename = re.sub(r'\s+', ' ', clean_title_filename)
+            # Remove any explicit/clean tags from the artist and title to keep the filename clean
+            clean_title_filename = clean_version_tags(clean_title)
+            clean_artist_filename = clean_version_tags(clean_artist)
             
-            target_filename = f"{clean_artist} - {clean_title_filename}.mp3"
+            target_filename = f"{clean_artist_filename} - {clean_title_filename}.mp3"
             clean_name = target_filename
-            track_name = f"{clean_artist} - {clean_title_filename}"
+            track_name = f"{clean_artist_filename} - {clean_title_filename}"
             
             # Determine version category and folder
             is_explicit = str(metadata.get('explicit', 'False')).strip().lower() in ['true', '1']
