@@ -602,7 +602,7 @@ class VaultManager:
                 import subprocess
                 rclone_path = self._get_rclone_path()
                 try:
-                    cmd = [rclone_path, "copyto", "--inplace", g_target_file, f"citrus3:{remote_target}/{clean_name}"]
+                    cmd = [rclone_path, "copyto", g_target_file, f"citrus3:{remote_target}/{clean_name}"]
                     subprocess.run(cmd, check=True, capture_output=True)
                     logging.info(f"[✓] Track successfully uploaded to Citrus3 FTP (Z:): {clean_name}")
                 except subprocess.CalledProcessError as e:
@@ -612,7 +612,7 @@ class VaultManager:
                 if os.name != "nt":
                     try:
                         gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{era_folder}/{version_folder}/{clean_name}"
-                        cmd_gdrive = [rclone_path, "copyto", "--inplace", g_target_file, gdrive_target]
+                        cmd_gdrive = [rclone_path, "copyto", g_target_file, gdrive_target]
                         subprocess.run(cmd_gdrive, check=True, capture_output=True)
                         logging.info(f"[✓] Track successfully uploaded to Google Drive Mirror (G:): {clean_name}")
                     except subprocess.CalledProcessError as e:
