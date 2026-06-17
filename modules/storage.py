@@ -27,12 +27,22 @@ class VaultManager:
             return ""
         return "".join(c for c in name if c not in r'\/:*?"<>|').strip()
 
-    def _normalize_track_key(self, name: str) -> str:
+    def _normalize_track_key(self, name: str, explicit_val=None) -> str:
         if not name:
             return ""
         import re
         import unicodedata
         
+        name_lower = name.lower()
+        
+        # Determine version category
+        is_radio = 'radio edit' in name_lower or 'radio version' in name_lower
+        
+        if explicit_val is not None:
+            is_explicit = explicit_val in [True, 1, 'true', '1', 'True'] or ('explicit' in name_lower and 'clean' not in name_lower)
+        else:
+            is_explicit = 'explicit' in name_lower and 'clean' not in name_lower
+            
         # Decompose accents/diacritics and convert to ASCII (e.g. Ÿ -> Y, ‐ -> -)
         name = unicodedata.normalize('NFKD', name).encode('ascii', 'ignore').decode('ascii')
         
@@ -57,7 +67,13 @@ class VaultManager:
             title_clean = title_clean.replace(r, "")
         title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
         
-        return f"{artist_clean}_{title_clean}"
+        base_key = f"{artist_clean}_{title_clean}"
+        if is_radio:
+            return f"{base_key}_radioedit"
+        elif is_explicit:
+            return f"{base_key}_explicit"
+        else:
+            return f"{base_key}_clean"
 
     def _get_rclone_path(self):
         import platform
@@ -381,44 +397,29 @@ class VaultManager:
             clean_artist = self._safe_filename(metadata.get('artist', 'Unknown Artist'))
             clean_title = self._safe_filename(metadata.get('title', 'Unknown Title'))
             
-            # Check if this is a clean counterpart upgrade for an existing explicit track in the database
-            new_explicit_tag = str(metadata.get('explicit', 'False')).strip().lower()
+            # Remove any explicit/clean tags from the filename to keep it clean
+            import re
+            clean_title_filename = re.sub(r'\((?:explicit|clean)\)', '', clean_title, flags=re.I).strip()
+            clean_title_filename = re.sub(r'\s+', ' ', clean_title_filename)
             
-            base_title = clean_title
-            if base_title.lower().endswith(" (clean)"):
-                base_title = base_title[:-8].strip()
-            
-            original_track_name = f"{clean_artist} - {base_title}"
-            original_key = self._normalize_track_key(original_track_name)
-            
-            is_clean_upgrade = False
-            
-            if new_explicit_tag in ['false', '0']:
-                with self._csv_lock:
-                    if os.path.exists(CSV_BLUEPRINT):
-                        with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
-                            reader = csv.DictReader(f)
-                            for row in reader:
-                                existing_name = row.get('Track Name')
-                                if existing_name:
-                                    if self._normalize_track_key(existing_name) == original_key:
-                                        existing_explicit = row.get('Explicit', '').strip().lower()
-                                        if existing_explicit in ['true', '', 'unknown']:
-                                            is_clean_upgrade = True
-                                            break
-            
-            if is_clean_upgrade:
-                if not clean_title.lower().endswith(" (clean)"):
-                    clean_title = f"{clean_title} (Clean)"
-                logging.info(f"[Upgrade] Clean counterpart detected. Ensured ' (Clean)' is appended to track title: {clean_artist} - {clean_title}")
-
-            # 2. Construct the unique target filename
-            target_filename = f"{clean_artist} - {clean_title}.mp3"
+            target_filename = f"{clean_artist} - {clean_title_filename}.mp3"
             clean_name = target_filename
-            track_name = f"{clean_artist} - {clean_title}"
+            track_name = f"{clean_artist} - {clean_title_filename}"
+            
+            # Determine version category and folder
+            is_explicit = str(metadata.get('explicit', 'False')).strip().lower() in ['true', '1']
+            title_lower = clean_title.lower()
+            is_radio = 'radio edit' in title_lower or 'radio version' in title_lower
+            
+            if is_radio:
+                version_folder = "Radio Edit"
+            elif is_explicit:
+                version_folder = "Explicit"
+            else:
+                version_folder = "Clean"
             
             release_year = metadata.get('release_year', 'Unknown')
-            new_key = self._normalize_track_key(track_name)
+            new_key = self._normalize_track_key(track_name, explicit_val=is_explicit)
             
             # 3. Verify music folder/G: drive is mounted
             from config import MUSIC_DIR
@@ -434,26 +435,33 @@ class VaultManager:
                         for row in reader:
                             existing_name = row.get('Track Name')
                             if existing_name:
-                                if self._normalize_track_key(existing_name) == new_key:
+                                existing_explicit = row.get('Explicit', '').strip().lower() in ['true', '1']
+                                existing_key = self._normalize_track_key(existing_name, explicit_val=existing_explicit)
+                                if existing_key == new_key:
                                     return False, "Duplicate Track Detected in CSV"
 
             # 5. Check G: drive era folders for duplicate files
             for folder in self.era_folders:
-                folder_path = os.path.join(g_drive_base, folder)
-                if os.path.exists(folder_path):
-                    for f in os.listdir(folder_path):
-                        if f.lower().endswith(".mp3"):
-                            f_name_without_ext = f[:-4]
-                            if self._normalize_track_key(f_name_without_ext) == new_key:
-                                return False, f"Duplicate Track Detected on G Drive: {folder}/{f}"
+                for subf in ["", "Clean", "Explicit", "Radio Edit"]:
+                    if subf:
+                        folder_path = os.path.join(g_drive_base, folder, subf)
+                    else:
+                        folder_path = os.path.join(g_drive_base, folder)
+                    
+                    if os.path.exists(folder_path):
+                        for f in os.listdir(folder_path):
+                            if f.lower().endswith(".mp3"):
+                                f_name_without_ext = f[:-4]
+                                f_explicit = (subf == "Explicit") or ('explicit' in f_name_without_ext.lower())
+                                f_key = self._normalize_track_key(f_name_without_ext, explicit_val=f_explicit)
+                                if f_key == new_key:
+                                    return False, f"Duplicate Track Detected on G Drive: {folder}/{subf}/{f}"
 
             # 6. Determine Era Folder
             if self._is_video_title(track_name) or self._is_video_title(clean_name):
                 era_folder = "Unsorted_Review"
-                remote_target = "/Unsorted_Review"
             elif target_override: 
                 era_folder = target_override
-                remote_target = f"/{target_override}"
             else:
                 if "live" in clean_name.lower():
                     era_folder = "Live"
@@ -468,15 +476,17 @@ class VaultManager:
                         else: era_folder = "New School 2010+"
                     except:
                         era_folder = "Unsorted_Review"
-                remote_target = f"/{era_folder}"
+            
+            relative_target_dir = f"{era_folder}/{version_folder}"
+            remote_target = f"/{era_folder}/{version_folder}"
 
             # 7. Vault to G: drive first (source of truth)
-            g_target_dir = os.path.join(g_drive_base, era_folder)
+            g_target_dir = os.path.join(g_drive_base, era_folder, version_folder)
             os.makedirs(g_target_dir, exist_ok=True)
             g_target_file = os.path.join(g_target_dir, clean_name)
             try:
                 shutil.copy2(file_path, g_target_file)
-                logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name}")
+                logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {version_folder}")
             except Exception as e:
                 return False, f"Failed to write file to G: drive: {e}"
 
@@ -523,7 +533,7 @@ class VaultManager:
                     if field == 'Track Name': 
                         new_row[field] = track_name
                     elif field == 'File Path':
-                        new_row[field] = f"{era_folder}/{clean_name}"
+                        new_row[field] = f"{era_folder}/{version_folder}/{clean_name}"
                     elif lower_field in ['source_url', 'url', 'source url']: 
                         new_row[field] = metadata.get('url', "")
                     elif field == 'duration_ms':
@@ -601,7 +611,7 @@ class VaultManager:
                 # 9.5 Remote Google Drive Mirror Upload (G:) if running on Linux/VM
                 if os.name != "nt":
                     try:
-                        gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{era_folder}/{clean_name}"
+                        gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{era_folder}/{version_folder}/{clean_name}"
                         cmd_gdrive = [rclone_path, "copyto", "--inplace", g_target_file, gdrive_target]
                         subprocess.run(cmd_gdrive, check=True, capture_output=True)
                         logging.info(f"[✓] Track successfully uploaded to Google Drive Mirror (G:): {clean_name}")

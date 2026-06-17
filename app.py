@@ -578,7 +578,16 @@ def downloader_worker():
                 elif 'clean' in title_lower:
                     meta['explicit'] = False
 
-            state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
+            if 'auto_linked' in task:
+                meta['auto_linked'] = task['auto_linked']
+
+            state.vault_queue.put({
+                'path': mastered_path,
+                'meta': meta,
+                'task_id': task_id,
+                'target': target_override,
+                'auto_linked': task.get('auto_linked', False)
+            })
             handoff_success = True
             
         except Exception as e:
@@ -591,6 +600,156 @@ def downloader_worker():
             
             state.url_queue.task_done()
             state.update_count()
+
+def trigger_single_song_counterpart_search(artist, title, is_explicit, target_folder, original_duration_seconds=0):
+    def bg_search():
+        try:
+            import re
+            import csv
+            from ytmusicapi import YTMusic
+            from modules.storage import VaultManager
+            from config import CSV_BLUEPRINT
+            
+            ytm = YTMusic()
+            vm = VaultManager()
+            
+            title_lower = title.lower()
+            is_radio = 'radio edit' in title_lower or 'radio version' in title_lower
+            
+            if is_radio:
+                current_category = 'radioedit'
+            elif is_explicit:
+                current_category = 'explicit'
+            else:
+                current_category = 'clean'
+                
+            clean_title = re.sub(r'\((?:explicit|clean|radio edit|radio version)\)', '', title, flags=re.I).strip()
+            clean_title = re.sub(r'\s+', ' ', clean_title)
+            
+            # Formulate the queries we want to run based on current category
+            targets = []
+            if current_category == 'explicit':
+                targets.append({'category': 'clean', 'query': f"{artist} {clean_title} Clean", 'explicit': False})
+                targets.append({'category': 'radioedit', 'query': f"{artist} {clean_title} Radio Edit", 'explicit': False})
+            elif current_category == 'radioedit':
+                targets.append({'category': 'explicit', 'query': f"{artist} {clean_title} Explicit", 'explicit': True})
+                targets.append({'category': 'clean', 'query': f"{artist} {clean_title} Clean", 'explicit': False})
+            else:
+                targets.append({'category': 'explicit', 'query': f"{artist} {clean_title} Explicit", 'explicit': True})
+                targets.append({'category': 'radioedit', 'query': f"{artist} {clean_title} Radio Edit", 'explicit': False})
+                
+            for target in targets:
+                search_query = target['query']
+                target_cat = target['category']
+                target_explicit = target['explicit']
+                
+                state.log(f"[Counterpart Search] Searching for {target_cat} version of '{artist} - {clean_title}' using query: '{search_query}'")
+                results = ytm.search(search_query, filter="songs")
+                if not results:
+                    state.log(f"[Counterpart Search] No results found for query: '{search_query}'")
+                    continue
+                    
+                enqueued = False
+                for song in results[:8]:
+                    video_id = song.get('videoId')
+                    if not video_id:
+                        continue
+                        
+                    song_title = song.get('title', '')
+                    song_explicit = song.get('isExplicit', False)
+                    artists_list = song.get('artists', [])
+                    song_artist = ", ".join([a.get('name', '') for a in artists_list])
+                    
+                    # Skip karaoke, tribute, instrumental, sped-up, slowed versions always
+                    bad_keywords = ['karaoke', 'tribute', 'instrumental', 'backing track',
+                                    'originally performed', 'cover version', 'sped-up',
+                                    'sped up', 'slowed', 'nightcore', 'pitched up', 'pitched down']
+                    if any(k in song_title.lower() for k in bad_keywords):
+                        continue
+
+                    # Verify candidate belongs to the target category
+                    song_title_lower = song_title.lower()
+                    candidate_radio = 'radio edit' in song_title_lower or 'radio version' in song_title_lower
+
+                    # Duration-based radio edit detection:
+                    # Radio edits strip skits/intros so they are typically 20-90s shorter.
+                    # If candidate has no "radio edit" label but is meaningfully shorter,
+                    # treat it as a radio edit candidate when searching for radioedit category.
+                    candidate_duration_seconds = song.get('duration_seconds', 0)
+                    duration_gap = 0
+                    if original_duration_seconds > 0 and candidate_duration_seconds > 0:
+                        duration_gap = original_duration_seconds - candidate_duration_seconds
+                    is_shorter_unlabeled_radio = (
+                        target_cat == 'radioedit'
+                        and not candidate_radio
+                        and 20 <= duration_gap <= 90
+                        and not song_explicit
+                    )
+
+                    if target_cat == 'radioedit':
+                        if not candidate_radio and not is_shorter_unlabeled_radio:
+                            continue
+                    elif target_cat == 'explicit':
+                        if not song_explicit:
+                            continue
+                    elif target_cat == 'clean':
+                        if song_explicit or candidate_radio:
+                            continue
+                            
+                    # Match normalized key (without version details)
+                    existing_key = vm._normalize_track_key(f"{artist} - {clean_title}")
+                    candidate_title_clean = re.sub(r'\((?:explicit|clean|radio edit|radio version)\)', '', song_title, flags=re.I).strip()
+                    candidate_key = vm._normalize_track_key(f"{song_artist} - {candidate_title_clean}")
+                    
+                    # Get base keys (without the version suffixes)
+                    existing_base = existing_key.split('_')[0] + '_' + existing_key.split('_')[1] if len(existing_key.split('_')) >= 2 else existing_key
+                    candidate_base = candidate_key.split('_')[0] + '_' + candidate_key.split('_')[1] if len(candidate_key.split('_')) >= 2 else candidate_key
+                    
+                    if existing_base == candidate_base:
+                        # Check duplicate with specific version category
+                        duplicate = False
+                        if os.path.exists(CSV_BLUEPRINT):
+                            with vm._csv_lock:
+                                with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                                    reader = csv.DictReader(f)
+                                    candidate_track_key = vm._normalize_track_key(f"{song_artist} - {song_title}", explicit_val=song_explicit)
+                                    for row in reader:
+                                        existing_name = row.get('Track Name')
+                                        if existing_name:
+                                            ex_expl = row.get('Explicit', '').strip().lower() in ['true', '1']
+                                            existing_track_key = vm._normalize_track_key(existing_name, explicit_val=ex_expl)
+                                            if existing_track_key == candidate_track_key:
+                                                duplicate = True
+                                                break
+                                                
+                        if duplicate:
+                            state.log(f"[Counterpart Search] Counterpart ({target_cat}) '{song_artist} - {song_title}' is already in the library. Skipping.")
+                            break
+                            
+                        # Queue download!
+                        counterpart_url = f"https://music.youtube.com/watch?v={video_id}"
+                        state.log(f"[Counterpart Auto-Link] Found counterpart ({target_cat}): '{song_artist} - {song_title}' ({counterpart_url}) -> Enqueuing download...")
+                        state.url_queue.put({
+                            'url': counterpart_url,
+                            'type': 'ingest',
+                            'target': target_folder,
+                            'title': song_title,
+                            'artist': song_artist,
+                            'explicit': song_explicit,
+                            'auto_linked': True
+                        })
+                        state.update_count()
+                        enqueued = True
+                        break
+                        
+                if not enqueued:
+                    state.log(f"[Counterpart Search] No matching {target_cat} version found for '{artist} - {title}'")
+                    
+        except Exception as e:
+            sys.stdout.write(f"\n[ERROR] Counterpart search failed: {e}\n")
+            sys.stdout.flush()
+            
+    threading.Thread(target=bg_search, daemon=True).start()
 
 def vault_worker():
     while not state.stop_event.is_set():
@@ -609,6 +768,19 @@ def vault_worker():
         if status:
             state.log(f"Complete: {clean_name}")
             state.increment_completed()
+            
+            # Check for explicit/clean counterpart to auto-download
+            if not task.get('auto_linked') and not task.get('meta', {}).get('auto_linked'):
+                artist = task['meta'].get('artist')
+                title = task['meta'].get('title')
+                is_explicit = str(task['meta'].get('explicit', 'False')).strip().lower() in ['true', '1']
+                target_folder = task.get('target')
+                # Derive original duration from cue points (cue_out - cue_in), fallback to 0
+                cue_in = task['meta'].get('cue_in', 0) or 0
+                cue_out = task['meta'].get('cue_out', 0) or 0
+                original_duration_seconds = int((cue_out - cue_in) / 1000) if cue_out > cue_in else 0
+                if artist and title:
+                    trigger_single_song_counterpart_search(artist, title, is_explicit, target_folder, original_duration_seconds)
         elif "Duplicate" in message:
             state.log(f"[SKIPPED] Duplicate Track: {clean_name}")
         else:
@@ -1068,7 +1240,7 @@ def rename_show():
 
 def resolve_yt_meta_bg(item_id, url):
     try:
-        cmd = ["yt-dlp", "--skip-download", "--dump-json", "--no-warnings", url]
+        cmd = YT_DLP_CMD + ["--skip-download", "--dump-json", "--no-warnings", url]
         result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
         import json
         data = json.loads(result.stdout.strip().split('\n')[0])
@@ -1245,6 +1417,8 @@ def add():
         if not u: continue
         
         item_data = {'url': u, 'type': 'ingest', 'target': target}
+        if auto_linked:
+            item_data['auto_linked'] = auto_linked
         if explicit is not None:
             item_data['explicit'] = explicit
             
@@ -1384,7 +1558,7 @@ def search_yt():
     try:
         # If the user pasted a direct link, just dump its metadata.
         if query.startswith("http://") or query.startswith("https://"):
-            cmd = ["yt-dlp", query, "--dump-json", "--no-warnings"]
+            cmd = YT_DLP_CMD + ["--skip-download", "--dump-json", "--no-warnings", query]
             result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
             results = []
             for line in result.stdout.strip().split('\n'):
@@ -1392,14 +1566,24 @@ def search_yt():
                 try:
                     import json
                     data = json.loads(line)
+                    title = data.get('title', 'Unknown Title')
+                    desc = data.get('description', '') or ''
+                    is_explicit = 'explicit' in title.lower() or 'explicit' in desc.lower()
+                    
+                    thumbnail_url = data.get('thumbnail', '')
+                    if not thumbnail_url and data.get('thumbnails'):
+                        thumbnail_url = data.get('thumbnails')[-1].get('url', '')
+                        
                     results.append({
-                        'title': data.get('title', 'Unknown Title'),
+                        'title': title,
                         'uploader': data.get('uploader', 'Unknown Artist'),
                         'duration_string': data.get('duration_string', '--:--'),
-                        'url': data.get('webpage_url', '')
+                        'url': data.get('webpage_url', ''),
+                        'explicit': is_explicit,
+                        'thumbnail': thumbnail_url
                     })
-                except:
-                    pass
+                except Exception as ex:
+                    logging.error(f"Failed parsing direct link metadata: {ex}")
             return jsonify(results)
         else:
             # Use ytmusicapi search for fast, official song results
@@ -1416,11 +1600,17 @@ def search_yt():
                 if not video_id:
                     continue
                 artists = ", ".join([a.get('name', 'Unknown') for a in song.get('artists', [])])
+                
+                thumbnails = song.get('thumbnails', [])
+                thumbnail_url = thumbnails[-1].get('url', '') if thumbnails else ''
+                
                 results.append({
                     'title': song.get('title', 'Unknown Title'),
                     'uploader': artists,
                     'duration_string': song.get('duration', '--:--'),
-                    'url': f"https://music.youtube.com/watch?v={video_id}"
+                    'url': f"https://music.youtube.com/watch?v={video_id}",
+                    'explicit': song.get('isExplicit', False),
+                    'thumbnail': thumbnail_url
                 })
             return jsonify(results)
     except subprocess.CalledProcessError as e:
@@ -1431,6 +1621,30 @@ def search_yt():
         state.log(f"[SEARCH ERROR] {e}")
         logging.error(f"Search exception for {query}: {e}")
         return jsonify([])
+
+@app.route('/api/resolve_audio', methods=['GET', 'POST'])
+def resolve_audio():
+    url = ""
+    if request.method == 'POST':
+        url = request.json.get('url', '')
+    else:
+        url = request.args.get('url', '')
+        
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+        
+    try:
+        # Resolve direct audio stream link using yt-dlp with cookies (via YT_DLP_CMD)
+        cmd = YT_DLP_CMD + ["-g", "-f", "bestaudio", url]
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
+        stream_url = result.stdout.strip()
+        return jsonify({"url": stream_url})
+    except subprocess.CalledProcessError as e:
+        app.logger.error(f"Failed to resolve audio URL: {e.stderr}")
+        return jsonify({"error": e.stderr}), 500
+    except Exception as e:
+        app.logger.error(f"Failed to resolve audio URL: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/search_scrub', methods=['POST'])
 def search(): 

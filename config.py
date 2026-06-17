@@ -1,5 +1,7 @@
 import os
 import platform
+import sys
+import shutil
 from dotenv import load_dotenv
 
 # Load secrets from the .env file
@@ -68,12 +70,18 @@ FTP_BASE_DIR = "/"
 # Using Firefox to bypass Chromium App-Bound Encryption DPAPI locks.
 # If a manual cookies.txt file is placed in configs/, prioritize it (essential for headless servers/OCI).
 COOKIES_FILE = os.path.join(BASE_DIR, "configs", "cookies.txt")
+
+if shutil.which("yt-dlp"):
+    ytdlp_base = ["yt-dlp"]
+else:
+    ytdlp_base = [sys.executable, "-m", "yt_dlp"]
+
 if os.path.exists(COOKIES_FILE):
     SOMEDL_CMD = ["somedl", "--cookies", COOKIES_FILE]
-    YT_DLP_CMD = ["yt-dlp", "--cookies", COOKIES_FILE]
+    YT_DLP_CMD = ytdlp_base + ["--cookies", COOKIES_FILE]
 else:
     SOMEDL_CMD = ["somedl", "--cookies-from-browser", "firefox"] 
-    YT_DLP_CMD = ["yt-dlp", "--cookies-from-browser", "firefox"]
+    YT_DLP_CMD = ytdlp_base + ["--cookies-from-browser", "firefox"]
 
 # --- API KEYS ---
 ACOUSTID_API_KEY = os.getenv("ACOUSTID_API_KEY")
