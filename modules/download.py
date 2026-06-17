@@ -65,6 +65,13 @@ class Transporter:
             logging.info(f"Running yt-dlp fallback: {' '.join(yt_dlp_cmd)}")
             res = subprocess.run(yt_dlp_cmd, check=True, capture_output=True, text=True, encoding='utf-8', timeout=300)
             
+            # Check for invalid cookies warning in stdout/stderr
+            stderr_lower = (res.stderr or "").lower()
+            stdout_lower = (res.stdout or "").lower()
+            if "cookies are no longer valid" in stderr_lower or "cookies are no longer valid" in stdout_lower:
+                self._log_to_system("[ERROR] YouTube cookies have expired or are invalid. Aborting download to prevent low-quality fallback.")
+                return "", ""
+                
             # Find the downloaded file
             files = [f for f in os.listdir(staging_path) if f.endswith('.mp3')]
             if files:
@@ -77,7 +84,14 @@ class Transporter:
             self._log_to_system(f"[TIMEOUT] yt-dlp stalled for >300s on {url}. Killing process.")
         except subprocess.CalledProcessError as e:
             logging.error(f"yt-dlp fallback failed: {e.stderr}")
-            self._log_to_system(f"[ERROR] yt-dlp fallback failed on {url}. stdout: {e.stdout.strip()[:200]} | stderr: {e.stderr.strip()[:200]}")
+            stderr_lower = (e.stderr or "").lower()
+            stdout_lower = (e.stdout or "").lower()
+            if "confirm you’re not a bot" in stderr_lower or "confirm you’re not a bot" in stdout_lower:
+                self._log_to_system("[ERROR] YouTube bot block detected (Sign in to confirm you are not a bot). Aborting download.")
+            elif "cookies are no longer valid" in stderr_lower or "cookies are no longer valid" in stdout_lower:
+                self._log_to_system("[ERROR] YouTube cookies have expired or are invalid. Aborting download.")
+            else:
+                self._log_to_system(f"[ERROR] yt-dlp fallback failed on {url}. stdout: {e.stdout.strip()[:200]} | stderr: {e.stderr.strip()[:200]}")
         except Exception as e:
             logging.error(f"Unexpected error in yt-dlp: {e}")
             self._log_to_system(f"[ERROR] Unexpected error in yt-dlp: {e}")

@@ -67,13 +67,20 @@ FTP_BASE_DIR = "/"
 # --- EXECUTABLES ---
 # Using Firefox to bypass Chromium App-Bound Encryption DPAPI locks.
 # If a manual cookies.txt file is placed in configs/, prioritize it (essential for headless servers/OCI).
+if platform.system() == "Windows":
+    somedl_executable = "somedl"
+    ytdlp_executable = "yt-dlp"
+else:
+    somedl_executable = "/home/ubuntu/venv-fmp/bin/somedl"
+    ytdlp_executable = "/home/ubuntu/venv-fmp/bin/yt-dlp"
+
 COOKIES_FILE = os.path.join(BASE_DIR, "configs", "cookies.txt")
 if os.path.exists(COOKIES_FILE):
-    SOMEDL_CMD = ["somedl", "--cookies", COOKIES_FILE]
-    YT_DLP_CMD = ["yt-dlp", "--cookies", COOKIES_FILE]
+    SOMEDL_CMD = [somedl_executable, "--cookies", COOKIES_FILE]
+    YT_DLP_CMD = [ytdlp_executable, "--cookies", COOKIES_FILE]
 else:
-    SOMEDL_CMD = ["somedl", "--cookies-from-browser", "firefox"] 
-    YT_DLP_CMD = ["yt-dlp", "--cookies-from-browser", "firefox"]
+    SOMEDL_CMD = [somedl_executable, "--cookies-from-browser", "firefox"] 
+    YT_DLP_CMD = [ytdlp_executable, "--cookies-from-browser", "firefox"]
 
 # --- API KEYS ---
 ACOUSTID_API_KEY = os.getenv("ACOUSTID_API_KEY")
