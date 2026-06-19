@@ -578,6 +578,10 @@ def downloader_worker():
                 elif 'clean' in title_lower:
                     meta['explicit'] = False
 
+            # Pass is_radio status from queue item
+            if 'is_radio' in task:
+                meta['is_radio'] = task['is_radio']
+
             if 'auto_linked' in task:
                 meta['auto_linked'] = task['auto_linked']
 
@@ -1411,6 +1415,7 @@ def add():
     artist = request.json.get('artist')
     auto_linked = request.json.get('auto_linked', False)
     explicit = request.json.get('explicit')
+    is_radio = request.json.get('is_radio')
     
     for u in raw_urls:
         u = u.strip()
@@ -1421,6 +1426,8 @@ def add():
             item_data['auto_linked'] = auto_linked
         if explicit is not None:
             item_data['explicit'] = explicit
+        if is_radio is not None:
+            item_data['is_radio'] = is_radio
             
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title
@@ -1658,10 +1665,93 @@ def search():
 @app.route('/execute_scrub', methods=['POST'])
 def execute():
     name = request.json.get('track_name', '')
-    s, m = VaultManager().scrub_track(name)
-    state.log(f"[ERASED] {name}" if s else f"[FAILED] {m}")
-    if not s: logging.error(f"Scrub failed for {name}: {m}")
+    file_path = request.json.get('file_path', '')
+    target = file_path if file_path else name
+    s, m = VaultManager().scrub_track(target)
+    state.log(f"[ERASED] {name} ({file_path.replace('\\\\', '/').split('/')[-1] if file_path else ''})" if s else f"[FAILED] {m}")
+    if not s: logging.error(f"Scrub failed for {target}: {m}")
     return jsonify({"status": "ok"})
+
+@app.route('/api/stream_local')
+def stream_local():
+    file_path = request.args.get('file_path', '')
+    track_name = request.args.get('track_name', '')
+    
+    import csv
+    from config import resolve_physical_path, CSV_BLUEPRINT
+    from modules.storage import VaultManager
+    
+    if not file_path and track_name:
+        with VaultManager._csv_lock:
+            if os.path.exists(CSV_BLUEPRINT):
+                try:
+                    with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            if row.get('Track Name') == track_name:
+                                file_path = row.get('File Path')
+                                break
+                except Exception as e:
+                    pass
+                    
+    if not file_path:
+        return jsonify({"error": "No file path provided"}), 400
+        
+    physical_path = resolve_physical_path(file_path)
+    if not physical_path or not os.path.exists(physical_path):
+        return jsonify({"error": f"Physical file not found on disk: {file_path}"}), 404
+        
+    from flask import send_file
+    return send_file(physical_path, mimetype="audio/mpeg")
+
+@app.route('/api/artwork')
+def get_artwork():
+    track_name = request.args.get('track_name', '')
+    file_path = request.args.get('file_path', '')
+    placeholder_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+        <rect width="100%" height="100%" fill="#1a1a1a"/>
+        <circle cx="50" cy="50" r="25" fill="none" stroke="#ff3e3e" stroke-width="2"/>
+        <circle cx="50" cy="50" r="8" fill="#ff3e3e"/>
+        <path d="M50 25 L50 42 L65 35 Z" fill="#ff3e3e"/>
+    </svg>"""
+    
+    if not file_path and not track_name:
+        from flask import Response
+        return Response(placeholder_svg, mimetype="image/svg+xml")
+        
+    import csv
+    from config import resolve_physical_path, CSV_BLUEPRINT
+    from modules.storage import VaultManager
+    
+    if not file_path and track_name:
+        with VaultManager._csv_lock:
+            if os.path.exists(CSV_BLUEPRINT):
+                try:
+                    with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f)
+                        for row in reader:
+                            if row.get('Track Name') == track_name:
+                                file_path = row.get('File Path')
+                                break
+                except Exception as e:
+                    pass
+                
+    if file_path:
+        physical_path = resolve_physical_path(file_path)
+        if physical_path and os.path.exists(physical_path):
+            from mutagen.mp3 import MP3
+            from mutagen.id3 import APIC, ID3
+            try:
+                audio = MP3(physical_path, ID3=ID3)
+                for tag in audio.tags.values():
+                    if isinstance(tag, APIC):
+                        from flask import Response
+                        return Response(tag.data, mimetype=tag.mime)
+            except Exception:
+                pass
+                
+    from flask import Response
+    return Response(placeholder_svg, mimetype="image/svg+xml")
 
 @app.route('/api/status')
 def status():

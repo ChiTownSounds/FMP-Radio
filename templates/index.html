@@ -2,40 +2,533 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FMP Ultimate: Control Room</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #0a0a0a; color: #eee; font-family: 'Segoe UI', sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 900px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
-        .card { background: #161616; padding: 15px; border-radius: 8px; border: 1px solid #222; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .card h3 { margin: 0 0 5px 0; color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        .card p { font-size: 20px; margin: 0; font-weight: bold; color: #00ff41; }
-        .url-input { width: 100%; height: 100px; background: #000; color: #00ff41; border: 1px solid #333; border-radius: 5px; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        .log-box { background: #000; color: #aaa; font-family: 'Consolas', monospace; padding: 15px; height: 250px; overflow-y: auto; border: 1px solid #333; font-size: 12px; line-height: 1.5; margin-top: 15px; }
-        .log-success { color: #00ff41; font-weight: bold; }
-        .log-fail { color: #ff3e3e; }
-        .log-info { color: #00e5ff; }
-        .lyrics-badge { background: #00ff41; color: #000; font-weight: bold; font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 5px; }
-        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; padding: 10px; transition: 0.3s; }
-        .btn-green { background: #1b5e20; color: white; border: 1px solid #2e7d32; }
-        .btn-green:hover { background: #2e7d32; box-shadow: 0 0 10px #2e7d32; }
-        .btn-blue { background: #01579b; color: white; border: 1px solid #0277bd; }
-        .btn-blue:hover { background: #0277bd; box-shadow: 0 0 10px #0277bd; }
-        .btn-red { background: #b71c1c; color: white; }
-        .btn-red:hover { background: #d32f2f; box-shadow: 0 0 10px #d32f2f; }
-        .btn-small-red { background: #b71c1c; color: white; padding: 5px 10px; font-size: 11px; }
-        .results-scroll { max-height: 500px; overflow-y: auto; background: #000; border: 1px solid #333; margin-top: 10px; border-radius: 4px; }
-        .match-row { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid #111; gap: 6px; }
-        .match-row:hover { background: #111; }
-        .match-header { display: flex; justify-content: space-between; align-items: center; }
-        .match-title { font-size: 14px; font-weight: bold; color: #fff; }
-        .match-meta { font-size: 11px; color: #888; display: flex; gap: 12px; align-items: center; }
-        .meta-val { color: #00ff41; }
+        :root {
+            --bg-color: #08080a;
+            --card-bg: rgba(18, 18, 22, 0.85);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-color: #f1f1f5;
+            --text-muted: #8e8e9f;
+            
+            /* Neon Accent Colors */
+            --accent-red: #ff3e5e;
+            --accent-green: #00ff88;
+            --accent-blue: #00bfff;
+            --accent-gold: #ffaa00;
+            --shadow-red: rgba(255, 62, 94, 0.35);
+            --shadow-green: rgba(0, 255, 136, 0.25);
+            --shadow-blue: rgba(0, 191, 255, 0.25);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 20px 20px 100px 20px; /* Leave space at bottom for player */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(255, 62, 94, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 191, 255, 0.05) 0px, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            margin-top: 10px;
+        }
+
+        header h1 {
+            font-weight: 100;
+            font-size: 32px;
+            letter-spacing: 8px;
+            margin: 0;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        header h1 span {
+            font-weight: 800;
+            color: var(--accent-red);
+            text-shadow: 0 0 20px var(--shadow-red);
+        }
+
+        /* Top Grid Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card h3 {
+            margin: 0 0 8px 0;
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .card p {
+            font-size: 22px;
+            margin: 0;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        /* Input Elements */
+        select, input[type="text"], textarea {
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        select:focus, input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.15);
+        }
+
+        .url-input {
+            width: 100%;
+            height: 110px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            resize: none;
+        }
+
+        /* Console Logs Box */
+        .log-box {
+            background: #050508;
+            color: #b0b0c5;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 20px;
+            height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            box-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
+        }
+
+        .log-success { color: var(--accent-green); font-weight: bold; }
+        .log-fail { color: var(--accent-red); font-weight: bold; }
+        .log-info { color: var(--accent-blue); }
+
+        /* Buttons Styling */
+        button {
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-weight: 600;
+            padding: 12px 18px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #1b5e20, #2e7d32);
+            color: white;
+            border-color: rgba(0, 255, 136, 0.15);
+        }
+        .btn-green:hover {
+            background: #2e7d32;
+            box-shadow: 0 0 15px var(--shadow-green);
+            transform: translateY(-1px);
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #01579b, #0277bd);
+            color: white;
+            border-color: rgba(0, 191, 255, 0.15);
+        }
+        .btn-blue:hover {
+            background: #0277bd;
+            box-shadow: 0 0 15px var(--shadow-blue);
+            transform: translateY(-1px);
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #b71c1c, #c62828);
+            color: white;
+            border-color: rgba(255, 62, 94, 0.15);
+        }
+        .btn-red:hover {
+            background: #c62828;
+            box-shadow: 0 0 15px var(--shadow-red);
+            transform: translateY(-1px);
+        }
+
+        .btn-small-red {
+            background: #7f0000;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .btn-small-red:hover {
+            background: #b71c1c;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        .btn-small-blue {
+            background: #0d47a1;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        .btn-small-blue:hover {
+            background: #1565c0;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+        }
+
+        /* Results List Area */
+        .results-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #040406;
+            border: 1px solid var(--border-color);
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+
+        /* Rows Layout with Artwork Integration */
+        .match-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            gap: 15px;
+            transition: background 0.2s;
+        }
+
+        .match-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .match-artwork {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #141416;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .match-artwork-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .match-content {
+            flex: 1;
+            min-width: 0; /* Ensures text-overflow ellipsis works inside flexbox */
+        }
+
+        .match-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .match-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .meta-val {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .lyrics-badge {
+            background: var(--accent-green);
+            color: #000;
+            font-weight: 800;
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Queue Columns Layout */
+        .queue-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .queue-list {
+            max-height: 250px;
+            overflow-y: auto;
+            background: #040406;
+            border: 1px solid var(--border-color);
+            margin-top: 15px;
+            border-radius: 8px;
+            padding: 5px;
+            min-height: 100px;
+            font-size: 13px;
+        }
+
+        /* Sticky Premium Audio Player Bar */
+        .player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 12, 0.92);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+            padding: 15px 30px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .player-content {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 25px;
+        }
+
+        .player-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 25%;
+            min-width: 180px;
+        }
+
+        .player-art-img {
+            width: 52px;
+            height: 52px;
+            border-radius: 6px;
+            object-fit: cover;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            background: #111;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .player-details {
+            min-width: 0;
+        }
+
+        .player-title-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .player-artist-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .player-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 50%;
+        }
+
+        .player-btn-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .player-control-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            padding: 5px;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-control-btn:hover {
+            color: var(--accent-blue);
+        }
+
+        .player-play-toggle {
+            background: #fff;
+            color: #000;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 14px;
+        }
+
+        .player-play-toggle:hover {
+            background: var(--accent-blue);
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .player-timeline {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            background: var(--accent-blue);
+        }
+
+        .player-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 15px;
+            width: 25%;
+            min-width: 150px;
+        }
+
+        .volume-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100px;
+        }
+
+        .volume-icon {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .queue-container { grid-template-columns: 1fr; }
+            .player-left { width: 40%; }
+            .player-center { width: 50%; }
+            .player-right { display: none; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1 style="text-align: center; color: #fff; font-weight: 100; letter-spacing: 5px;">FMP <span style="color: #ff3e3e;">ULTIMATE</span></h1>
+    <header>
+        <h1>FMP <span>Ultimate</span></h1>
+    </header>
     
     <div class="grid">
         <div class="card"><h3>Engine</h3><p id="status-text">Idle</p></div>
@@ -44,12 +537,14 @@
         <div class="card"><h3>Total Library</h3><p id="target-year">0</p><div id="folder-breakdown" style="font-size:11px; color:#aaa; margin-top:5px; max-height: 40px; overflow-y: auto;"></div></div>
     </div>
 
-    <div class="log-box" id="log-box" style="margin-bottom: 15px; margin-top: 0;"></div>
+    <div class="log-box" id="log-box"></div>
 
-    <div class="card" style="border-top: 2px solid #00e5ff;">
-        <h3 style="color: #00e5ff;">The Hunter (Search & Download) & Input Pipeline</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-            <select id="target-show" style="flex: 2; padding: 10px; background: #000; color: #fff; border: 1px solid #333; font-weight: bold;">
+    <div class="card" style="border-top: 2px solid var(--accent-blue); margin-bottom: 20px;">
+        <h3 style="color: var(--accent-blue); display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 15px;">
+            <span>🛰️ The Hunter (Search & Download)</span>
+        </h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+            <select id="target-show" style="flex: 2; font-weight: bold; background: #000;">
                 <option value="">▶ ROUTE TO MAIN CATALOG (AUTO-SORT ERAS)</option>
             </select>
             <button class="btn-blue" style="flex: 1;" onclick="createShow()">+ NEW SHOW</button>
@@ -57,72 +552,131 @@
         </div>
         
         <!-- Interactive Search Mode -->
-        <div style="background: #0a0a0a; border: 1px solid #222; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-            <div style="color: #00e5ff; font-size: 11px; margin-bottom: 5px; font-weight: bold;">[INTERACTIVE MODE] Search for a Track:</div>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="yt-search-input" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Artist - Title..." onkeydown="if(event.key==='Enter') searchYt()">
-                <button style="background:#00e5ff; color:#000;" onclick="searchYt()">SEARCH YT</button>
+        <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="color: var(--accent-blue); font-size: 12px; margin-bottom: 8px; font-weight: bold;">[INTERACTIVE MODE] Search for a Track:</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="yt-search-input" style="flex:1; background:#000;" placeholder="Artist - Title..." onkeydown="if(event.key==='Enter') searchYt()">
+                <button style="background: var(--accent-blue); color:#000; font-weight: 700; border-color: rgba(0, 191, 255, 0.3);" onclick="searchYt()">🔍 SEARCH YT</button>
             </div>
-            <div id="yt-results" style="display: none; background: #000; border: 1px solid #333; margin-top: 10px; max-height: 200px; overflow-y: auto; border-radius: 4px;"></div>
+            <!-- Version dictation checkboxes -->
+            <div style="display: flex; gap: 15px; margin-top: 10px; font-size: 12px; align-items: center;">
+                <span style="color: var(--text-muted);">Force Download Version:</span>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--accent-green); font-weight: 600;">
+                    <input type="checkbox" id="force-version-clean" class="download-version-cb" onclick="selectDownloadVersion('clean')"> Clean
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--accent-red); font-weight: 600;">
+                    <input type="checkbox" id="force-version-explicit" class="download-version-cb" onclick="selectDownloadVersion('explicit')"> Explicit
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--accent-blue); font-weight: 600;">
+                    <input type="checkbox" id="force-version-radio" class="download-version-cb" onclick="selectDownloadVersion('radio')"> Radio Edit
+                </label>
+            </div>
+            <div id="yt-results" class="results-scroll" style="display: none; max-height: 250px;"></div>
         </div>
 
         <!-- Bulk List Mode -->
-        <div style="background: #0a0a0a; border: 1px solid #222; padding: 10px; border-radius: 5px;">
-            <div style="color: #00ff41; font-size: 11px; margin-bottom: 5px; font-weight: bold;">[BULK MODE] Paste URLs or "Artist - Title" lines:</div>
-            <textarea id="url-input" class="url-input" placeholder="Drop YouTube URLs or 'Artist - Title' lines here..."></textarea>
+        <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px;">
+            <div style="color: var(--accent-green); font-size: 12px; margin-bottom: 8px; font-weight: bold;">[BULK MODE] Ingest YouTube URLs or List Lines:</div>
+            <textarea id="url-input" class="url-input" placeholder="Paste YouTube URLs or 'Artist - Title' lines here..."></textarea>
             
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="btn-green" style="flex: 2;" onclick="addUrls()">INGEST LIST</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-green" style="flex: 2;" onclick="addUrls()">📥 INGEST LIST</button>
                 
                 <input type="file" id="local-file" accept=".mp3,.wav,.m4a" style="display: none;" onchange="handleLocalUpload()">
-                <button class="btn-blue" style="flex: 2;" onclick="document.getElementById('local-file').click()">UPLOAD LOCAL MP3</button>
+                <button class="btn-blue" style="flex: 2;" onclick="document.getElementById('local-file').click()">📂 UPLOAD LOCAL FILE</button>
                 
-                <button class="btn-red" style="flex: 1;" onclick="stopProcess()">STOP ENGINE</button>
+                <button class="btn-red" style="flex: 1;" onclick="stopProcess()">⛔ STOP ENGINE</button>
             </div>
         </div>
     </div>
 
     <!-- QUEUE SECTIONS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; margin-top: 15px; width: 100%;">
+    <div class="queue-container">
         <!-- Active Download Queue -->
-        <div class="card" style="border-top: 2px solid #00ff41; display: flex; flex-direction: column;">
-            <h3 style="color: #00ff41; display: flex; justify-content: space-between; align-items: center; margin: 0;">
+        <div class="card" style="border-top: 2px solid var(--accent-green); display: flex; flex-direction: column;">
+            <h3 style="color: var(--accent-green); display: flex; justify-content: space-between; align-items: center; margin: 0;">
                 <span>Active Download Queue</span>
-                <span id="active-queue-num" style="background: #00ff41; color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold;">0</span>
+                <span id="active-queue-num" style="background: var(--accent-green); color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold; text-shadow: none; box-shadow: 0 0 10px rgba(0,255,136,0.3)">0</span>
             </h3>
-            <div id="active-queue-list" style="max-height: 250px; overflow-y: auto; background: #000; border: 1px solid #222; margin-top: 10px; border-radius: 4px; padding: 5px; min-height: 80px; font-size: 12px;">
-                <div style="padding:15px; color: #555; text-align: center;">Queue is empty</div>
+            <div id="active-queue-list" class="queue-list">
+                <div style="padding:15px; color: var(--text-muted); text-align: center;">Queue is empty</div>
             </div>
         </div>
 
         <!-- Pending Discoveries -->
-        <div class="card" style="border-top: 2px solid #ffb300; display: flex; flex-direction: column;">
-            <h3 style="color: #ffb300; display: flex; justify-content: space-between; align-items: center; margin: 0;">
-                <span>Discoveries</span>
+        <div class="card" style="border-top: 2px solid var(--accent-gold); display: flex; flex-direction: column;">
+            <h3 style="color: var(--accent-gold); display: flex; justify-content: space-between; align-items: center; margin: 0;">
+                <span>Staged Discoveries</span>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <span id="pending-queue-num" style="background: #ffb300; color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold;">0</span>
-                    <button class="btn-green" style="font-size: 9px; padding: 2px 6px; margin: 0; background: #1b5e20;" onclick="approveAllPending()">DOWNLOAD ALL</button>
-                    <button class="btn-small-red" style="font-size: 9px; padding: 2px 6px; margin: 0;" onclick="clearPending()">CLEAR ALL</button>
+                    <span id="pending-queue-num" style="background: var(--accent-gold); color: #000; border-radius: 12px; padding: 2px 8px; font-size: 10px; font-weight: bold;">0</span>
+                    <button class="btn-green" style="font-size: 10px; padding: 3px 8px; margin: 0;" onclick="approveAllPending()">DOWNLOAD ALL</button>
+                    <button class="btn-red" style="font-size: 10px; padding: 3px 8px; margin: 0; background: #7f0000;" onclick="clearPending()">CLEAR ALL</button>
                 </div>
             </h3>
-            <div id="pending-queue-list" style="max-height: 250px; overflow-y: auto; background: #000; border: 1px solid #222; margin-top: 10px; border-radius: 4px; padding: 5px; min-height: 80px; font-size: 12px;">
-                <div style="padding:15px; color: #555; text-align: center;">No pending discoveries</div>
+            <div id="pending-queue-list" class="queue-list">
+                <div style="padding:15px; color: var(--text-muted); text-align: center;">No pending discoveries</div>
             </div>
         </div>
     </div>
 
-    <div class="card" style="border-top: 2px solid #ff3e3e; margin-top: 15px;">
-        <h3 style="color: #ff3e3e;">The Eraser</h3>
-        <div style="display: flex; gap: 5px;">
-            <input type="text" id="scrub-q" style="flex:1; background:#000; color:#fff; border:1px solid #333; padding:10px;" placeholder="Search Master Library..." onkeydown="if(event.key==='Enter') search()">
-            <button style="background:#333; color:#fff;" onclick="search()">SEARCH</button>
+    <!-- The Eraser -->
+    <div class="card" style="border-top: 2px solid var(--accent-red); margin-top: 20px;">
+        <h3 style="color: var(--accent-red); display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 15px;">
+            <span>🧹 The Eraser</span>
+        </h3>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="scrub-q" style="flex:1; background:#000;" placeholder="Search Master Library..." onkeydown="if(event.key==='Enter') search()">
+            <button style="background:#222; color:#fff; border-color: rgba(255,255,255,0.08);" onclick="search()">🔎 SEARCH LIBRARY</button>
         </div>
         <div id="results" class="results-scroll" style="display:none;"></div>
     </div>
+</div>
 
+<!-- Sticky Bottom Media Player -->
+<div id="unified-player" class="player-bar" style="display: none;">
+    <div class="player-content">
+        <div class="player-left">
+            <img id="player-art" class="player-art-img" src="" alt="Cover Art">
+            <div class="player-details">
+                <div id="player-title" class="player-title-text">Track Title</div>
+                <div id="player-artist" class="player-artist-text">Artist Name</div>
+            </div>
+        </div>
+        <div class="player-center">
+            <div class="player-btn-row">
+                <!-- Backward 10s -->
+                <button class="player-control-btn" style="font-size: 14px;" onclick="skipAudio(-10)">⏪ 10s</button>
+                <button id="player-play-btn" class="player-control-btn player-play-toggle" onclick="togglePlayerPlay()">▶</button>
+                <!-- Forward 10s -->
+                <button class="player-control-btn" style="font-size: 14px;" onclick="skipAudio(10)">10s ⏩</button>
+            </div>
+            <div class="player-timeline">
+                <span id="player-current-time">00:00</span>
+                <input type="range" id="player-progress" min="0" max="100" value="0" oninput="seekingProgress = true;" onchange="seekPlayer(this.value)">
+                <span id="player-duration">00:00</span>
+            </div>
+        </div>
+        <div class="player-right">
+            <div class="volume-bar">
+                <span class="volume-icon">🔊</span>
+                <input type="range" id="player-volume" min="0" max="100" value="80" oninput="setPlayerVolume(this.value)">
+            </div>
+            <button class="player-control-btn" style="font-size: 15px; opacity: 0.6; margin-left: 10px;" onclick="closePlayer()">✕</button>
+        </div>
+    </div>
+    <audio id="audio-element" style="display: none;"></audio>
 </div>
 
 <script>
+    // Audio Player State variables
+    let audio = document.getElementById('audio-element');
+    let playBtn = document.getElementById('player-play-btn');
+    let progressBar = document.getElementById('player-progress');
+    let currentTimeText = document.getElementById('player-current-time');
+    let durationText = document.getElementById('player-duration');
+    let seekingProgress = false;
+
+    // Load active shows list
     async function loadShows() {
         try {
             const res = await fetch('/api/shows');
@@ -135,8 +689,12 @@
         } catch(e) { console.error("Failed to load shows", e); }
     }
 
-    window.onload = loadShows;
+    window.onload = () => {
+        loadShows();
+        setupAudioEventListeners();
+    };
 
+    // Monitor engine status, queue counts, and console logs
     setInterval(async () => {
         try {
             const r = await fetch('/api/status'); const d = await r.json();
@@ -158,7 +716,7 @@
             if (d.folder_breakdown) {
                 let html = '';
                 for (const [folder, count] of Object.entries(d.folder_breakdown)) {
-                    html += `<div>${folder}: <span style="color:#00ff41">${count}</span></div>`;
+                    html += `<div>${folder}: <span style="color:var(--accent-green)">${count}</span></div>`;
                 }
                 const bd = document.getElementById('folder-breakdown');
                 if (bd) bd.innerHTML = html;
@@ -170,20 +728,20 @@
             if (activeQueueList && activeQueueNum) {
                 activeQueueNum.innerText = d.download_queue.length;
                 if (d.download_queue.length === 0) {
-                    activeQueueList.innerHTML = '<div style="padding:15px; color: #555; text-align: center;">Queue is empty</div>';
+                    activeQueueList.innerHTML = '<div style="padding:15px; color: var(--text-muted); text-align: center;">Queue is empty</div>';
                 } else {
                     activeQueueList.innerHTML = d.download_queue.map(item => {
                         const targetName = item.target ? item.target : 'Eras (Auto-Sort)';
                         const isYt = item.is_yt || item.url.startsWith('http://') || item.url.startsWith('https://') || item.url.startsWith('ytsearch');
-                        const colorStyle = isYt ? 'color: #00ff41;' : 'color: #fff;';
+                        const colorStyle = isYt ? 'color: var(--accent-green);' : 'color: #fff;';
                         const displayName = (item.artist && item.title) ? `${item.artist} - ${item.title}` : item.url;
                         return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #111;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03);">
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;">
                                 <div style="${colorStyle} font-weight: bold;">${displayName}</div>
-                                <div style="color: #666; font-size: 10px;">Route: ${targetName}</div>
+                                <div style="color: var(--text-muted); font-size: 11px;">Route: ${targetName}</div>
                             </div>
-                            <button class="btn-small-red" style="padding: 2px 6px; font-size: 10px; margin: 0;" onclick="removeFromQueue(${item.id})">Remove</button>
+                            <button class="btn-small-red" style="padding: 4px 10px; font-size: 11px; margin: 0;" onclick="removeFromQueue(${item.id})">Remove</button>
                         </div>
                         `;
                     }).join('');
@@ -196,22 +754,26 @@
             if (pendingQueueList && pendingQueueNum) {
                 pendingQueueNum.innerText = d.pending_iheart_queue.length;
                 if (d.pending_iheart_queue.length === 0) {
-                    pendingQueueList.innerHTML = '<div style="padding:15px; color: #555; text-align: center;">No pending discoveries</div>';
+                    pendingQueueList.innerHTML = '<div style="padding:15px; color: var(--text-muted); text-align: center;">No pending discoveries</div>';
                 } else {
                     pendingQueueList.innerHTML = d.pending_iheart_queue.map(item => {
                         const targetName = item.target ? item.target : 'Eras (Auto-Sort)';
                         const titleArtist = `${item.artist} - ${item.title}`;
                         const escapedUrl = item.url.replace(/'/g, "\\'");
                         const escapedTarget = (item.target || '').replace(/'/g, "\\'");
+                        const escapedTitle = item.title.replace(/'/g, "\\'");
+                        const escapedArtist = item.artist.replace(/'/g, "\\'");
                         return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #111;">
-                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;">
-                                <div style="color: #fff; font-weight: bold;">${titleArtist}</div>
-                                <div style="color: #666; font-size: 10px;">Detected: ${item.timestamp} &bull; Route: ${targetName}</div>
+                        <div class="match-row" style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                            <div class="match-artwork-placeholder" style="width: 40px; height: 40px; font-size: 16px;">📻</div>
+                            <div class="match-content" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <div style="color: #fff; font-weight: 600;">${titleArtist}</div>
+                                <div style="color: var(--text-muted); font-size: 11px;">Detected: ${item.timestamp} &bull; Route: ${targetName}</div>
                             </div>
-                            <div style="display: flex; gap: 4px;">
-                                <button class="btn-green" style="padding: 2px 6px; font-size: 10px; margin: 0; background: #1b5e20;" onclick="approvePending('${escapedUrl}', '${escapedTarget}')">Approve</button>
-                                <button class="btn-small-red" style="padding: 2px 6px; font-size: 10px; margin: 0;" onclick="rejectPending('${escapedUrl}')">Reject</button>
+                            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                                <button class="btn-small-blue" style="padding: 4px 8px; font-size: 11px; margin: 0;" onclick="auditionDiscovery('${escapedTitle}', '${escapedArtist}')">▶ PLAY</button>
+                                <button class="btn-green" style="padding: 4px 8px; font-size: 11px; margin: 0; background: #1b5e20;" onclick="approvePending('${escapedUrl}', '${escapedTarget}')">Approve</button>
+                                <button class="btn-small-red" style="padding: 4px 8px; font-size: 11px; margin: 0;" onclick="rejectPending('${escapedUrl}')">✕</button>
                             </div>
                         </div>
                         `;
@@ -221,6 +783,157 @@
         } catch(e) {}
     }, 1000);
 
+    // Dynamic Audition Functions
+    function setupAudioEventListeners() {
+        audio.addEventListener('timeupdate', () => {
+            if (!seekingProgress && audio.duration) {
+                const pct = (audio.currentTime / audio.duration) * 100;
+                progressBar.value = pct;
+                currentTimeText.innerText = formatTime(audio.currentTime);
+            }
+        });
+
+        audio.addEventListener('durationchange', () => {
+            durationText.innerText = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', () => {
+            playBtn.innerText = '▶';
+            progressBar.value = 0;
+            currentTimeText.innerText = '00:00';
+        });
+
+        audio.addEventListener('play', () => {
+            playBtn.innerText = '⏸';
+        });
+
+        audio.addEventListener('pause', () => {
+            playBtn.innerText = '▶';
+        });
+    }
+
+    function formatTime(secs) {
+        if (isNaN(secs)) return '00:00';
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Play/Audition YouTube search result
+    async function auditionYt(url, title, artist, thumbnail) {
+        const player = document.getElementById('unified-player');
+        const art = document.getElementById('player-art');
+        const titleText = document.getElementById('player-title');
+        const artistText = document.getElementById('player-artist');
+
+        art.src = thumbnail || '/api/artwork';
+        titleText.innerText = title;
+        artistText.innerText = artist;
+        player.style.display = 'flex';
+
+        // Load visual indicator
+        playBtn.innerText = '⌛';
+        audio.pause();
+
+        try {
+            const res = await fetch('/api/resolve_audio', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: url})
+            });
+            const data = await res.json();
+            if (data.url) {
+                audio.src = data.url;
+                audio.play();
+            } else {
+                alert("Could not resolve preview audio stream link.");
+                playBtn.innerText = '▶';
+            }
+        } catch(e) {
+            console.error("Audition failed", e);
+            alert("Error trying to load preview.");
+            playBtn.innerText = '▶';
+        }
+    }
+
+    // Play/Audition local file (from The Eraser)
+    function auditionLocal(trackName, filePath) {
+        const player = document.getElementById('unified-player');
+        const art = document.getElementById('player-art');
+        const titleText = document.getElementById('player-title');
+        const artistText = document.getElementById('player-artist');
+
+        const parts = trackName.split(' - ');
+        const artist = parts[0] || 'Local Catalog';
+        const title = parts[1] || trackName;
+
+        art.src = `/api/artwork?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}`;
+        titleText.innerText = title;
+        artistText.innerText = artist;
+        player.style.display = 'flex';
+
+        playBtn.innerText = '⌛';
+        audio.pause();
+
+        audio.src = `/api/stream_local?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}`;
+        audio.play();
+    }
+
+    // Audition discoveries dynamically
+    async function auditionDiscovery(title, artist) {
+        const query = `${artist} - ${title}`;
+        playBtn.innerText = '⌛';
+        
+        try {
+            // Find the video ID first via YouTube search
+            const res = await fetch('/api/search_yt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query: query})
+            });
+            const results = await res.json();
+            if (results && results.length > 0) {
+                const item = results[0];
+                auditionYt(item.url, item.title, item.uploader, item.thumbnail);
+            } else {
+                alert("Could not find any preview candidates on YouTube.");
+            }
+        } catch(e) {
+            console.error("Discovery search audition failed", e);
+            alert("Failed to find preview online.");
+        }
+    }
+
+    function togglePlayerPlay() {
+        if (audio.paused) {
+            audio.play();
+        } else {
+            audio.pause();
+        }
+    }
+
+    function seekPlayer(value) {
+        seekingProgress = false;
+        if (audio.duration) {
+            audio.currentTime = (value / 100) * audio.duration;
+        }
+    }
+
+    function setPlayerVolume(value) {
+        audio.volume = value / 100;
+    }
+
+    function skipAudio(seconds) {
+        audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + seconds));
+    }
+
+    function closePlayer() {
+        audio.pause();
+        audio.src = '';
+        document.getElementById('unified-player').style.display = 'none';
+    }
+
+    // Server Show Actions
     async function createShow() {
         const name = prompt("Enter new show name (e.g., DBMorning, ChiBridge):");
         if(!name) return;
@@ -279,11 +992,12 @@
         formData.append('target', target);
         
         await fetch('/upload_local', { method: 'POST', body: formData });
-        fileInput.value = ''; // clear input
+        fileInput.value = '';
     }
 
     async function stopProcess() { await fetch('/stop', { method: 'POST' }); }
 
+    // Search YouTube Music
     async function searchYt() {
         const q = document.getElementById('yt-search-input').value;
         const div = document.getElementById('yt-results');
@@ -291,46 +1005,93 @@
         if(!q.trim()) { div.innerHTML = ''; div.style.display = 'none'; return; }
         
         div.style.display = 'block';
-        div.innerHTML = '<div style="padding:10px; color: #00e5ff;">Searching YouTube... please wait...</div>';
+        div.innerHTML = '<div style="padding:15px; color: var(--accent-blue);">Searching YouTube... please wait...</div>';
         
         try {
             const res = await fetch('/api/search_yt', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({query: q}) });
             const list = await res.json();
             
-            div.innerHTML = list.length ? '' : '<div style="padding:10px; color: #ff3e3e;">No results found.</div>';
+            div.innerHTML = list.length ? '' : '<div style="padding:15px; color: var(--accent-red);">No results found.</div>';
             
             list.forEach(item => {
                 const escapedTitle = item.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const escapedUploader = item.uploader.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const thumbnailSrc = item.thumbnail ? item.thumbnail : '/api/artwork';
+                
                 div.innerHTML += `
-                <div class="match-row" style="cursor: pointer;" onclick="downloadYtResult('${item.url}', '${escapedTitle}', '${escapedUploader}')">
-                    <div class="match-header">
-                        <span class="match-title" style="color:#00e5ff">${item.title}</span>
+                <div class="match-row">
+                    <img class="match-artwork" src="${thumbnailSrc}" alt="Artwork">
+                    <div class="match-content">
+                        <div class="match-title" style="color:var(--accent-blue)">${item.title}</div>
+                        <div class="match-meta">
+                            <span>Channel: <span class="meta-val">${item.uploader}</span></span>
+                            <span>Duration: <span class="meta-val">${item.duration_string}</span></span>
+                        </div>
                     </div>
-                    <div class="match-meta">
-                        <span>Channel: <span class="meta-val">${item.uploader}</span></span>
-                        <span>Duration: <span class="meta-val">${item.duration_string}</span></span>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                        <button class="btn-blue" style="padding: 6px 12px; font-size:12px;" onclick="auditionYt('${item.url}', '${escapedTitle}', '${escapedUploader}', '${item.thumbnail}')">▶ PLAY</button>
+                        <button class="btn-green" style="padding: 6px 12px; font-size:12px;" onclick="downloadYtResult('${item.url}', '${escapedTitle}', '${escapedUploader}')">📥 GET</button>
                     </div>
                 </div>`;
             });
         } catch(e) { 
-            div.innerHTML = '<div style="padding:10px; color: #ff3e3e;">Search Error. Please try again.</div>'; 
+            div.innerHTML = '<div style="padding:15px; color: var(--accent-red);">Search Error. Please try again.</div>'; 
         }
     }
 
     async function downloadYtResult(url, title, artist) {
         const target = document.getElementById('target-show').value;
+        
+        let explicitVal = null;
+        let isRadioVal = null;
+        if (document.getElementById('force-version-clean').checked) {
+            explicitVal = false;
+            isRadioVal = false;
+        } else if (document.getElementById('force-version-explicit').checked) {
+            explicitVal = true;
+            isRadioVal = false;
+        } else if (document.getElementById('force-version-radio').checked) {
+            explicitVal = false;
+            isRadioVal = true;
+        }
+        
+        const payload = {
+            urls: url, 
+            target: target, 
+            title: title, 
+            artist: artist
+        };
+        if (explicitVal !== null) payload.explicit = explicitVal;
+        if (isRadioVal !== null) payload.is_radio = isRadioVal;
+        
         await fetch('/add', { 
             method: 'POST', 
             headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({urls: url, target: target, title: title, artist: artist}) 
+            body: JSON.stringify(payload) 
         });
         
+        // Reset checkboxes
+        document.getElementById('force-version-clean').checked = false;
+        document.getElementById('force-version-explicit').checked = false;
+        document.getElementById('force-version-radio').checked = false;
+        
         const div = document.getElementById('yt-results');
-        div.innerHTML = '<div style="padding:10px; color: #00ff41; font-weight:bold;">Track sent to Downloader Queue!</div>';
-        setTimeout(() => { div.style.display = 'none'; document.getElementById('yt-search-input').value = ''; }, 3000);
+        div.innerHTML = '<div style="padding:15px; color: var(--accent-green); font-weight:bold;">Track sent to Downloader Queue!</div>';
+        setTimeout(() => { div.style.display = 'none'; document.getElementById('yt-search-input').value = ''; }, 2000);
     }
 
+    function selectDownloadVersion(type) {
+        const cbs = {
+            clean: document.getElementById('force-version-clean'),
+            explicit: document.getElementById('force-version-explicit'),
+            radio: document.getElementById('force-version-radio')
+        };
+        for (const [key, cb] of Object.entries(cbs)) {
+            if (key !== type && cb) cb.checked = false;
+        }
+    }
+
+    // Search Local Library (The Eraser)
     async function search() {
         const q = document.getElementById('scrub-q').value;
         const div = document.getElementById('results');
@@ -342,7 +1103,7 @@
             const list = await res.json();
             
             div.style.display = 'block';
-            div.innerHTML = list.length ? '' : '<div style="padding:10px; color: #888;">No results found.</div>';
+            div.innerHTML = list.length ? '' : '<div style="padding:15px; color: var(--text-muted);">No results found.</div>';
             
             list.forEach(item => {
                 const hasLyrics = item['Lyrics'] === 'True';
@@ -351,41 +1112,66 @@
                 const length = item['Length'] || '--:--';
                 const bitrate = item['Bitrate'] || '320';
                 
-                // New Stats
                 const bpm = item['bpm'] || '0';
                 const energy = item['energy_category'] || 'Unassigned';
                 const intro = item['Intro_Duration'] || '0';
                 const punch = item['Punch_Ms'] || '2000';
                 const outro = item['outro_duration'] || '0';
+                
+                const escapedTrackName = item.name.replace(/'/g, "\\'");
+                const escapedFilePath = (item['File Path'] || '').replace(/'/g, "\\'");
+                const artworkUrl = `/api/artwork?track_name=${encodeURIComponent(item.name)}&file_path=${encodeURIComponent(item['File Path'] || '')}`;
+                
+                // Color-coded version badges
+                let versionBadge = '';
+                if (item.display_version === 'Explicit') {
+                    versionBadge = '<span class="lyrics-badge" style="background:var(--accent-red); color:#fff; margin-left: 5px;">EXPLICIT</span>';
+                } else if (item.display_version === 'Radio Edit') {
+                    versionBadge = '<span class="lyrics-badge" style="background:var(--accent-blue); color:#fff; margin-left: 5px;">RADIO EDIT</span>';
+                } else {
+                    versionBadge = '<span class="lyrics-badge" style="background:var(--accent-green); color:#000; margin-left: 5px;">CLEAN</span>';
+                }
 
                 div.innerHTML += `
-                <div class="match-row">
-                    <div class="match-header">
-                        <span class="match-title">${item.name}</span>
-                        <button class="btn-small-red" onclick="scrub('${item.name.replace(/'/g, "\\'")}')">SCRUB</button>
+                <div class="match-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <img class="match-artwork" src="${artworkUrl}" alt="Artwork">
+                        <div class="match-content">
+                            <div class="match-title">${item.name} ${versionBadge}</div>
+                            <div class="match-meta">
+                                <span>Year: <span class="meta-val">${year}</span></span>
+                                <span>Length: <span class="meta-val">${length}</span></span>
+                                <span>Bitrate: <span class="meta-val">${bitrate}k</span></span>
+                                <span>Match: <span class="meta-val">${item.score}%</span></span>
+                                ${lyricsBadge}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            <button class="btn-small-blue" onclick="auditionLocal('${escapedTrackName}', '${escapedFilePath}')">▶ PLAY</button>
+                            <button class="btn-small-red" onclick="scrub('${escapedTrackName}', '${escapedFilePath}')">🗑️ DELETE</button>
+                        </div>
                     </div>
-                    <div class="match-meta">
-                        <span>Year: <span class="meta-val">${year}</span></span>
-                        <span>Length: <span class="meta-val">${length}</span></span>
-                        <span>Bitrate: <span class="meta-val">${bitrate}k</span></span>
-                        <span>Match: <span class="meta-val">${item.score}%</span></span>
-                        ${lyricsBadge}
-                    </div>
-                    <div class="match-meta" style="margin-top: 4px; color: #666;">
-                        <span>BPM: <span class="meta-val" style="color:#00e5ff">${bpm}</span></span>
-                        <span>Energy: <span class="meta-val" style="color:#00e5ff">${energy}</span></span>
-                        <span>Intro: <span class="meta-val" style="color:#ffb300">${intro}ms</span></span>
-                        <span>Punch: <span class="meta-val" style="color:#ffb300">${punch}ms</span></span>
-                        <span>Outro: <span class="meta-val" style="color:#ffb300">${outro}ms</span></span>
+                    <div class="match-meta" style="margin-left: 65px; margin-top: 0; color: var(--text-muted); font-size: 11px;">
+                        <span>BPM: <span class="meta-val" style="color:var(--accent-blue)">${bpm}</span></span>
+                        <span>Energy: <span class="meta-val" style="color:var(--accent-blue)">${energy}</span></span>
+                        <span>Intro: <span class="meta-val" style="color:var(--accent-gold)">${intro}ms</span></span>
+                        <span>Punch: <span class="meta-val" style="color:var(--accent-gold)">${punch}ms</span></span>
+                        <span>Outro: <span class="meta-val" style="color:var(--accent-gold)">${outro}ms</span></span>
                     </div>
                 </div>`;
             });
         } catch(e) { console.error("Search failed on the frontend:", e); }
     }
 
-    async function scrub(name) {
-        if(!confirm(`Delete ${name}?`)) return;
-        await fetch('/execute_scrub', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({track_name: name}) });
+    async function scrub(name, filePath) {
+        const displayVersion = filePath ? (filePath.includes('/Clean/') ? 'Clean' : filePath.includes('/Explicit/') ? 'Explicit' : filePath.includes('/Radio Edit/') || filePath.includes('/RadioEdit/') ? 'Radio Edit' : '') : '';
+        const versionStr = displayVersion ? ` (${displayVersion} version)` : '';
+        if(!confirm(`Are you absolutely sure you want to delete "${name}"${versionStr} from the system and remote storage?`)) return;
+        await fetch('/execute_scrub', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({track_name: name, file_path: filePath || ''}) 
+        });
         search();
     }
 

@@ -197,7 +197,7 @@ class VaultManager:
     def find_candidates(self, query: str) -> List[Dict]:
         """
         Searches the local master CSV database using fuzzy text matching.
-        Aggressively strips out and ignores malformed rows to prevent NoneType sorting crashes.
+        Returns all matching candidate entries (including clean/explicit duplicates).
         """
         if not query or not isinstance(query, str):
             query = ""
@@ -206,7 +206,8 @@ class VaultManager:
         with self._csv_lock:
             if not os.path.exists(CSV_BLUEPRINT): return []
             
-            db = {}
+            db_rows = []
+            track_names = set()
             try:
                 with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                     reader = csv.DictReader(f)
@@ -214,67 +215,98 @@ class VaultManager:
                         if row and isinstance(row, dict):
                             track_name = row.get('Track Name')
                             if track_name and str(track_name).strip():
-                                db[str(track_name).strip()] = row
+                                db_rows.append(row)
+                                track_names.add(str(track_name).strip())
             except Exception as e:
                 logging.error(f"Error reading CSV in find_candidates: {e}")
                 return []
             
-            if not db: return []
+            if not track_names: return []
 
-            results_dict = {}
-            # Direct text inclusion mapping
-            for track_name, row in db.items():
-                if query_clean in track_name.lower():
-                    data = row.copy()
-                    data['name'] = track_name
-                    data['score'] = 100.0
-                    results_dict[track_name] = data
+            results_list = []
+            matched_track_names = {}
             
-            # Enforce strict string conversion on choices to insulate thefuzz from NoneTypes
-            choices = [str(k) for k in db.keys() if k]
+            # 1. Direct text inclusion matching
+            for t_name in track_names:
+                if query_clean in t_name.lower():
+                    matched_track_names[t_name] = 100.0
             
+            # 2. Fuzzy matching
+            choices = list(track_names)
             if choices and query_clean:
                 try:
                     matches = process.extract(query, choices, limit=None)
                     for match_name, score in matches:
-                        if score is not None and float(score) >= 70.0 and match_name not in results_dict:
-                            data = db[match_name].copy()
-                            data['name'] = match_name
-                            data['score'] = float(score)
-                            results_dict[match_name] = data
+                        if score is not None and float(score) >= 70.0:
+                            if match_name not in matched_track_names or float(score) > matched_track_names[match_name]:
+                                matched_track_names[match_name] = float(score)
                 except Exception as e:
                     logging.error(f"Fuzzy matching sequence failed: {e}")
 
-            sorted_results = list(results_dict.values())
-            for r in sorted_results:
-                if 'score' not in r or r['score'] is None:
-                    r['score'] = 0.0
+            # 3. Collect all matching rows (resolving duplicates)
+            for row in db_rows:
+                t_name = row.get('Track Name')
+                if t_name in matched_track_names:
+                    data = row.copy()
+                    data['name'] = t_name
+                    
+                    is_expl = str(row.get('Explicit', 'False')).strip().lower() in ['true', '1']
+                    path_lower = (row.get('File Path') or "").lower()
+                    is_radio = 'radio edit' in path_lower or 'radio version' in path_lower or 'radioedit' in path_lower
+                    
+                    if is_radio:
+                        display_version = "Radio Edit"
+                    elif is_expl:
+                        display_version = "Explicit"
+                    else:
+                        display_version = "Clean"
+                        
+                    data['display_version'] = display_version
+                    data['score'] = matched_track_names[t_name]
+                    results_list.append(data)
+                    
+            results_list.sort(key=lambda x: (float(x.get('score', 0.0)), x.get('display_version', '')), reverse=True)
+            return results_list
 
-            sorted_results.sort(key=lambda x: float(x.get('score', 0.0)), reverse=True)
-            return sorted_results
-
-    def scrub_track(self, exact_title: str) -> Tuple[bool, str]:
+    def scrub_track(self, target_identifier: str) -> Tuple[bool, str]:
+        """
+        Deletes a track. target_identifier can be a Track Name (scrubs first found file)
+        or a File Path (scrubs that specific version, leaving others intact).
+        """
         attempts = 3
         delay = 2
         server_deleted = False
-        target_filename = f"{exact_title}.mp3"
         rclone_path = self._get_rclone_path()
         import subprocess
         
-        # Look up file path in CSV first under lock
+        is_path = '/' in target_identifier or '\\' in target_identifier or target_identifier.endswith('.mp3')
         file_path_on_server = None
+        exact_title = None
+        
         with self._csv_lock:
             if os.path.exists(CSV_BLUEPRINT):
                 try:
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                         reader = csv.DictReader(f)
                         for row in reader:
-                            if row.get('Track Name') == exact_title:
-                                file_path_on_server = row.get('File Path')
-                                break
+                            row_title = row.get('Track Name')
+                            row_path = row.get('File Path')
+                            if is_path:
+                                if row_path and row_path.replace('\\', '/').lower() == target_identifier.replace('\\', '/').lower():
+                                    file_path_on_server = row_path
+                                    exact_title = row_title
+                                    break
+                            else:
+                                if row_title == target_identifier:
+                                    file_path_on_server = row_path
+                                    exact_title = row_title
+                                    break
                 except Exception as e:
                     logging.error(f"Error checking path in CSV for scrub: {e}")
 
+        if not file_path_on_server:
+            exact_title = target_identifier
+            
         last_error = ""
 
         if file_path_on_server:
@@ -301,8 +333,9 @@ class VaultManager:
                         time.sleep(delay)
                         delay *= 2
 
-        # Fallback to global --include delete if direct delete didn't succeed
-        if not server_deleted:
+        # Fallback to global filename-based delete if direct deletefile failed AND we don't have a path
+        if not server_deleted and not is_path:
+            target_filename = f"{exact_title}.mp3"
             escaped_filename = target_filename.replace('[', '\\[').replace(']', '\\]').replace('*', '\\*').replace('?', '\\?')
             delay = 2
             for i in range(attempts):
@@ -321,8 +354,7 @@ class VaultManager:
                     time.sleep(delay)
                     delay *= 2
 
-        # If direct delete was attempted or fallback was run, and both encountered real errors (e.g. bad flags or network failure)
-        # We abort and do NOT delete from CSV, so the user knows deletion failed and can retry.
+        # If direct delete was attempted or fallback was run, and both encountered real errors
         if not server_deleted and last_error and "not found" not in last_error.lower():
             return False, f"FTP server deletion failed: {last_error}"
 
@@ -334,7 +366,18 @@ class VaultManager:
                     reader = csv.DictReader(f)
                     fieldnames = reader.fieldnames
                     for row in reader:
-                        if row.get('Track Name') == exact_title: 
+                        row_title = row.get('Track Name')
+                        row_path = row.get('File Path')
+                        
+                        match = False
+                        if is_path:
+                            if row_path and row_path.replace('\\', '/').lower() == target_identifier.replace('\\', '/').lower():
+                                match = True
+                        else:
+                            if row_title == target_identifier:
+                                match = True
+                                
+                        if match:
                             found_in_csv = True
                         else: 
                             rows.append(row)
@@ -421,7 +464,7 @@ class VaultManager:
             # Determine version category and folder
             is_explicit = str(metadata.get('explicit', 'False')).strip().lower() in ['true', '1']
             title_lower = clean_title.lower()
-            is_radio = 'radio edit' in title_lower or 'radio version' in title_lower
+            is_radio = metadata.get('is_radio') or 'radio edit' in title_lower or 'radio version' in title_lower
             
             if is_radio:
                 version_folder = "Radio Edit"
