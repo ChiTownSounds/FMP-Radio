@@ -91,6 +91,7 @@ def get_relative_path(path: Path) -> str:
         return path.name
 
 def run_sync():
+    db_updated = False
     print("="*80)
     print(" FMP ULTIMATE - AUTOMATED LIBRARY & BROADCASTER DATABASE SYNC ENGINE")
     print("="*80)
@@ -116,6 +117,10 @@ def run_sync():
 
     local_files = {}  # key: normalized_key -> value: {local_path, rel_path, filename_no_ext, folder}
     for root, dirs, files in os.walk(G_DRIVE_MUSIC):
+        # Prune folders in-place to prevent scanning giant or unresponsive Google Drive directories
+        for d in list(dirs):
+            if d in ('Shows', '365 Commercials', 'STAGING'):
+                dirs.remove(d)
         for file in files:
             if file.lower().endswith('.mp3'):
                 filepath = Path(root) / file
@@ -191,6 +196,56 @@ def run_sync():
             key = normalize_track_key(track_name)
             local_keys_matched.add(key)
             unchanged_count += 1
+            
+            # Check if it exists in Broadcaster DB!
+            if not DRY_RUN and broadcaster_conn:
+                cursor = broadcaster_conn.cursor()
+                cursor.execute("SELECT id FROM media_library WHERE file_path = ?", (csv_rel_path,))
+                exists = cursor.fetchone()
+                if not exists:
+                    print(f"    [DB SYNC] Track '{track_name}' exists in CSV/disk but missing from DB. Inserting...")
+                    try:
+                        if " - " in track_name:
+                            artist_part, title_part = track_name.split(" - ", 1)
+                            artist = artist_part.strip()
+                            title = title_part.strip()
+                        else:
+                            artist = "Unknown Artist"
+                            title = track_name
+                            
+                        year_val = row.get('Year', 'Unknown')
+                        try:
+                            year_int = int(year_val)
+                        except:
+                            year_int = None
+                            
+                        explicit_val = 1 if str(row.get('Explicit')).lower() in ('true', '1') else 0
+                        duration_ms = int(row.get('duration_ms') or 0)
+                        category = get_era_category(csv_rel_path.split('/')[0] if '/' in csv_rel_path else '')
+                        
+                        cursor.execute("""
+                            INSERT INTO media_library (
+                                title, artist, file_path, duration_ms, item_type, energy_category,
+                                intro_duration, punch_ms, outro_duration, bpm, year, explicit
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            title,
+                            artist,
+                            csv_rel_path,
+                            duration_ms,
+                            row.get('item_type', 'Music') or 'Music',
+                            category,
+                            int(row.get('Intro_Duration') or 0),
+                            int(row.get('Punch_Ms') or 2000),
+                            int(row.get('outro_duration') or 0),
+                            int(row.get('bpm') or 98),
+                            year_int,
+                            explicit_val
+                        ))
+                        print(f"      [OK] Inserted track '{track_name}' into Broadcaster SQLite DB.")
+                        db_updated = True
+                    except Exception as db_err:
+                        print(f"      [-] Failed to insert track in Broadcaster DB: {db_err}")
             continue
 
         # File does not exist at the CSV path! Search G: Drive by normalized key
@@ -249,6 +304,7 @@ def run_sync():
                         
                         if cursor.rowcount > 0:
                             print(f"      [OK] Updated Broadcaster SQLite DB row (preserved custom cues/history).")
+                            db_updated = True
                         else:
                             print(f"      [-] No matching row found in Broadcaster DB for: {old_z_path}")
                     except Exception as ex:
@@ -361,12 +417,55 @@ def run_sync():
                             new_row[field] = ""
                     new_imported_rows.append(new_row)
                     print(f"    [✓] Generated metadata for: {new_filename}")
+                    
+                    if broadcaster_conn:
+                        try:
+                            cursor = broadcaster_conn.cursor()
+                            if " - " in new_filename:
+                                artist_part, title_part = new_filename.split(" - ", 1)
+                                artist = artist_part.strip()
+                                title = title_part.strip()
+                            else:
+                                artist = "Unknown Artist"
+                                title = new_filename
+                                
+                            year_val = meta_updates.get('release_year', 'Unknown')
+                            try:
+                                year_int = int(year_val)
+                            except:
+                                year_int = None
+                                
+                            explicit_val = 1 if new_row.get('Explicit') == 'True' else 0
+                            
+                            cursor.execute("""
+                                INSERT INTO media_library (
+                                    title, artist, file_path, duration_ms, item_type, energy_category,
+                                    intro_duration, punch_ms, outro_duration, bpm, year, explicit
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                title,
+                                artist,
+                                rel_path,
+                                duration_ms,
+                                'Music',
+                                category,
+                                meta_updates.get('intro_duration', 0),
+                                meta_updates.get('punch_ms', 2000),
+                                meta_updates.get('outro_duration', 0),
+                                meta_updates.get('bpm', 98),
+                                year_int,
+                                explicit_val
+                            ))
+                            print(f"      [OK] Inserted new track '{new_filename}' into Broadcaster SQLite DB.")
+                            db_updated = True
+                        except Exception as db_err:
+                            print(f"      [-] Failed to insert new track in Broadcaster DB: {db_err}")
                 except Exception as e:
                     print(f"    [-] Failed to process metadata: {e}")
 
     # 6. Save DB and Commit SQLite transactions
     if not DRY_RUN:
-        if realigned_count > 0 or len(new_imported_rows) > 0:
+        if realigned_count > 0 or len(new_imported_rows) > 0 or db_updated:
             # Backup CSV first
             csv_path = Path(CSV_BLUEPRINT)
             backup_csv = csv_path.with_name(csv_path.name + ".sync_backup")
