@@ -661,6 +661,11 @@ class VaultManager:
                                 new_row[field] = 'False'
                             else:
                                 new_row[field] = 'Unknown'
+                    elif field == 'Pool':
+                        if is_inspirational:
+                            new_row[field] = '5'
+                        else:
+                            new_row[field] = metadata.get('pool', '') or metadata.get('music_pool_id', '')
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 
