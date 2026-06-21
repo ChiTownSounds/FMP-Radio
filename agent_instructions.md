@@ -35,5 +35,7 @@ FMP Ultimate is a background downloader service. It operates alongside FMP Broad
 
 ## 4. File Naming & Folder Protocols (CRITICAL)
 * **No Version Tags in Filenames:** Filenames on disk must not contain version tags like `(Clean)`, `[Explicit]`, or `- Radio Edit`. These tags are parsed and stored as metadata properties in the DB/CSV.
-* **Strict Version Folders:** Files must sit inside version folders: `Clean/`, `Explicit/`, or `Radio Edit/` under their respective era directory (e.g. `Throwbacks 90s2000s/Clean/Boyz II Men - On Bended Knee.mp3`).
+* **Strict Version Folders:** Except for `InspirationalChurch`, files must sit inside version folders: `Clean/`, `Explicit/`, or `Radio Edit/` under their respective era directory (e.g. `Throwbacks 90s2000s/Clean/Boyz II Men - On Bended Knee.mp3`).
 * **Case Sensitivity:** Linux paths are case-sensitive. Always use capitalized `Clean`, `Explicit`, and `Radio Edit` in both the filesystem and database paths.
+* **Inspirational Church Folder Omission:** For the target `InspirationalChurch` (church songs), version subfolders (`Clean/`, `Explicit/`, or `Radio Edit/`) are **strictly omitted** from both local G: drive, remote FTP, and database CSV/SQLite file paths. All tracks route directly under the parent folder `Shows/InspirationalChurch/` (e.g., `Shows/InspirationalChurch/Marvin Sapp - The Best In Me.mp3`). Church songs never have explicit counterparts.
+* **Dynamic Target Routing Overrides:** Downloads approved via FMP Ultimate or triggered from FMP Broadcaster's Live Mix console can pass a custom target folder (e.g. `Shows/InspirationalChurch` or `Shows/Live Show/Clean`) that overrides default poller era-based sorting.
