@@ -532,16 +532,27 @@ class VaultManager:
                     except:
                         era_folder = "Unsorted_Review"
             
-            relative_target_dir = f"{era_folder}/{version_folder}"
-            remote_target = f"/{era_folder}/{version_folder}"
+            is_inspirational = (era_folder == "Shows/InspirationalChurch" or era_folder == "InspirationalChurch")
+            
+            if is_inspirational:
+                relative_target_dir = era_folder
+                remote_target = f"/{era_folder}"
+                relative_file_path = f"{era_folder}/{clean_name}"
+            else:
+                relative_target_dir = f"{era_folder}/{version_folder}"
+                remote_target = f"/{era_folder}/{version_folder}"
+                relative_file_path = f"{era_folder}/{version_folder}/{clean_name}"
 
             # 7. Vault to G: drive first (source of truth)
-            g_target_dir = os.path.join(g_drive_base, era_folder, version_folder)
+            g_target_dir = os.path.join(g_drive_base, relative_target_dir)
             os.makedirs(g_target_dir, exist_ok=True)
             g_target_file = os.path.join(g_target_dir, clean_name)
             try:
                 shutil.copy2(file_path, g_target_file)
-                logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {version_folder}")
+                if is_inspirational:
+                    logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {era_folder}")
+                else:
+                    logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {version_folder}")
             except Exception as e:
                 return False, f"Failed to write file to G: drive: {e}"
 
@@ -588,7 +599,7 @@ class VaultManager:
                     if field == 'Track Name': 
                         new_row[field] = track_name
                     elif field == 'File Path':
-                        new_row[field] = f"{era_folder}/{version_folder}/{clean_name}"
+                        new_row[field] = relative_file_path
                     elif lower_field in ['source_url', 'url', 'source url']: 
                         new_row[field] = metadata.get('url', "")
                     elif field == 'duration_ms':
@@ -666,7 +677,7 @@ class VaultManager:
                 # 9.5 Remote Google Drive Mirror Upload (G:) if running on Linux/VM
                 if os.name != "nt":
                     try:
-                        gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{era_folder}/{version_folder}/{clean_name}"
+                        gdrive_target = f"gdrive:FMP MUSIC/BASE/MUSIC/{relative_file_path}"
                         cmd_gdrive = [rclone_path, "copyto", g_target_file, gdrive_target]
                         subprocess.run(cmd_gdrive, check=True, capture_output=True)
                         logging.info(f"[✓] Track successfully uploaded to Google Drive Mirror (G:): {clean_name}")

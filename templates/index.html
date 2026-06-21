@@ -1185,10 +1185,12 @@
     }
 
     async function approvePending(url, target) {
+        const dropdownTarget = document.getElementById('target-show').value;
+        const finalTarget = dropdownTarget ? dropdownTarget : target;
         await fetch('/api/pending/approve', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({url: url, target: target})
+            body: JSON.stringify({url: url, target: finalTarget})
         });
     }
 
@@ -1207,7 +1209,12 @@
 
     async function approveAllPending() {
         if(!confirm("Download all pending discoveries?")) return;
-        await fetch('/api/pending/approve_all', { method: 'POST' });
+        const dropdownTarget = document.getElementById('target-show').value;
+        await fetch('/api/pending/approve_all', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({target: dropdownTarget})
+        });
     }
 </script>
 </body>

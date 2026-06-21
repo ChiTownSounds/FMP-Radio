@@ -1494,10 +1494,12 @@ def queue_remove():
 @app.route('/api/pending/approve_all', methods=['POST'])
 def pending_approve_all():
     approved_count = 0
+    req_data = request.get_json(silent=True) or {}
+    override_target = req_data.get('target')
     with state.lock:
         for item in state.pending_iheart_queue:
             url = item.get('url')
-            target = item.get('target', '')
+            target = override_target if override_target else item.get('target', '')
             state.url_queue.put({'url': url, 'type': 'ingest', 'target': target})
             approved_count += 1
         state.pending_iheart_queue.clear()
