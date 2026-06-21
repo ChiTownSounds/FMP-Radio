@@ -495,8 +495,8 @@ class VaultManager:
                                 if existing_key == new_key:
                                     return False, "Duplicate Track Detected in CSV"
 
-            # 5. Check G: drive era folders for duplicate files
-            for folder in self.era_folders:
+            # 5. Check G: drive era and flat Music folders for duplicate files
+            for folder in self.era_folders + ["Music"]:
                 for subf in ["", "Clean", "Explicit", "Radio Edit"]:
                     if subf:
                         folder_path = os.path.join(g_drive_base, folder, subf)
@@ -510,7 +510,10 @@ class VaultManager:
                                 f_explicit = (subf == "Explicit") or ('explicit' in f_name_without_ext.lower())
                                 f_key = self._normalize_track_key(f_name_without_ext, explicit_val=f_explicit)
                                 if f_key == new_key:
-                                    return False, f"Duplicate Track Detected on G Drive: {folder}/{subf}/{f}"
+                                    if folder == "Music":
+                                        return False, f"Duplicate Track Detected on G Drive: Music/{f}"
+                                    else:
+                                        return False, f"Duplicate Track Detected on G Drive: {folder}/{subf}/{f}"
 
             # 6. Determine Era Folder
             if self._is_video_title(track_name) or self._is_video_title(clean_name):
@@ -534,14 +537,27 @@ class VaultManager:
             
             is_inspirational = (era_folder == "Shows/InspirationalChurch" or era_folder == "InspirationalChurch")
             
-            if is_inspirational:
+            production_folders = ["365 Commercials", "ondemand", "recordings", "intro"]
+            is_production = era_folder in production_folders
+            
+            if is_production:
                 relative_target_dir = era_folder
                 remote_target = f"/{era_folder}"
                 relative_file_path = f"{era_folder}/{clean_name}"
             else:
-                relative_target_dir = f"{era_folder}/{version_folder}"
-                remote_target = f"/{era_folder}/{version_folder}"
-                relative_file_path = f"{era_folder}/{version_folder}/{clean_name}"
+                relative_target_dir = "Music"
+                remote_target = "/Music"
+                
+                # Determine version suffix
+                suffix = ""
+                if is_radio:
+                    suffix = " (Radio Edit)"
+                elif is_explicit:
+                    suffix = " (Explicit)"
+                
+                target_filename = f"{clean_artist_filename} - {clean_title_filename}{suffix}.mp3"
+                clean_name = target_filename
+                relative_file_path = f"Music/{target_filename}"
 
             # 7. Vault to G: drive first (source of truth)
             g_target_dir = os.path.join(g_drive_base, relative_target_dir)
@@ -549,10 +565,10 @@ class VaultManager:
             g_target_file = os.path.join(g_target_dir, clean_name)
             try:
                 shutil.copy2(file_path, g_target_file)
-                if is_inspirational:
+                if is_production:
                     logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {era_folder}")
                 else:
-                    logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under {version_folder}")
+                    logging.info(f"[✓] Track successfully vaulted to G: drive: {clean_name} under Music/")
             except Exception as e:
                 return False, f"Failed to write file to G: drive: {e}"
 
