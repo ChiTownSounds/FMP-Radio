@@ -378,9 +378,10 @@ def run_sync():
                 if new_pool_id is not None:
                     row['Pool'] = str(new_pool_id)
         else:
-            # If G_DRIVE_MUSIC is the Z: rclone mount, local and remote are identical.
+            # If G_DRIVE_MUSIC is the Z: rclone mount or we are on Linux (VM with rclone sync), local and remote are identical.
             # Attempting to copy from citrus3 is guaranteed to fail and wastes time.
-            if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+            import platform
+            if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC) or platform.system() != "Windows":
                 print(f"  [MISSING FILE] '{track_name}' is missing from local library. Skipping download since Citrus3 FTP is mounted locally.")
                 missing_count += 1
             else:
