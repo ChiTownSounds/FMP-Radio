@@ -140,6 +140,18 @@ class SystemState:
             try:
                 with open(pending_file, "r", encoding="utf-8") as f:
                     self.pending_iheart_queue = json.load(f)
+                
+                # Automatically fix targets for inspirational/gospel tracks
+                updated = False
+                for item in self.pending_iheart_queue:
+                    artist = item.get('artist', '')
+                    title = item.get('title', '')
+                    target = item.get('target', '')
+                    if is_inspirational_track(artist, title) and target != "Shows/InspirationalChurch":
+                        item['target'] = "Shows/InspirationalChurch"
+                        updated = True
+                if updated:
+                    self.save_pending()
             except Exception as e:
                 self.log(f"[ERROR] Failed to load pending discoveries: {e}")
                 self.pending_iheart_queue = []
@@ -296,6 +308,36 @@ class SystemState:
         threading.Thread(target=spin, daemon=True).start()
 
 state = SystemState()
+
+def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
+    if not artist or not title:
+        return False
+    
+    # Check keywords in title, artist, or album
+    from config import IHEART_CHURCH_KEYWORDS
+    search_string = f"{artist} {title} {album}".lower()
+    for kw in IHEART_CHURCH_KEYWORDS:
+        if kw in search_string:
+            return True
+            
+    # Check against known Gospel artists
+    artist_lower = artist.lower()
+    g_artists = [
+        "smokie norful", "marvin sapp", "kirk franklin", "helen baylor", "fred hammond",
+        "donnie mcclurkin", "yolanda adams", "cece winans", "tamela mann", "tasha cobbs",
+        "kierra sheard", "hezekiah walker", "t.d. jakes", "richard smallwood", "john p. kee",
+        "shirley caesar", "james fortune", "byron cage", "j.j. hairston", "koryn hawthorne",
+        "zacardi cortez", "jonathan mcreynolds", "vashawn mitchell", "charles jenkins",
+        "william murphy", "marvin winans", "clark sisters", "lisa knowles-smith",
+        "josh copeland", "ted & sheri", "pj morton", "milton brunson", "douglas miller",
+        "jekalyn carr", "bishop larry trotter", "mississippi mass choir", "chicago mass choir",
+        "williams brothers", "victorious army"
+    ]
+    for ga in g_artists:
+        if ga in artist_lower:
+            return True
+            
+    return False
 
 def is_video_title(title: str) -> bool:
     t = title.lower()
@@ -848,12 +890,9 @@ def iheart_poller_worker():
                                 is_sunday_church = True
                                 
                         if not is_sunday_church:
-                            search_string = f"{artist} {title} {album}".lower()
-                            for kw in IHEART_CHURCH_KEYWORDS:
-                                if kw in search_string:
-                                    is_sunday_church = True
-                                    logging.info(f"[iHeart Sync] Keyword matched ('{kw}') -> Routing to Gospel/Church.")
-                                    break
+                            if is_inspirational_track(artist, title, album):
+                                is_sunday_church = True
+                                logging.info(f"[iHeart Sync] Inspirational track matched -> Routing to Gospel/Church.")
                                     
                         if is_sunday_church:
                             target_override = IHEART_CHURCH_FOLDER
