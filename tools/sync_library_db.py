@@ -324,16 +324,21 @@ def run_sync():
 
             if not DRY_RUN:
                 # A. Rename/move the file on Citrus3 FTP remote
-                print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
-                cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
-                res = subprocess.run(cmd, capture_output=True)
-                if res.returncode != 0:
-                    print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
-                    upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
-                    subprocess.run(upload_cmd, check=True)
-                    print("      [OK] Uploaded to remote.")
+                # If Z: drive mount is active, local file operations (which already happened or represent the same disk)
+                # make remote transfers redundant.
+                if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                    print("    [FTP] Skipping remote move/copy since Z: drive mount is active (local matches remote).")
                 else:
-                    print("      [OK] Realigned on remote FTP.")
+                    print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
+                    cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
+                    res = subprocess.run(cmd, capture_output=True)
+                    if res.returncode != 0:
+                        print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
+                        upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
+                        subprocess.run(upload_cmd, check=True)
+                        print("      [OK] Uploaded to remote.")
+                    else:
+                        print("      [OK] Realigned on remote FTP.")
 
                 # B. Update Broadcaster SQLite Database directly
                 if broadcaster_conn:
@@ -420,10 +425,15 @@ def run_sync():
             
             if not DRY_RUN:
                 # A. Copy to Citrus3 FTP server
-                print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
-                upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}"]
-                subprocess.run(upload_cmd, check=True)
-                print("    [OK] Upload completed.")
+                # If Z: drive mount is active, local file operations (which already happened or represent the same disk)
+                # make remote transfers redundant.
+                if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                    print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
+                else:
+                    print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
+                    upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}"]
+                    subprocess.run(upload_cmd, check=True)
+                    print("    [OK] Upload completed.")
                 
                 # B. Extract tags & cues using AutoMaster
                 print("    [*] Analyzing tags and cue points...")
@@ -561,7 +571,7 @@ def run_sync():
                     subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
                     msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
                     subprocess.run(["git", "commit", "-m", msg], check=True, capture_output=True)
-                    subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                    subprocess.run(["git", "push", "origin", "HEAD"], check=True, capture_output=True)
                     print("  [OK] Pushed successfully to GitHub.")
                 except Exception as e:
                     print(f"  [-] Git push failed: {e}")
