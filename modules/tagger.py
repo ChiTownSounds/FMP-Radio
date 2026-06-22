@@ -67,10 +67,9 @@ class AutoMaster:
                 os.remove(file_path)
             return False
 
-    def _analyze_audio_properties(self, file_path: str) -> Dict:
+    def _analyze_audio_properties_local(self, file_path: str) -> Dict:
         """
-        Analyzes audio properties using librosa to calculate precision BPM,
-        harmonic vocal onset (intro), RMS decay (outro), and novelty peaks (punch).
+        Analyzes audio properties using librosa directly.
         """
         analysis = {'bpm': 98, 'intro_duration': 0, 'outro_duration': 0, 'punch_ms': 2000, 'intro_sec': 0.0}
         
@@ -130,6 +129,34 @@ class AutoMaster:
             logging.error(f"Local librosa analysis failed, falling back: {e}")
             
         return analysis
+
+    def _analyze_audio_properties(self, file_path: str) -> Dict:
+        """
+        Analyzes audio properties by running a subprocess to avoid multi-threading numba JIT deadlocks
+        and enforce a strict timeout.
+        """
+        import sys
+        import json
+        
+        cmd = [sys.executable, __file__, '--analyze', file_path]
+        try:
+            # Enforce 120-second timeout for audio properties analysis
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', timeout=120)
+            if res.returncode == 0:
+                try:
+                    return json.loads(res.stdout.strip())
+                except Exception as parse_err:
+                    logging.error(f"Failed to parse subprocess stdout: {res.stdout}. Error: {parse_err}")
+            else:
+                logging.error(f"Subprocess analysis failed with return code {res.returncode}. Stderr: {res.stderr}")
+        except subprocess.TimeoutExpired:
+            logging.error(f"Subprocess analysis timed out after 120s for {file_path}")
+        except Exception as e:
+            logging.error(f"Unexpected error calling subprocess analysis: {e}")
+
+        # Fallback to local in-process analysis
+        logging.warning("Subprocess analysis failed or timed out. Falling back to in-process analysis...")
+        return self._analyze_audio_properties_local(file_path)
 
 
     def process_file(self, file_path: str, original_bitrate: str = "320k") -> Tuple[str, Dict]:
@@ -357,3 +384,15 @@ class AutoMaster:
             metadata_updates['url'] = embedded_url.strip()
 
         return file_path, metadata_updates
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 2 and sys.argv[1] == '--analyze':
+        import json
+        file_path = sys.argv[2]
+        am = AutoMaster()
+        try:
+            res = am._analyze_audio_properties_local(file_path)
+            print(json.dumps(res))
+        except Exception as e:
+            print(json.dumps({"error": str(e)}))
