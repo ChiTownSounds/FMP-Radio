@@ -83,6 +83,28 @@ def get_era_category(folder_name: str) -> str:
         return "Shows"
     return "Unassigned"
 
+def get_pool_id_from_folder(folder_name: str) -> int:
+    if not folder_name:
+        return None
+    folder_lower = folder_name.lower()
+    if "new school" in folder_lower:
+        return 1
+    elif "classics" in folder_lower:
+        return 2
+    elif "throwbacks" in folder_lower:
+        return 3
+    elif "slow jam" in folder_lower or "quiet storm" in folder_lower:
+        return 4
+    elif "gospel" in folder_lower or "inspirational" in folder_lower:
+        return 5
+    elif "blues" in folder_lower:
+        return 6
+    elif "old school" in folder_lower:
+        return 7
+    elif "deep cut" in folder_lower:
+        return 8
+    return None
+
 def get_relative_path(path: Path) -> str:
     # Get path relative to the local G_DRIVE_MUSIC root
     try:
@@ -195,12 +217,19 @@ def run_sync():
             # Matches exactly!
             key = normalize_track_key(track_name)
             local_keys_matched.add(key)
+            # Ensure CSV has the pool assigned from folder if it doesn't have one
+            if not row.get('Pool'):
+                folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
+                pool_id = get_pool_id_from_folder(folder)
+                if pool_id is not None:
+                    row['Pool'] = str(pool_id)
+
             unchanged_count += 1
             
             # Check if it exists in Broadcaster DB!
             if not DRY_RUN and broadcaster_conn:
                 cursor = broadcaster_conn.cursor()
-                cursor.execute("SELECT id FROM media_library WHERE file_path = ?", (csv_rel_path,))
+                cursor.execute("SELECT id, music_pool_id FROM media_library WHERE file_path = ?", (csv_rel_path,))
                 exists = cursor.fetchone()
                 if not exists:
                     print(f"    [DB SYNC] Track '{track_name}' exists in CSV/disk but missing from DB. Inserting...")
@@ -221,13 +250,22 @@ def run_sync():
                             
                         explicit_val = 1 if str(row.get('Explicit')).lower() in ('true', '1') else 0
                         duration_ms = int(row.get('duration_ms') or 0)
-                        category = get_era_category(csv_rel_path.split('/')[0] if '/' in csv_rel_path else '')
+                        folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
+                        category = get_era_category(folder)
+                        
+                        pool_val = row.get('Pool')
+                        try:
+                            pool_id = int(pool_val) if pool_val else None
+                        except:
+                            pool_id = None
+                        if pool_id is None:
+                            pool_id = get_pool_id_from_folder(folder)
                         
                         cursor.execute("""
                             INSERT INTO media_library (
                                 title, artist, file_path, duration_ms, item_type, energy_category,
-                                intro_duration, punch_ms, outro_duration, bpm, year, explicit
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                intro_duration, punch_ms, outro_duration, bpm, year, explicit, music_pool_id
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
                             title,
                             artist,
@@ -240,12 +278,29 @@ def run_sync():
                             int(row.get('outro_duration') or 0),
                             int(row.get('bpm') or 98),
                             year_int,
-                            explicit_val
+                            explicit_val,
+                            pool_id
                         ))
                         print(f"      [OK] Inserted track '{track_name}' into Broadcaster SQLite DB.")
                         db_updated = True
                     except Exception as db_err:
                         print(f"      [-] Failed to insert track in Broadcaster DB: {db_err}")
+                else:
+                    db_id, current_pool_id = exists
+                    if current_pool_id is None:
+                        pool_val = row.get('Pool')
+                        try:
+                            pool_id = int(pool_val) if pool_val else None
+                        except:
+                            pool_id = None
+                        if pool_id is None:
+                            folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
+                            pool_id = get_pool_id_from_folder(folder)
+                        
+                        if pool_id is not None:
+                            print(f"    [DB SYNC] Assigning pool ID {pool_id} to existing track '{track_name}' (ID: {db_id})")
+                            cursor.execute("UPDATE media_library SET music_pool_id = ? WHERE id = ?", (pool_id, db_id))
+                            db_updated = True
             continue
 
         # File does not exist at the CSV path! Search G: Drive by normalized key
@@ -294,13 +349,14 @@ def run_sync():
                             title = new_filename
 
                         new_cat = get_era_category(new_folder)
+                        new_pool_id = get_pool_id_from_folder(new_folder)
                         
-                        # Update the file path, title, artist, energy_category in media_library
+                        # Update the file path, title, artist, energy_category, music_pool_id in media_library
                         cursor.execute('''
                             UPDATE media_library
-                            SET file_path = ?, title = ?, artist = ?, energy_category = ?
+                            SET file_path = ?, title = ?, artist = ?, energy_category = ?, music_pool_id = ?
                             WHERE file_path = ?
-                        ''', (new_z_path, title, artist, new_cat, old_z_path))
+                        ''', (new_z_path, title, artist, new_cat, new_pool_id, old_z_path))
                         
                         if cursor.rowcount > 0:
                             print(f"      [OK] Updated Broadcaster SQLite DB row (preserved custom cues/history).")
@@ -314,6 +370,8 @@ def run_sync():
                 row['File Path'] = new_z_path
                 row['Track Name'] = new_filename
                 row['energy_category'] = get_era_category(new_folder)
+                if new_pool_id is not None:
+                    row['Pool'] = str(new_pool_id)
         else:
             print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Attempting download from Citrus3 FTP...")
             if not DRY_RUN:
@@ -350,6 +408,7 @@ def run_sync():
             new_filename = match['filename_no_ext']
             folder = match['folder']
             category = get_era_category(folder)
+            pool_id = get_pool_id_from_folder(folder)
             
             print(f"  > Processing: {new_filename}...")
             
@@ -385,6 +444,8 @@ def run_sync():
                             new_row[field] = 'Music'
                         elif field in ['energy_category', 'Energy Category']:
                             new_row[field] = category
+                        elif field == 'Pool':
+                            new_row[field] = str(pool_id) if pool_id is not None else ""
                         elif field == 'Intro_Duration':
                             new_row[field] = meta_updates.get('intro_duration', 0)
                         elif field == 'Punch_Ms':
@@ -440,8 +501,8 @@ def run_sync():
                             cursor.execute("""
                                 INSERT INTO media_library (
                                     title, artist, file_path, duration_ms, item_type, energy_category,
-                                    intro_duration, punch_ms, outro_duration, bpm, year, explicit
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    intro_duration, punch_ms, outro_duration, bpm, year, explicit, music_pool_id
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """, (
                                 title,
                                 artist,
@@ -454,7 +515,8 @@ def run_sync():
                                 meta_updates.get('outro_duration', 0),
                                 meta_updates.get('bpm', 98),
                                 year_int,
-                                explicit_val
+                                explicit_val,
+                                pool_id
                             ))
                             print(f"      [OK] Inserted new track '{new_filename}' into Broadcaster SQLite DB.")
                             db_updated = True

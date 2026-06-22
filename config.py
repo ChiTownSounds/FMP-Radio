@@ -15,7 +15,10 @@ CSV_BLUEPRINT = os.path.join(BASE_DIR, "configs", "fmp_data_7718.csv")
 
 # Centralized cross-platform directories
 if platform.system() == "Windows":
-    MUSIC_DIR = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
+    if os.path.exists("Z:\\"):
+        MUSIC_DIR = "Z:\\"
+    else:
+        MUSIC_DIR = r"G:\My Drive\FMP MUSIC\BASE\MUSIC"
     BROADCASTER_DB = r"C:\FMP_Broadcaster\fmp_radio.db"
 else:
     MUSIC_DIR = "/home/ubuntu/music"
