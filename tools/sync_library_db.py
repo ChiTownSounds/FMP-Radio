@@ -373,24 +373,30 @@ def run_sync():
                 if new_pool_id is not None:
                     row['Pool'] = str(new_pool_id)
         else:
-            print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Attempting download from Citrus3 FTP...")
-            if not DRY_RUN:
-                try:
-                    expected_g_path.parent.mkdir(parents=True, exist_ok=True)
-                    cmd = [RCLONE_EXE, "copyto", f"citrus3:/{csv_rel_path}", str(expected_g_path)]
-                    res = subprocess.run(cmd, capture_output=True, text=True)
-                    if res.returncode == 0:
-                        print(f"    [✓] Successfully downloaded: {csv_rel_path}")
-                        local_keys_matched.add(key)
-                    else:
-                        print(f"    [-] Download failed: {res.stderr.strip()}")
-                        missing_count += 1
-                except Exception as de:
-                    print(f"    [-] Download crashed: {de}")
-                    missing_count += 1
-            else:
-                print(f"    [DRY RUN] Would download from citrus3:/{csv_rel_path} to {expected_g_path}")
+            # If G_DRIVE_MUSIC is the Z: rclone mount, local and remote are identical.
+            # Attempting to copy from citrus3 is guaranteed to fail and wastes time.
+            if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                print(f"  [MISSING FILE] '{track_name}' is missing from local library. Skipping download since Citrus3 FTP is mounted locally.")
                 missing_count += 1
+            else:
+                print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Attempting download from Citrus3 FTP...")
+                if not DRY_RUN:
+                    try:
+                        expected_g_path.parent.mkdir(parents=True, exist_ok=True)
+                        cmd = [RCLONE_EXE, "copyto", f"citrus3:/{csv_rel_path}", str(expected_g_path)]
+                        res = subprocess.run(cmd, capture_output=True, text=True)
+                        if res.returncode == 0:
+                            print(f"    [✓] Successfully downloaded: {csv_rel_path}")
+                            local_keys_matched.add(key)
+                        else:
+                            print(f"    [-] Download failed: {res.stderr.strip()}")
+                            missing_count += 1
+                    except Exception as de:
+                        print(f"    [-] Download crashed: {de}")
+                        missing_count += 1
+                else:
+                    print(f"    [DRY RUN] Would download from citrus3:/{csv_rel_path} to {expected_g_path}")
+                    missing_count += 1
 
 
     # 5. Process New Untracked Files from G: Drive
