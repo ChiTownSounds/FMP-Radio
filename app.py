@@ -177,9 +177,35 @@ class SystemState:
                     artist = item.get('artist', '')
                     title = item.get('title', '')
                     target = item.get('target', '')
-                    if is_inspirational_track(artist, title) and target != "Shows/InspirationalChurch":
-                        item['target'] = "Shows/InspirationalChurch"
-                        updated = True
+                    ts_str = item.get('timestamp', '')
+                    
+                    is_insp = is_inspirational_track(artist, title)
+                    
+                    # Parse timestamp (e.g. "05:58 AM")
+                    before_9am = False
+                    if ts_str:
+                        try:
+                            parts = ts_str.split(':')
+                            if len(parts) >= 2:
+                                hour = int(parts[0])
+                                is_pm = "pm" in parts[1].lower()
+                                if is_pm and hour != 12:
+                                    hour += 12
+                                elif not is_pm and hour == 12:
+                                    hour = 0
+                                if hour < 9:
+                                    before_9am = True
+                        except Exception:
+                            pass
+                            
+                    if is_insp:
+                        if target != "Shows/InspirationalChurch":
+                            item['target'] = "Shows/InspirationalChurch"
+                            updated = True
+                    else:
+                        if before_9am and target == "Shows/InspirationalChurch":
+                            item['target'] = ""
+                            updated = True
                 if updated:
                     self.save_pending()
             except Exception as e:

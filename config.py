@@ -106,7 +106,7 @@ IHEART_STATION_ID = "865"  # WVAZ V103 Chicago
 IHEART_POLL_INTERVAL = 30  # seconds
 IHEART_CHURCH_FOLDER = "Shows/InspirationalChurch"
 IHEART_CHURCH_DAYS = [6]  # Sunday (6 in datetime.date.weekday())
-IHEART_CHURCH_START_HOUR = 5  # 5:00 AM
+IHEART_CHURCH_START_HOUR = 9  # 9:00 AM
 IHEART_CHURCH_END_HOUR = 13  # 1:00 PM
 IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual"]
 
