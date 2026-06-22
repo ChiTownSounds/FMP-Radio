@@ -24,7 +24,7 @@ class Gatekeeper:
         cmd = YT_DLP_CMD + ["-j", "--flat-playlist", url]
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True, timeout=60)
             meta = json.loads(result.stdout)
             
             # Extract relevant fields (lyrics is set to 'Not Found' since SomeDL handles it)
@@ -39,6 +39,22 @@ class Gatekeeper:
             
             return True, data
 
+        except subprocess.TimeoutExpired as e:
+            logging.error(f"Validation timed out for {url}")
+            try:
+                from app import state
+                state.log("[WARNING] Gatekeeper validation timed out... Forcing SomeDL override.")
+            except ImportError:
+                print("[WARNING] Gatekeeper validation timed out... Forcing SomeDL override.")
+            return True, {
+                "title": "Unknown Title",
+                "artist": "Unknown Artist",
+                "release_year": "Unknown",
+                "duration": 0,
+                "lyrics": "Not Found",
+                "url": url,
+                "_blind_override": True
+            }
         except subprocess.CalledProcessError as e:
             logging.error(f"Validation failed for {url}: {e.stderr}")
             try:
