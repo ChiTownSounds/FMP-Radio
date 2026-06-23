@@ -309,9 +309,10 @@ class VaultManager:
             
         last_error = ""
 
-        if file_path_on_server:
+        file_path_to_delete = file_path_on_server or (target_identifier if is_path else None)
+        if file_path_to_delete:
             # Clean up prefix to map to FTP root
-            clean_rel_path = file_path_on_server.replace('\\', '/')
+            clean_rel_path = file_path_to_delete.replace('\\', '/')
             if clean_rel_path.upper().startswith('Z:/'):
                 clean_rel_path = clean_rel_path[3:]
             elif clean_rel_path.lower().startswith('/home/ubuntu/music/'):
@@ -388,10 +389,100 @@ class VaultManager:
                         writer.writeheader()
                         writer.writerows(rows)
 
-        # Delete from local G: drive mirror if it exists
+        db_deleted = False
         try:
-            if file_path_on_server:
-                clean_rel_path_g = file_path_on_server.replace('\\', '/')
+            from config import BROADCASTER_DB
+            import sqlite3
+            if os.path.exists(BROADCASTER_DB):
+                conn = sqlite3.connect(BROADCASTER_DB, timeout=10.0)
+                cursor = conn.cursor()
+                db_rel_path = file_path_on_server or (target_identifier if is_path else None)
+                if db_rel_path:
+                    db_rel_path = db_rel_path.replace('\\', '/')
+                    if db_rel_path.upper().startswith('Z:/'):
+                        db_rel_path = db_rel_path[3:]
+                    elif db_rel_path.lower().startswith('/home/ubuntu/music/'):
+                        db_rel_path = db_rel_path[len('/home/ubuntu/music/'):]
+                    
+                    if is_path:
+                        cursor.execute("DELETE FROM media_library WHERE LOWER(file_path) = LOWER(?)", (db_rel_path,))
+                    else:
+                        if " - " in target_identifier:
+                            artist_part, title_part = target_identifier.split(" - ", 1)
+                            cursor.execute("DELETE FROM media_library WHERE (LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)) OR LOWER(file_path) = LOWER(?)", (title_part.strip(), artist_part.strip(), db_rel_path))
+                        else:
+                            cursor.execute("DELETE FROM media_library WHERE LOWER(title) = LOWER(?) OR LOWER(file_path) = LOWER(?)", (target_identifier, db_rel_path))
+                else:
+                    if " - " in target_identifier:
+                        artist_part, title_part = target_identifier.split(" - ", 1)
+                        cursor.execute("DELETE FROM media_library WHERE LOWER(title) = LOWER(?) AND LOWER(artist) = LOWER(?)", (title_part.strip(), artist_part.strip()))
+                    else:
+                        cursor.execute("DELETE FROM media_library WHERE LOWER(title) = LOWER(?)", (target_identifier,))
+                
+                if cursor.rowcount > 0:
+                    db_deleted = True
+                    conn.commit()
+                    logging.info(f"Deleted track from local Broadcaster DB: {target_identifier}")
+                conn.close()
+        except Exception as e:
+            logging.error(f"Failed to delete track from local Broadcaster DB: {e}")
+
+        remote_deleted = False
+        try:
+            try:
+                from config import REMOTE_VM_IP
+            except ImportError:
+                REMOTE_VM_IP = "ultimate.fmpmediagroup.com"
+                
+            ssh_key = "C:\\Users\\chito\\.ssh\\id_ed25519"
+            if not os.path.exists(ssh_key):
+                ssh_key = os.path.expanduser("~/.ssh/id_ed25519")
+                
+            if os.path.exists(ssh_key) and REMOTE_VM_IP:
+                db_rel_path = file_path_on_server or (target_identifier if is_path else None)
+                if db_rel_path:
+                    db_rel_path = db_rel_path.replace('\\', '/')
+                    if db_rel_path.upper().startswith('Z:/'):
+                        db_rel_path = db_rel_path[3:]
+                    elif db_rel_path.lower().startswith('/home/ubuntu/music/'):
+                        db_rel_path = db_rel_path[len('/home/ubuntu/music/'):]
+                        
+                    db_rel_path_esc = db_rel_path.replace("'", "''")
+                    if is_path:
+                        sql = f"DELETE FROM media_library WHERE LOWER(file_path) = LOWER('{db_rel_path_esc}');"
+                    else:
+                        if " - " in target_identifier:
+                            artist_part, title_part = target_identifier.split(" - ", 1)
+                            artist_esc = artist_part.strip().replace("'", "''")
+                            title_esc = title_part.strip().replace("'", "''")
+                            sql = f"DELETE FROM media_library WHERE (LOWER(title) = LOWER('{title_esc}') AND LOWER(artist) = LOWER('{artist_esc}')) OR LOWER(file_path) = LOWER('{db_rel_path_esc}');"
+                        else:
+                            target_esc = target_identifier.replace("'", "''")
+                            sql = f"DELETE FROM media_library WHERE LOWER(title) = LOWER('{target_esc}') OR LOWER(file_path) = LOWER('{db_rel_path_esc}');"
+                else:
+                    if " - " in target_identifier:
+                        artist_part, title_part = target_identifier.split(" - ", 1)
+                        artist_esc = artist_part.strip().replace("'", "''")
+                        title_esc = title_part.strip().replace("'", "''")
+                        sql = f"DELETE FROM media_library WHERE LOWER(title) = LOWER('{title_esc}') AND LOWER(artist) = LOWER('{artist_esc}');"
+                    else:
+                        target_esc = target_identifier.replace("'", "''")
+                        sql = f"DELETE FROM media_library WHERE LOWER(title) = LOWER('{target_esc}');"
+                
+                ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-i", ssh_key, f"ubuntu@{REMOTE_VM_IP}", f"sqlite3 /home/ubuntu/FMP-Broadcaster/fmp_radio.db \"{sql}\""]
+                res = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=10)
+                if res.returncode == 0:
+                    logging.info(f"Deleted track from remote Broadcaster DB: {target_identifier}")
+                    remote_deleted = True
+                else:
+                    logging.error(f"Failed to delete from remote Broadcaster DB: {res.stderr}")
+        except Exception as e:
+            logging.error(f"Failed to delete track from remote Broadcaster DB: {e}")
+
+        try:
+            file_path_for_g = file_path_on_server or (target_identifier if is_path else None)
+            if file_path_for_g:
+                clean_rel_path_g = file_path_for_g.replace('\\', '/')
                 if clean_rel_path_g.upper().startswith('Z:/'):
                     clean_rel_path_g = clean_rel_path_g[3:]
                 elif clean_rel_path_g.lower().startswith('/home/ubuntu/music/'):
@@ -431,7 +522,7 @@ class VaultManager:
             if AUTO_GIT_PUSH:
                 threading.Thread(target=self._git_auto_push, args=(exact_title,), daemon=True).start()
 
-        if not server_deleted and not found_in_csv and not lyrics_deleted:
+        if not server_deleted and not found_in_csv and not lyrics_deleted and not db_deleted and not remote_deleted:
             return False, "Track not found on FTP server, database, or lyrics folders."
             
         return True, "Sync Completed"
@@ -539,8 +630,11 @@ class VaultManager:
             
             production_folders = ["365 Commercials", "ondemand", "recordings", "intro"]
             is_production = era_folder in production_folders
+            is_show = era_folder.startswith("Shows/") or era_folder == "InspirationalChurch"
+            if is_show and era_folder == "InspirationalChurch":
+                era_folder = "Shows/InspirationalChurch"
             
-            if is_production:
+            if is_production or is_show:
                 relative_target_dir = era_folder
                 remote_target = f"/{era_folder}"
                 relative_file_path = f"{era_folder}/{clean_name}"

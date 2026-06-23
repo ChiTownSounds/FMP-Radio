@@ -12,7 +12,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 VALID_DIRS = [
     'Classics', 'Old School 70s80s', 'Throwbacks 90s2000s', 'New School 2010+',
     'Live', 'Unsorted_Review', '365 Commercials', '90s2000s', '80s', 'Today',
-    'STAGING', 'intro', 'ondemand', 'Shows'
+    'STAGING', 'intro', 'ondemand', 'Shows', 'Music'
 ]
 
 def check_and_clean_csv():

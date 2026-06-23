@@ -10,8 +10,8 @@ import re
 from pathlib import Path
 
 # Fix console encoding for Windows
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', write_through=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', write_through=True)
 
 # Append root dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -335,8 +335,11 @@ def run_sync():
                     if res.returncode != 0:
                         print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
                         upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
-                        subprocess.run(upload_cmd, check=True)
-                        print("      [OK] Uploaded to remote.")
+                        try:
+                            subprocess.run(upload_cmd, check=True)
+                            print("      [OK] Uploaded to remote.")
+                        except Exception as upload_err:
+                            print(f"      [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with DB/CSV sync.")
                     else:
                         print("      [OK] Realigned on remote FTP.")
 
@@ -385,24 +388,8 @@ def run_sync():
                 print(f"  [MISSING FILE] '{track_name}' is missing from local library. Skipping download since Citrus3 FTP is mounted locally.")
                 missing_count += 1
             else:
-                print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Attempting download from Citrus3 FTP...")
-                if not DRY_RUN:
-                    try:
-                        expected_g_path.parent.mkdir(parents=True, exist_ok=True)
-                        cmd = [RCLONE_EXE, "copyto", f"citrus3:/{csv_rel_path}", str(expected_g_path)]
-                        res = subprocess.run(cmd, capture_output=True, text=True)
-                        if res.returncode == 0:
-                            print(f"    [✓] Successfully downloaded: {csv_rel_path}")
-                            local_keys_matched.add(key)
-                        else:
-                            print(f"    [-] Download failed: {res.stderr.strip()}")
-                            missing_count += 1
-                    except Exception as de:
-                        print(f"    [-] Download crashed: {de}")
-                        missing_count += 1
-                else:
-                    print(f"    [DRY RUN] Would download from citrus3:/{csv_rel_path} to {expected_g_path}")
-                    missing_count += 1
+                print(f"  [MISSING FILE] '{track_name}' is missing from G: Drive. Skipping remote download fallback.")
+                missing_count += 1
 
             # Even if the file is missing from disk, make sure the database has the correct pool ID from the CSV/energy_category
             if not DRY_RUN and broadcaster_conn:
@@ -457,9 +444,12 @@ def run_sync():
                     print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
                 else:
                     print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
-                    upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}"]
-                    subprocess.run(upload_cmd, check=True)
-                    print("    [OK] Upload completed.")
+                    upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}", "--retries", "1", "--timeout", "10s"]
+                    try:
+                        subprocess.run(upload_cmd, check=True)
+                        print("    [OK] Upload completed.")
+                    except Exception as upload_err:
+                        print(f"    [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with local DB import.")
                 
                 # B. Extract tags & cues using AutoMaster
                 print("    [*] Analyzing tags and cue points...")
