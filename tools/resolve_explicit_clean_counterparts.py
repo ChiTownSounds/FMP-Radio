@@ -110,8 +110,92 @@ def extract_artists_from_renderer(item):
             pass
     return artists
 
+yt_client = None
+
 def search_clean_version(artist, title, original_seconds):
-    # Construct search queries: Clean first, then fallback to radio edit
+    global yt_client
+    if yt_client is None:
+        try:
+            from ytmusicapi import YTMusic
+            yt_client = YTMusic()
+            print("  [✓] Successfully initialized ytmusicapi.")
+        except Exception as e:
+            print(f"  [-] Failed to initialize ytmusicapi: {e}")
+            yt_client = False
+
+    if yt_client:
+        try:
+            print(f"  [*] Attempting official counterpart search via ytmusicapi other_versions...")
+            # Query sanitization per project rules: replace underscores and replacement chars with spaces, strip (Clean)
+            query_artist = artist.replace('_', ' ').replace('\uFFFD', ' ')
+            query_title = title.replace('_', ' ').replace('\uFFFD', ' ')
+            query_title = re.sub(r'\((Clean|Explicit|Radio Edit)\)', '', query_title, flags=re.IGNORECASE).strip()
+            query_artist = re.sub(r'\((Clean|Explicit)\)', '', query_artist, flags=re.IGNORECASE).strip()
+            
+            search_query = f"{query_artist} - {query_title}"
+            results = yt_client.search(search_query, filter="songs")
+            if results:
+                # Iterate through top 3 search results to find the explicit track and its album
+                for song in results[:3]:
+                    res_title = song.get('title')
+                    res_artists = [a.get('name') for a in song.get('artists', [])]
+                    res_artist_str = ", ".join(res_artists)
+                    
+                    # Verify artist overlap
+                    target_artists = clean_artist_set(artist)
+                    candidate_artists = clean_artist_set(res_artist_str)
+                    artist_match = bool(target_artists & candidate_artists)
+                    if not artist_match:
+                        artist_match = any(ta in res_artist_str.lower() or ca in artist.lower() for ta in target_artists for ca in candidate_artists)
+                    
+                    if not artist_match:
+                        continue
+                        
+                    album_info = song.get("album", {}) or {}
+                    album_id = album_info.get("id")
+                    if album_id:
+                        print(f"    Fetching album details for ID: {album_id}...")
+                        details = yt_client.get_album(browseId=album_id)
+                        other_versions = details.get("other_versions", [])
+                        for ver in other_versions:
+                            is_explicit = ver.get("isExplicit", False)
+                            # We want a non-explicit counterpart version of the album
+                            if not is_explicit:
+                                ver_browse_id = ver.get("browseId")
+                                if ver_browse_id:
+                                    print(f"    Fetching other version details: '{ver.get('title')}'...")
+                                    ver_details = yt_client.get_album(browseId=ver_browse_id)
+                                    ver_tracks = ver_details.get("tracks", [])
+                                    # Find matching track in the clean album
+                                    for t in ver_tracks:
+                                        t_title = t.get('title')
+                                        clean_t_title = re.sub(r'[^a-z0-9]', '', t_title.lower())
+                                        clean_target_title = re.sub(r'[^a-z0-9]', '', title.lower())
+                                        core_item = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_t_title)
+                                        core_target = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_target_title)
+                                        
+                                        title_match = False
+                                        if clean_t_title == clean_target_title:
+                                            title_match = True
+                                        elif core_item == core_target and core_item:
+                                            title_match = True
+                                            
+                                        t_duration = t.get('duration') or ""
+                                        t_seconds = parse_time_str(t_duration)
+                                        if title_match and not t.get('isExplicit', False):
+                                            if original_seconds > 0 and t_seconds > 0:
+                                                if abs(original_seconds - t_seconds) > 35:
+                                                    continue
+                                            
+                                            video_id = t.get('videoId')
+                                            url = f"https://music.youtube.com/watch?v={video_id}"
+                                            print(f"  [✓ MATCHED via other_versions] Clean counterpart found: '{t_title}' by '{res_artist_str}' (URL: {url})")
+                                            return url, t_title, res_artist_str, t_duration
+        except Exception as e:
+            print(f"  [-] Error in other_versions counterpart lookup: {e}")
+
+    # Fallback to the existing scraping method
+    print(f"  [*] Falling back to fuzzy search/scraping method...")
     queries = [
         f"{artist} {title} clean",
         f"{artist} {title} radio edit"

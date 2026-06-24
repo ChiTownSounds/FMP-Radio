@@ -715,8 +715,52 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                 target_cat = target['category']
                 target_explicit = target['explicit']
                 
-                state.log(f"[Counterpart Search] Searching for {target_cat} version of '{artist} - {clean_title}' using query: '{search_query}'")
-                results = ytm.search(search_query, filter="songs")
+                state.log(f"[Counterpart Search] Searching for {target_cat} version of '{artist} - {clean_title}'...")
+                
+                other_versions_songs = []
+                try:
+                    current_search = ytm.search(f"{artist} - {clean_title}", filter="songs")
+                    if current_search:
+                        song_item = current_search[0]
+                        album_info = song_item.get("album", {}) or {}
+                        album_id = album_info.get("id")
+                        if album_id:
+                            album_details = ytm.get_album(browseId=album_id)
+                            other_versions = album_details.get("other_versions", [])
+                            for ver in other_versions:
+                                ver_explicit = ver.get("isExplicit", False)
+                                if ver_explicit == target_explicit:
+                                    ver_browse_id = ver.get("browseId")
+                                    if ver_browse_id:
+                                        ver_details = ytm.get_album(browseId=ver_browse_id)
+                                        ver_tracks = ver_details.get("tracks", [])
+                                        for t in ver_tracks:
+                                            t_title = t.get("title", "")
+                                            clean_t_title = re.sub(r'[^a-z0-9]', '', t_title.lower())
+                                            clean_target_title = re.sub(r'[^a-z0-9]', '', clean_title.lower())
+                                            core_item = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_t_title)
+                                            core_target = re.sub(r'(feat|with|remix|mono|single|version|radio|edit|album).*', '', clean_target_title)
+                                            
+                                            title_match = (clean_t_title == clean_target_title) or (core_item == core_target and core_item)
+                                            if title_match and t.get("isExplicit", False) == target_explicit:
+                                                other_versions_songs.append({
+                                                    'videoId': t.get('videoId'),
+                                                    'title': t_title,
+                                                    'isExplicit': t.get('isExplicit', False),
+                                                    'artists': song_item.get('artists', [])
+                                                })
+                except Exception as ove:
+                    sys.stdout.write(f"\n[WARNING] other_versions lookup failed: {ove}\n")
+                    sys.stdout.flush()
+
+                results = []
+                if other_versions_songs:
+                    results = other_versions_songs
+                    state.log(f"[Counterpart Search] Found official counterpart in other_versions: '{results[0].get('title')}'")
+                else:
+                    state.log(f"[Counterpart Search] Falling back to query search: '{search_query}'")
+                    results = ytm.search(search_query, filter="songs")
+
                 if not results:
                     state.log(f"[Counterpart Search] No results found for query: '{search_query}'")
                     continue

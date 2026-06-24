@@ -186,7 +186,9 @@ def run_sync():
     if BROADCASTER_DB.exists():
         print(f"\n[+] Detected Broadcaster SQLite Database: {BROADCASTER_DB}")
         if not DRY_RUN:
-            broadcaster_conn = sqlite3.connect(BROADCASTER_DB, timeout=10.0)
+            broadcaster_conn = sqlite3.connect(BROADCASTER_DB, timeout=30.0)
+            broadcaster_conn.execute("PRAGMA journal_mode=WAL;")
+            broadcaster_conn.execute("PRAGMA busy_timeout=30000;")
             broadcaster_conn.row_factory = sqlite3.Row
     else:
         print("\n[-] Broadcaster SQLite Database not found locally. Skipping direct DB sync.")
@@ -287,20 +289,61 @@ def run_sync():
                         print(f"      [-] Failed to insert track in Broadcaster DB: {db_err}")
                 else:
                     db_id, current_pool_id = exists
-                    if current_pool_id is None:
-                        pool_val = row.get('Pool')
-                        try:
-                            pool_id = int(pool_val) if pool_val else None
-                        except:
-                            pool_id = None
-                        if pool_id is None:
-                            folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
-                            pool_id = get_pool_id_from_folder(folder)
-                        
-                        if pool_id is not None:
-                            print(f"    [DB SYNC] Assigning pool ID {pool_id} to existing track '{track_name}' (ID: {db_id})")
-                            cursor.execute("UPDATE media_library SET music_pool_id = ? WHERE id = ?", (pool_id, db_id))
-                            db_updated = True
+                    # Fetch current db metadata to compare and sync
+                    try:
+                        cursor.execute("SELECT intro_duration, outro_duration, punch_ms, bpm, music_pool_id FROM media_library WHERE id = ?", (db_id,))
+                        db_row = cursor.fetchone()
+                        if db_row:
+                            db_intro, db_outro, db_punch, db_bpm, db_pool = db_row
+                            
+                            # Parse CSV values
+                            try:
+                                csv_intro = int(float(str(row.get('Intro_Duration') or row.get('Intro') or 0).strip()))
+                            except:
+                                csv_intro = 0
+                            try:
+                                csv_outro = int(float(str(row.get('outro_duration') or row.get('Outro') or 0).strip()))
+                            except:
+                                csv_outro = 0
+                            try:
+                                csv_punch = int(float(str(row.get('Punch_Ms') or row.get('Punch') or 2000).strip()))
+                            except:
+                                csv_punch = 2000
+                            try:
+                                csv_bpm = int(float(str(row.get('bpm') or row.get('BPM') or 98).strip()))
+                            except:
+                                csv_bpm = 98
+                                
+                            pool_val = row.get('Pool')
+                            try:
+                                csv_pool = int(pool_val) if pool_val else None
+                            except:
+                                csv_pool = None
+                            if csv_pool is None:
+                                folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
+                                csv_pool = get_pool_id_from_folder(folder)
+                                
+                            # Check what differs
+                            updates = {}
+                            if csv_intro != 0 and csv_intro != db_intro:
+                                updates['intro_duration'] = csv_intro
+                            if csv_outro != 0 and csv_outro != db_outro:
+                                updates['outro_duration'] = csv_outro
+                            if csv_punch != 2000 and csv_punch != db_punch:
+                                updates['punch_ms'] = csv_punch
+                            if csv_bpm != 98 and csv_bpm != db_bpm:
+                                updates['bpm'] = csv_bpm
+                            if csv_pool is not None and csv_pool != db_pool:
+                                updates['music_pool_id'] = csv_pool
+                                
+                            if updates:
+                                set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
+                                sql_params = list(updates.values()) + [db_id]
+                                print(f"    [DB SYNC] Updating metadata for existing track '{track_name}' (ID: {db_id}): {updates}")
+                                cursor.execute(f"UPDATE media_library SET {set_clause} WHERE id = ?", sql_params)
+                                db_updated = True
+                    except Exception as db_sync_err:
+                        print(f"      [-] Failed to sync metadata for track {track_name}: {db_sync_err}")
             continue
 
         # File does not exist at the CSV path! Search G: Drive by normalized key
@@ -323,25 +366,29 @@ def run_sync():
             print(f"    - New: {new_z_path}")
 
             if not DRY_RUN:
-                # A. Rename/move the file on Citrus3 FTP remote
-                # If Z: drive mount is active, local file operations (which already happened or represent the same disk)
-                # make remote transfers redundant.
-                if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
-                    print("    [FTP] Skipping remote move/copy since Z: drive mount is active (local matches remote).")
+                # A. Rename/move the file on Citrus3 FTP remote (Only if NOT explicit)
+                is_explicit_val = str(row.get('Explicit', '')).lower() in ('1', 'true') or 'explicit' in new_rel_path.lower()
+                if is_explicit_val:
+                    print("    [FTP] Skipping remote move/copy since track is explicit.")
                 else:
-                    print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
-                    cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
-                    res = subprocess.run(cmd, capture_output=True)
-                    if res.returncode != 0:
-                        print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
-                        upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
-                        try:
-                            subprocess.run(upload_cmd, check=True)
-                            print("      [OK] Uploaded to remote.")
-                        except Exception as upload_err:
-                            print(f"      [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with DB/CSV sync.")
+                    # If Z: drive mount is active, local file operations (which already happened or represent the same disk)
+                    # make remote transfers redundant.
+                    if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                        print("    [FTP] Skipping remote move/copy since Z: drive mount is active (local matches remote).")
                     else:
-                        print("      [OK] Realigned on remote FTP.")
+                        print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
+                        cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
+                        res = subprocess.run(cmd, capture_output=True)
+                        if res.returncode != 0:
+                            print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
+                            upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
+                            try:
+                                subprocess.run(upload_cmd, check=True)
+                                print("      [OK] Uploaded to remote.")
+                            except Exception as upload_err:
+                                print(f"      [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with DB/CSV sync.")
+                        else:
+                            print("      [OK] Realigned on remote FTP.")
 
                 # B. Update Broadcaster SQLite Database directly
                 if broadcaster_conn:
@@ -437,21 +484,7 @@ def run_sync():
             print(f"  > Processing: {new_filename}...")
             
             if not DRY_RUN:
-                # A. Copy to Citrus3 FTP server
-                # If Z: drive mount is active, local file operations (which already happened or represent the same disk)
-                # make remote transfers redundant.
-                if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
-                    print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
-                else:
-                    print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
-                    upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}", "--retries", "1", "--timeout", "10s"]
-                    try:
-                        subprocess.run(upload_cmd, check=True)
-                        print("    [OK] Upload completed.")
-                    except Exception as upload_err:
-                        print(f"    [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with local DB import.")
-                
-                # B. Extract tags & cues using AutoMaster
+                # A. Extract tags & cues using AutoMaster FIRST
                 print("    [*] Analyzing tags and cue points...")
                 try:
                     audio = MP3(filepath)
@@ -508,8 +541,27 @@ def run_sync():
                                 new_row[field] = 'Unknown'
                         else:
                             new_row[field] = ""
+                    
                     new_imported_rows.append(new_row)
                     print(f"    [✓] Generated metadata for: {new_filename}")
+                    
+                    # B. Copy to Citrus3 FTP server (ONLY if not explicit)
+                    is_expl_val = new_row.get('Explicit') == 'True' or 'explicit' in new_filename.lower() or 'explicit' in rel_path.lower()
+                    if is_expl_val:
+                        print("    [FTP] Skipping remote upload since track is explicit.")
+                    else:
+                        # If Z: drive mount is active, local file operations
+                        # make remote transfers redundant.
+                        if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                            print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
+                        else:
+                            print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
+                            upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}", "--retries", "1", "--timeout", "10s"]
+                            try:
+                                subprocess.run(upload_cmd, check=True)
+                                print("    [OK] Upload completed.")
+                            except Exception as upload_err:
+                                print(f"    [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with local DB import.")
                     
                     if broadcaster_conn:
                         try:
