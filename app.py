@@ -658,7 +658,8 @@ def downloader_worker():
                 'meta': meta,
                 'task_id': task_id,
                 'target': target_override,
-                'auto_linked': task.get('auto_linked', False)
+                'auto_linked': task.get('auto_linked', False),
+                'overwrite': task.get('overwrite', False)
             })
             handoff_success = True
             
@@ -879,7 +880,7 @@ def vault_worker():
         dest = task.get('target') or "Eras"
         state.log(f"Phase 3: Vaulting [{clean_name}] to -> {dest}")
         
-        status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'))
+        status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'), overwrite=task.get('overwrite', False))
         
         if status:
             state.log(f"Complete: {clean_name}")
@@ -1109,6 +1110,15 @@ def start_engines():
         if os.path.exists(STAGING_DIR):
             shutil.rmtree(STAGING_DIR, ignore_errors=True)
         os.makedirs(STAGING_DIR, exist_ok=True)
+        
+        # Purge stale git lock on boot if it exists
+        lock_file = os.path.join(os.path.dirname(CSV_BLUEPRINT), "git_commit.lock")
+        if os.path.exists(lock_file):
+            try:
+                os.remove(lock_file)
+                state.log("Purged stale git_commit.lock file on startup.")
+            except Exception as e:
+                logging.warning(f"Could not purge stale git_commit.lock: {e}")
         
         if os.path.exists(CSV_BLUEPRINT):
             backup_path = os.path.join(BACKUP_DIR, "fmp_data_7718_backup.csv")
@@ -1518,6 +1528,17 @@ def process_playlist_addition(u, target, auto_linked):
 
 @app.route('/add', methods=['POST'])
 def add():
+    if os.name != 'nt':
+        import requests
+        try:
+            res = requests.post("http://127.0.0.1:58000/add", json=request.json, timeout=10.0)
+            # Filter headers to avoid transfer encoding conflicts (e.g. chunked)
+            headers = [(k, v) for k, v in res.headers.items() if k.lower() not in ('transfer-encoding', 'content-length', 'connection')]
+            return (res.content, res.status_code, headers)
+        except Exception as e:
+            state.log(f"[Proxy Error] Failed to forward add request to local broker: {e}")
+            return jsonify({"status": "error", "message": f"Local downloader bridge is offline: {e}"}), 503
+
     raw_urls = request.json.get('urls', '').split('\n')
     target = request.json.get('target', '')
     title = request.json.get('title')
@@ -1525,6 +1546,7 @@ def add():
     auto_linked = request.json.get('auto_linked', False)
     explicit = request.json.get('explicit')
     is_radio = request.json.get('is_radio')
+    overwrite = request.json.get('overwrite', False)
     
     for u in raw_urls:
         u = u.strip()
@@ -1537,6 +1559,8 @@ def add():
             item_data['explicit'] = explicit
         if is_radio is not None:
             item_data['is_radio'] = is_radio
+        if overwrite:
+            item_data['overwrite'] = overwrite
             
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title
@@ -1605,6 +1629,45 @@ def pending_approve_all():
     approved_count = 0
     req_data = request.get_json(silent=True) or {}
     override_target = req_data.get('target')
+    
+    if os.name != 'nt':
+        # On remote VM, forward all items to local broker via SSH reverse tunnel
+        import requests
+        items_to_forward = []
+        with state.lock:
+            items_to_forward = list(state.pending_iheart_queue)
+            state.pending_iheart_queue.clear()
+            state.save_pending()
+            
+        success_count = 0
+        failed_items = []
+        for item in items_to_forward:
+            url = item.get('url')
+            target = override_target if override_target else item.get('target', '')
+            payload = {
+                "urls": url,
+                "target": target,
+                "title": item.get('title'),
+                "artist": item.get('artist')
+            }
+            try:
+                requests.post("http://127.0.0.1:58000/add", json=payload, timeout=5.0)
+                success_count += 1
+            except Exception as e:
+                failed_items.append(item)
+                
+        if failed_items:
+            # Restore failed items
+            with state.lock:
+                state.pending_iheart_queue.extend(failed_items)
+                state.save_pending()
+                
+        if success_count > 0:
+            state.log(f"[iHeart Sync] Approved all {success_count} discoveries -> Forwarded to local broker.")
+            return jsonify({"status": "ok", "message": f"Successfully forwarded {success_count} tracks to local broker."})
+        else:
+            return jsonify({"status": "error", "message": "Local downloader bridge is offline."}), 503
+
     with state.lock:
         for item in state.pending_iheart_queue:
             url = item.get('url')
@@ -1625,19 +1688,42 @@ def pending_approve():
     url = request.json.get('url')
     target = request.json.get('target', '')
     found = False
+    item_to_forward = None
     with state.lock:
         for i, item in enumerate(state.pending_iheart_queue):
             if item['url'] == url:
+                item_to_forward = item
                 state.pending_iheart_queue.pop(i)
                 found = True
                 state.save_pending()
                 break
     if found:
-        state.url_queue.put({'url': url, 'type': 'ingest', 'target': target})
-        state.update_count()
-        start_engines()
-        state.log(f"[iHeart Sync] Approved track: {url} -> Sent to download queue.")
-        return jsonify({"status": "ok"})
+        if os.name != 'nt':
+            # Forward to local broker via SSH reverse tunnel
+            import requests
+            payload = {
+                "urls": url,
+                "target": target,
+                "title": item_to_forward.get('title'),
+                "artist": item_to_forward.get('artist')
+            }
+            try:
+                requests.post("http://127.0.0.1:58000/add", json=payload, timeout=10.0)
+                state.log(f"[iHeart Sync] Approved track: {url} -> Forwarded to local broker.")
+                return jsonify({"status": "ok"})
+            except Exception as e:
+                # Put it back in pending list if forward fails so we don't lose it
+                with state.lock:
+                    state.pending_iheart_queue.append(item_to_forward)
+                    state.save_pending()
+                state.log(f"[Proxy Error] Failed to forward approved track to local broker: {e}")
+                return jsonify({"status": "error", "message": f"Local downloader bridge is offline: {e}"}), 503
+        else:
+            state.url_queue.put({'url': url, 'type': 'ingest', 'target': target})
+            state.update_count()
+            start_engines()
+            state.log(f"[iHeart Sync] Approved track: {url} -> Sent to download queue.")
+            return jsonify({"status": "ok"})
     return jsonify({"status": "error", "message": "Track not found in pending list"})
 
 @app.route('/api/pending/reject', methods=['POST'])
