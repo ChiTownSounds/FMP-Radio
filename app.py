@@ -1102,6 +1102,33 @@ def iheart_poller_worker():
             
         time.sleep(IHEART_POLL_INTERVAL)
 
+def git_sync_worker():
+    while not state.stop_event.is_set():
+        if os.name != 'nt':
+            try:
+                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                branch_name = res_branch.stdout.strip()
+                stashed = False
+                stash_res = subprocess.run(["git", "stash"], capture_output=True, text=True)
+                if stash_res.returncode == 0 and "No local changes to save" not in stash_res.stdout and "No local changes to save" not in stash_res.stderr:
+                    stashed = True
+                
+                pull_res = subprocess.run(["git", "pull", "--rebase", "origin", branch_name], capture_output=True, text=True)
+                if pull_res.returncode == 0:
+                    state.log("[SYSTEM] Periodic GitHub database pull successful.")
+                else:
+                    logging.warning(f"Periodic git pull failed: {pull_res.stderr}")
+                    
+                if stashed:
+                    subprocess.run(["git", "stash", "pop"], check=False, capture_output=True)
+            except Exception as e:
+                logging.warning(f"Periodic git pull failed with exception: {e}")
+        # Wait 15 minutes (900 seconds) in 10-second intervals to check stop_event
+        for _ in range(90):
+            if state.stop_event.is_set():
+                break
+            time.sleep(10)
+
 def start_engines():
     state.stop_event.clear()
     
@@ -1137,6 +1164,11 @@ def start_engines():
     if not state.vault_thread or not state.vault_thread.is_alive():
         state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
         state.vault_thread.start()
+        
+    # Start the periodic git sync puller
+    if not hasattr(state, 'gitsync_thread') or not state.gitsync_thread or not state.gitsync_thread.is_alive():
+        state.gitsync_thread = threading.Thread(target=git_sync_worker, daemon=True)
+        state.gitsync_thread.start()
         
     # Start the iHeart Sync engine if enabled
     from config import IHEART_SYNC_ENABLED
