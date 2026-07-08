@@ -29,7 +29,7 @@ class TransmissionError(Exception):
 
 class VaultManager:
     # Class-level lock to ensure all instances of VaultManager synchronize CSV access
-    _csv_lock = threading.Lock()
+    _csv_lock = threading.RLock()
     _git_lock = threading.Lock()
 
     def __init__(self):
@@ -537,7 +537,7 @@ class VaultManager:
             return True
         return False
 
-    def store_track(self, file_path: str, metadata: dict, task_id: str = "", target_override: str = None) -> Tuple[bool, str]:
+    def store_track(self, file_path: str, metadata: dict, task_id: str = "", target_override: str = None, overwrite: bool = False) -> Tuple[bool, str]:
         """Restored V3 storage processing pipeline."""
         try:
             # 1. Derive names fresh every time
@@ -574,19 +574,33 @@ class VaultManager:
                 return False, "Music folder (G: drive) is not mounted or missing. Vaulting aborted."
 
             # 4. Check for duplicates in CSV database
+            duplicates_to_scrub = []
             with self._csv_lock:
                 if os.path.exists(CSV_BLUEPRINT):
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                         reader = csv.DictReader(f)
                         for row in reader:
                             existing_name = row.get('Track Name')
+                            existing_path = row.get('File Path')
                             if existing_name:
                                 existing_explicit = row.get('Explicit', '').strip().lower() in ['true', '1']
                                 existing_key = self._normalize_track_key(existing_name, explicit_val=existing_explicit)
                                 if existing_key == new_key:
-                                    return False, "Duplicate Track Detected in CSV"
+                                    if overwrite:
+                                        duplicates_to_scrub.append(existing_path or existing_name)
+                                    else:
+                                        return False, "Duplicate Track Detected in CSV"
+
+            # If overwrite is active and we found duplicates, scrub them cleanly
+            if overwrite and duplicates_to_scrub:
+                for dup in duplicates_to_scrub:
+                    logging.info(f"[*] Overwrite active: Scrubbing duplicate CSV/DB record: {dup}")
+                    success, msg = self.scrub_track(dup)
+                    if not success:
+                        logging.warning(f"[-] Scrubbing of {dup} returned: {msg}")
 
             # 5. Check G: drive era and flat Music folders for duplicate files
+            g_duplicates_to_scrub = []
             for folder in self.era_folders + ["Music"]:
                 for subf in ["", "Clean", "Explicit", "Radio Edit"]:
                     if subf:
@@ -602,9 +616,25 @@ class VaultManager:
                                 f_key = self._normalize_track_key(f_name_without_ext, explicit_val=f_explicit)
                                 if f_key == new_key:
                                     if folder == "Music":
-                                        return False, f"Duplicate Track Detected on G Drive: Music/{f}"
+                                        rel_path = f"Music/{f}"
                                     else:
-                                        return False, f"Duplicate Track Detected on G Drive: {folder}/{subf}/{f}"
+                                        rel_path = f"{folder}/{subf}/{f}" if subf else f"{folder}/{f}"
+                                    
+                                    if overwrite:
+                                        g_duplicates_to_scrub.append(rel_path)
+                                    else:
+                                        if folder == "Music":
+                                            return False, f"Duplicate Track Detected on G Drive: Music/{f}"
+                                        else:
+                                            return False, f"Duplicate Track Detected on G Drive: {folder}/{subf}/{f}"
+
+            # Scrub files found on G Drive that might not be tracked in the CSV
+            if overwrite and g_duplicates_to_scrub:
+                for rel_path in g_duplicates_to_scrub:
+                    logging.info(f"[*] Overwrite active: Scrubbing physical duplicate on G Drive: {rel_path}")
+                    success, msg = self.scrub_track(rel_path)
+                    if not success:
+                        logging.warning(f"[-] Scrubbing of physical duplicate {rel_path} returned: {msg}")
 
             # 6. Determine Era Folder
             if self._is_video_title(track_name) or self._is_video_title(clean_name):
