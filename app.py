@@ -1006,6 +1006,8 @@ def iheart_poller_worker():
                                 
                             def norm_title(t):
                                 t = t.lower()
+                                import unicodedata
+                                t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
                                 t = re.sub(r'\[.*?\]', '', t)
                                 t = re.sub(r'\(.*?\)', '', t)
                                 removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
@@ -1019,6 +1021,8 @@ def iheart_poller_worker():
                             # Titles match! Now extract and clean co-artists
                             def get_primary_artists(a):
                                 a_clean = a.lower()
+                                import unicodedata
+                                a_clean = unicodedata.normalize('NFKD', a_clean).encode('ascii', 'ignore').decode('ascii')
                                 a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and|&)\s+', a_clean)[0]
                                 parts = re.split(r'[,/;]', a_clean)
                                 return [re.sub(r'[^a-z0-9]', '', x).strip() for x in parts if re.sub(r'[^a-z0-9]', '', x).strip()]
@@ -1030,7 +1034,10 @@ def iheart_poller_worker():
                                 return True, "Already in library (smart artist match)"
                                 
                             ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower())
+                            import unicodedata
+                            ex_artist_clean = unicodedata.normalize('NFKD', ex_artist_clean).encode('ascii', 'ignore').decode('ascii')
                             check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower())
+                            check_artist_clean = unicodedata.normalize('NFKD', check_artist_clean).encode('ascii', 'ignore').decode('ascii')
                             if ex_artist_clean in check_artist_clean or check_artist_clean in ex_artist_clean:
                                 return True, "Already in library (substring artist match)"
                                 
@@ -1060,17 +1067,33 @@ def iheart_poller_worker():
                             from config import MUSIC_DIR
                             g_drive_base = MUSIC_DIR
                             if os.path.exists(g_drive_base):
-                                for folder in vm.era_folders:
-                                    folder_path = os.path.join(g_drive_base, folder)
-                                    if os.path.exists(folder_path):
-                                        for f in os.listdir(folder_path):
-                                            if f.lower().endswith(".mp3"):
-                                                f_name_without_ext = f[:-4]
-                                                is_dup, reason = is_smart_duplicate(f_name_without_ext, artist, title)
-                                                if is_dup:
-                                                    is_duplicate = True
-                                                    duplicate_reason = f"Already exists on G Drive: {folder}/{f} ({reason})"
-                                                    break
+                                search_folders = vm.era_folders + ["Slow Jams", "Gospel", "Deep Cuts", "Blues", "Music"]
+                                for folder in search_folders:
+                                    for subf in ["", "Clean", "Explicit", "Radio Edit"]:
+                                        if subf:
+                                            folder_path = os.path.join(g_drive_base, folder, subf)
+                                        else:
+                                            folder_path = os.path.join(g_drive_base, folder)
+                                            
+                                        if os.path.exists(folder_path):
+                                            try:
+                                                for f in os.listdir(folder_path):
+                                                    f_lower = f.lower()
+                                                    if f_lower.endswith((".mp3", ".flac", ".m4a")):
+                                                        if f_lower.endswith(".flac") or f_lower.endswith(".m4a"):
+                                                            f_name_without_ext = f[:-5]
+                                                        else:
+                                                            f_name_without_ext = f[:-4]
+                                                            
+                                                        is_dup, reason = is_smart_duplicate(f_name_without_ext, artist, title)
+                                                        if is_dup:
+                                                            is_duplicate = True
+                                                            duplicate_reason = f"Already exists on G Drive: {folder}/{subf}/{f} ({reason})" if subf else f"Already exists on G Drive: {folder}/{f} ({reason})"
+                                                            break
+                                            except Exception as scan_err:
+                                                logging.error(f"Error scanning folder {folder_path}: {scan_err}")
+                                        if is_duplicate:
+                                            break
                                     if is_duplicate:
                                         break
                                         
