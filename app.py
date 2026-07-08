@@ -1213,12 +1213,13 @@ def start_engines():
         
         state.boot_cleared = True
 
-    if not state.downloader_thread or not state.downloader_thread.is_alive():
-        state.downloader_thread = threading.Thread(target=downloader_worker, daemon=True)
-        state.downloader_thread.start()
-    if not state.vault_thread or not state.vault_thread.is_alive():
-        state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
-        state.vault_thread.start()
+    if os.name == 'nt':
+        if not state.downloader_thread or not state.downloader_thread.is_alive():
+            state.downloader_thread = threading.Thread(target=downloader_worker, daemon=True)
+            state.downloader_thread.start()
+        if not state.vault_thread or not state.vault_thread.is_alive():
+            state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
+            state.vault_thread.start()
         
     # Start the periodic git sync puller
     if not hasattr(state, 'gitsync_thread') or not state.gitsync_thread or not state.gitsync_thread.is_alive():
@@ -1618,17 +1619,6 @@ def process_playlist_addition(u, target, auto_linked):
 
 @app.route('/add', methods=['POST'])
 def add():
-    if os.name != 'nt':
-        import requests
-        try:
-            res = requests.post("http://127.0.0.1:58000/add", json=request.json, timeout=10.0)
-            # Filter headers to avoid transfer encoding conflicts (e.g. chunked)
-            headers = [(k, v) for k, v in res.headers.items() if k.lower() not in ('transfer-encoding', 'content-length', 'connection')]
-            return (res.content, res.status_code, headers)
-        except Exception as e:
-            state.log(f"[Proxy Error] Failed to forward add request to local broker: {e}")
-            return jsonify({"status": "error", "message": f"Local downloader bridge is offline: {e}"}), 503
-
     raw_urls = request.json.get('urls', '').split('\n')
     target = request.json.get('target', '')
     title = request.json.get('title')
@@ -2040,9 +2030,144 @@ def get_artwork():
     from flask import Response
     return Response(placeholder_svg, mimetype="image/svg+xml")
 
-@app.route('/api/status')
-def status():
-    return jsonify(state.get_snapshot())
+def extract_metadata_from_file(file_path):
+    from mutagen.mp3 import MP3
+    from mutagen.easyid3 import EasyID3
+    from mutagen.id3 import ID3, TXXX
+    
+    meta = {
+        "artist": "Unknown Artist",
+        "title": "Unknown Title",
+        "explicit": False,
+        "release_year": "Unknown",
+        "duration_ms": 0,
+        "bpm": 0,
+        "intro_duration": 10000,
+        "punch_ms": 0,
+        "outro_duration": 20000,
+        "bitrate": "320k",
+        "lyrics": "Not Found"
+    }
+    
+    try:
+        audio = MP3(file_path)
+        meta["duration_ms"] = int(audio.info.length * 1000)
+        meta["bitrate"] = f"{int(audio.info.bitrate / 1000)}k"
+    except Exception as e:
+        logging.warning(f"Error reading MP3 properties from {file_path}: {e}")
+        
+    try:
+        tags = EasyID3(file_path)
+        if "artist" in tags:
+            meta["artist"] = tags["artist"][0]
+        if "title" in tags:
+            meta["title"] = tags["title"][0]
+        if "date" in tags:
+            meta["release_year"] = tags["date"][0]
+    except Exception as e:
+        logging.warning(f"Error reading EasyID3 tags from {file_path}: {e}")
+        
+    try:
+        id3 = ID3(file_path)
+        # Check custom TXXX tags
+        for key in id3.keys():
+            if key.startswith("TXXX:"):
+                txxx = id3[key]
+                txxx_desc = key.split(":", 1)[1].upper()
+                val = txxx.text[0] if txxx.text else ""
+                if txxx_desc == "INTRO_DURATION":
+                    try: meta["intro_duration"] = int(float(val))
+                    except: pass
+                elif txxx_desc == "PUNCH_MS":
+                    try: meta["punch_ms"] = int(float(val))
+                    except: pass
+                elif txxx_desc == "OUTRO_DURATION":
+                    try: meta["outro_duration"] = int(float(val))
+                    except: pass
+        # Check standard TBPM tag
+        if "TBPM" in id3:
+            try: meta["bpm"] = int(float(id3["TBPM"].text[0]))
+            except: pass
+            
+        # Check USLT tag for lyrics
+        for key in id3.keys():
+            if key.startswith("USLT"):
+                meta["lyrics"] = id3[key].text
+                break
+    except Exception as e:
+        logging.warning(f"Error reading raw ID3 tags from {file_path}: {e}")
+        
+    # Check filename for (Explicit) tag if not already set
+    if "explicit" in os.path.basename(file_path).lower():
+        meta["explicit"] = True
+        
+    return meta
+
+@app.route('/api/pull_jobs', methods=['GET'])
+def get_pull_jobs():
+    with state.url_queue.lock:
+        items = list(state.url_queue.items)
+    return jsonify(items)
+
+@app.route('/api/pull_jobs/complete', methods=['POST'])
+def complete_pull_job():
+    payload = request.json
+    if not payload:
+        return jsonify({"status": "error", "message": "Missing JSON payload"}), 400
+        
+    item_id = payload.get("item_id")
+    staging_path = payload.get("staging_path")
+    target = payload.get("target")
+    overwrite = payload.get("overwrite", False)
+    source_url = payload.get("source_url", "")
+    
+    if not item_id or not staging_path:
+        return jsonify({"status": "error", "message": "Missing item_id or staging_path"}), 400
+        
+    if not os.path.exists(staging_path):
+        return jsonify({"status": "error", "message": f"Staging file not found: {staging_path}"}), 400
+        
+    # Extract metadata using mutagen from the staging path
+    meta = extract_metadata_from_file(staging_path)
+    if source_url:
+        meta['url'] = source_url
+    if target:
+        meta['target'] = target
+        
+    state.log(f"[Pull Broker] Vaulting {os.path.basename(staging_path)}...")
+    
+    vm = VaultManager()
+    status, msg = vm.store_track(
+        staging_path, 
+        meta, 
+        task_id=f"pull_{item_id}", 
+        target_override=target, 
+        overwrite=overwrite
+    )
+    
+    if status:
+        removed = state.url_queue.remove(item_id)
+        state.increment_completed()
+        
+        # Trigger immediate background rclone sync to Google Drive on Linux
+        if os.name != 'nt':
+            try:
+                subprocess.Popen(
+                    ["rclone", "copy", "/home/ubuntu/music/", "gdrive:FMP MUSIC/BASE/MUSIC", 
+                     "--ignore-existing", "--transfers=4", "--checkers=8", 
+                     "--exclude", "/staging/**", "--exclude", "/Shows_to_delete/**"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True
+                )
+                state.log("[SYNC] Triggered instant Google Drive background sync.")
+            except Exception as sync_err:
+                logging.error(f"Failed to trigger instant rclone sync: {sync_err}")
+                
+        return jsonify({"status": "ok", "message": "Track successfully vaulted."})
+    else:
+        state.log(f"[Pull Broker Error] Vaulting failed: {msg}")
+        return jsonify({"status": "error", "message": msg}), 500
 
 if __name__ == '__main__':
     os.system('') 

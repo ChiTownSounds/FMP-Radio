@@ -2,11 +2,14 @@ Track Name,File Path,Source_URL,duration_ms,item_type,energy_category,Intro_Dura
 112 - Anywhere,Music/112 - Anywhere (Explicit).mp3,https://music.youtube.com/watch?v=0IQ59QMj9Jw,244454,Music,Throwbacks,0,2000,2572,83,320,True,1998,1.0,4:04,3,1
 112 - Anywhere,Music/112 - Anywhere.mp3,https://music.youtube.com/watch?v=0IQ59QMj9Jw,244454,Music,Throwbacks,93,27725,5049,83,320,True,1998,1.0,4:04,3,1
 112 - Anywhere,Music/112 - Anywhere.mp3,https://music.youtube.com/watch?v=0IQ59QMj9Jw,244454,Music,Throwbacks,93,27725,5049,83,320,True,1998,1.0,4:04,,False
+112 - Anywhere (Clean),Music/112 - Anywhere (Clean).mp3,,244454,Music,Unassigned,93,27725,5049,83,320k,True,1998,1.0,4:04,,False
 112 - Anywhere (Explicit),Music/112 - Anywhere (Explicit).mp3,,244454,Music,Unassigned,0,27725,2572,83,320k,True,1998,1.0,4:04,,True
 112 - Cupid,Music/112 - Cupid.mp3,https://music.youtube.com/watch?v=veOGid9KUV8,252317,Music,Throwbacks,0,2000,3449,172,320,True,1996,1.0,4:12,3,0
 112 - Only You [Bad Boy Remix] (Bad Boy Remix; 2016 Remaster) (feat. Mase & The Notorious B.I.G.),Music/112 - Only You [Bad Boy Remix] (Bad Boy Remix; 2016 Remaster) (feat. Mase & The Notorious B.I.G.).mp3,https://music.youtube.com/watch?v=fR7-heGJxZ0,285492,Music,Throwbacks,3158,14559,5838,96,320,True,2016,1.0,4:45,3,1
 112 - Only You [Bad Boy Remix] (Bad Boy Remix; 2016 Remaster) (feat. Mase & The Notorious B.I.G.) (Clean),Music/112 - Only You [Bad Boy Remix] (Bad Boy Remix; 2016 Remaster) (feat. Mase & The Notorious B.I.G.) (Clean).mp3,,277848,Music,Unassigned,3181,37129,6676,96,320k,Unknown,2016,1.0,4:37,,False
 112 - Peaches & Cream,Music/112 - Peaches & Cream.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nsB1J22-FnzLR0y7z3np_Ze01cgXFvYjQ,193000,Music,Unassigned,16346,73397,22668,102,320,True,2001,1.0,3:13,3,0
+112 - You Already Know (Clean),Music/112 - You Already Know (Clean).mp3,,209760,Music,Unassigned,23,17299,70,172,320k,Unknown,2025,1.0,3:29,,False
+112 - You Already Know (Explicit),Music/112 - You Already Know (Explicit).mp3,,198024,Music,Unassigned,4667,12190,5689,172,320k,Unknown,2009,1.0,3:18,,True
 112 feat. The Notorious B.I.G. & Mase - Only You (Bad Boy remix),Music/112 feat. The Notorious B.I.G. & Mase - Only You (Bad Boy remix).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mOYTi65Igi0slL38hfEZCSoUkPlETw4ew,285000,Music,Throwbacks,28284,110679,16983,96,320,True,1996,1.0,4:45,3,1
 2Pac - California Love (feat. Roger Troutman & Dr. Dre),Music/2Pac - California Love (feat. Roger Troutman & Dr. Dre).mp3,https://music.youtube.com/watch?v=LRt6TdSvHag,284970,Music,Throwbacks,3065,10565,6489,185,320,True,1998,1.0,4:44,,False
 2Pac - Changes,Music/2Pac - Changes.mp3,https://music.youtube.com/watch?v=M8Wj6-gPY0g,267000,Music,Throwbacks,15549,59560,16093,111,320,True,1998,1.0,4:28,3,1
@@ -57,6 +60,7 @@ Adia - On The Way,Shows/InspirationalChurch/Adia - On The Way.mp3,https://music.
 Adina Howard - Freak Like Me,Music/Adina Howard - Freak Like Me.mp3,https://music.youtube.com/playlist?list=OLAK5uy_n5BA5xY_3tIUHa9Bg-5qBObvDSFT7tkfI,253000,Music,Unassigned,3320,43607,7278,92,320,True,1995,1.0,4:13,3,0
 After 7 - Can't Stop,Music/After 7 - Can't Stop.mp3,,247000,Music,Unassigned,2763,29304,14314,96,320,True,1989,1.0,4:07,7,0
 After 7 - Ready or Not,Music/After 7 - Ready or Not.mp3,,263000,Music,Old School,2601,51873,18354,144,320,True,1989,1.0,4:23,7,0
+Akon - Be With You,Music/Akon - Be With You.mp3,,231048,Music,Unassigned,279,16022,5640,172,320k,Unknown,2008,1.0,3:51,,Unknown
 Akon - Don't Matter,Music/Akon - Don't Matter.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m1tjtO3Qxc0kW1GXlaYYwcQCyTGiPh9t4,290000,Music,Unassigned,1602,22825,5745,83,320,Unknown,2006,1.0,4:50,3,1
 Akon - Don't Matter,Music/Akon - Don't Matter.mp3,https://music.youtube.com/watch?v=oadfmOPGjOY,293120,Music,Throwbacks,1625,22825,5745,83,320,True,2006,1.0,4:53,,False
 Akon - Don't Matter (Radio Edit),Music/Akon - Don't Matter (Radio Edit).mp3,,249443,Music,Throwbacks,1068,11494,2332,83,320k,True,2007,1.0,4:09,,0
@@ -65,6 +69,8 @@ Akon - I Wanna Love You (feat. Snoop Dogg),Music/Akon - I Wanna Love You (feat. 
 Akon - I Wanna Love You (feat. Snoop Dogg) (Clean),Music/Akon - I Wanna Love You (feat. Snoop Dogg) (Clean).mp3,,247118,Music,Throwbacks,28119,35898,6837,99,320k,True,2006,1.0,4:07,3,False
 Akon - Right Now (Na Na Na),Music/Akon - Right Now (Na Na Na).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mBcdjp_jsnwSrKjhHuHQVh7jIFIq6A8yQ,240000,Music,Unassigned,19598,17810,1961,136,320,True,2008,1.0,4:00,3,0
 Akon feat. Colby O’Donis feat. Kardinal Offishall - Beautiful,Music/Akon feat. Colby O’Donis feat. Kardinal Offishall - Beautiful.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mBcdjp_jsnwSrKjhHuHQVh7jIFIq6A8yQ,228000,Music,Throwbacks,18390,31951,2913,129,320,True,2008,1.0,3:48,3,0
+Al B. Sure! - If I'm Not Your Lover,Music/Al B. Sure! - If I'm Not Your Lover.mp3,,245133,Music,Unassigned,372,28653,8694,103,320k,True,1988,1.0,4:05,,Unknown
+Al B. Sure! - Nite and Day,Music/Al B. Sure! - Nite and Day.mp3,,238054,Music,Unassigned,418,15650,7139,92,320k,True,1988,1.0,3:58,,Unknown
 Al B. Sure! - Off on Your Own (Girl),Music/Al B. Sure! - Off on Your Own (Girl).mp3,https://music.youtube.com/watch?v=7zySuYJNzOc,249051,Music,Old School,2067,43700,7139,96,320,True,1988,1.0,4:09,,Unknown
 Al Green - Let's Stay Together,Music/Al Green - Let's Stay Together.mp3,https://music.youtube.com/watch?v=EKOcfZtKvYQ,199445,Music,Classics,12376,22477,7719,103,320,True,1972,1.0,3:19,7,0
 Al Green - The Lord Will Make a Way,Music/Al Green - The Lord Will Make a Way.mp3,https://music.youtube.com/watch?v=85F9hTc8ueo,213708,Music,Old School,12446,43677,12735,89,320,True,1980,1.0,3:33,,Unknown
@@ -74,6 +80,7 @@ Alexander O’Neal - If You Were Here Tonight,Music/Alexander O’Neal - If You 
 Alexander O’Neal - Never Knew Love Like This,Music/Alexander O’Neal - Never Knew Love Like This.mp3,,308000,Music,Unassigned,18831,43212,173,103,320,Unknown,1987,1.0,5:08,7,0
 Alicia Keys - A Woman's Worth,Music/Alicia Keys - A Woman's Worth.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lOF_vVUVIrL9GcNvW35k8Lv_5NT6bNtsE,303000,Music,Throwbacks,31649,27585,9345,76,320,Unknown,2001,1.0,5:03,3,1
 Alicia Keys - A Woman's Worth,Music/Alicia Keys - A Woman's Worth.mp3,https://music.youtube.com/watch?v=O2mqgD4rcW0,303386,Music,Throwbacks,31649,27585,9345,76,320,True,2001,1.0,5:03,,Unknown
+Alicia Keys - A Woman's Worth (Clean),Music/Alicia Keys - A Woman's Worth (Clean).mp3,,278688,Music,Unassigned,9125,53894,6100,76,320k,Unknown,2001,1.0,4:38,,False
 Alicia Keys - Diary (feat. Tony! Toni! Tone! & Jermaine Paul),Music/Alicia Keys - Diary (feat. Tony! Toni! Tone! & Jermaine Paul).mp3,https://music.youtube.com/watch?v=vBl42mCnRGA,284212,Music,Throwbacks,19040,40797,2379,129,320,True,2003,1.0,4:44,,Unknown
 Alicia Keys - Fallin’,Music/Alicia Keys - Fallin’.mp3,https://music.youtube.com/playlist?list=OLAK5uy_k6mofirDlpB_4HEttra_0kYT_TPh6FZi0,210000,Music,Unassigned,24938,28073,4120,96,320,True,2001,1.0,3:30,3,0
 Alicia Keys - Fire We Make,Music/Alicia Keys - Fire We Make.mp3,https://music.youtube.com/watch?v=rQ8gMkWsqKE,321411,Music,Throwbacks,19737,12980,5258,136,320,True,2012,1.0,5:21,,Unknown
@@ -84,6 +91,7 @@ Alicia Keys - Try Sleeping With a Broken Heart,Music/Alicia Keys - Try Sleeping 
 Alicia Keys - Un‐Thinkable (I’m Ready),Music/Alicia Keys - Un‐Thinkable (I’m Ready).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nPfSk0GDFVw4qAZWdNDTI3PLo-RkhwlZA,249000,Music,Unassigned,6780,10612,9066,112,320,Unknown,2009,1.0,4:09,3,0
 Alicia Keys - You Don’t Know My Name,Music/Alicia Keys - You Don’t Know My Name.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nvSdSwMAiyUVZvju_n77E_btCyhhbmApw,364000,Music,Unassigned,697,43793,2773,83,320,Unknown,2003,1.0,6:04,3,0
 Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (radio edit),Music/Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (radio edit).mp3,,284212,Music,Throwbacks,19040,40797,2379,129,320k,True,2003,1.0,4:44,3,Unknown
+Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (Radio Edit) (1),Music/Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (Radio Edit) (1).mp3,,284212,Music,Unassigned,19040,40797,2379,129,320k,True,2003,1.0,4:44,,Unknown
 "Alicia Keys, Maxwell - Fire We Make","Music/Alicia Keys, Maxwell - Fire We Make.mp3",https://music.youtube.com/playlist?list=OLAK5uy_lO6PTh5_XoAg0zGCXp6qdrvQ7hZUCb4LU,321384,Music,New School,0,2000,2137,136,320,Unknown,2015,1.0,5:21,1,0
 Alicia Myers - I Want To Thank You,Music/Alicia Myers - I Want To Thank You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mBP4Cjs2ypJ1OxNEDdSoaaAFRg4gjjAuQ,229042,Music,Throwbacks,0,2000,6316,112,320,True,1996,1.0,3:49,3,0
 Amel Larrieux - For Real,Music/Amel Larrieux - For Real.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mYDGCpn13OnSibMTtHQPtgEnnYJHlPqaw,222000,Music,Unassigned,13862,25797,6442,136,320,True,2004,1.0,3:42,3,0
@@ -105,6 +113,7 @@ Angie Stone duet w_Calvin - More Than a Woman (Clean),Music/Angie Stone duet w_C
 Anita Baker - Angel,Music/Anita Baker - Angel.mp3,https://music.youtube.com/watch?v=V3uPiPs2NHE,300748,Music,Old School,4714,35085,16659,81,320,True,1983,1.0,5:00,,Unknown
 Anita Baker - Been so Long,Music/Anita Baker - Been so Long.mp3,https://music.youtube.com/watch?v=6IbqkzIqAag,311589,Music,Old School,0,2000,4935,78,320,True,1986,1.0,5:11,7,0
 Anita Baker - Caught Up in the Rapture,Music/Anita Baker - Caught Up in the Rapture.mp3,https://music.youtube.com/watch?v=Oz-b86LZ21c,250305,Music,Old School,4226,30070,9879,92,320,True,1986,1.0,4:10,,Unknown
+Anita Baker - Giving You the Best That I Got,Music/Anita Baker - Giving You the Best That I Got.mp3,,260545,Music,Unassigned,3529,25751,15428,103,320k,True,1988,1.0,4:20,,Unknown
 Anita Baker - Giving You the Best That I Got (Single Version),Music/Anita Baker - Giving You the Best That I Got (Single Version).mp3,https://music.youtube.com/watch?v=gKGj8XwooYQ,234005,Music,Throwbacks,5062,25588,10157,103,320,True,2002,1.0,3:54,,Unknown
 Anita Baker - I Apologize,Music/Anita Baker - I Apologize.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mV-1dQw4-68meByE2lW0ADp4pu6A5WPyY,311092,Music,Throwbacks,37825,29164,5420,152,250,True,1994,1.0,5:11,3,0
 Anita Baker - Just Because,Music/Anita Baker - Just Because.mp3,,311301,Music,Unassigned,13305,23057,15196,86,254,True,1988,1.0,5:11,7,0
@@ -139,6 +148,7 @@ Ari Lennox - Shea Butter Baby (Clean),Music/Ari Lennox - Shea Butter Baby (Clean
 Ari Lennox - Whipped Cream,Music/Ari Lennox - Whipped Cream.mp3,https://music.youtube.com/playlist?list=OLAK5uy_k1USPZ9iLGmY2Hw3kIlenEyBUq6_WjpzU,286000,Music,Unassigned,5085,38522,3052,86,320,True,2019,1.0,4:46,1,0
 Arin Ray - Communication (feat. DRAM),Music/Arin Ray - Communication (feat. DRAM) (Explicit).mp3,https://music.youtube.com/watch?v=RhRKqylE6lc,216686,Music,Throwbacks,418,10983,1728,108,320,True,2018,1.0,3:36,,True
 Arin Ray - Communication (feat. DRAM),Music/Arin Ray - Communication (feat. DRAM).mp3,https://music.youtube.com/watch?v=FCDc34wAdJw,216686,Music,Throwbacks,418,10983,1728,108,320,True,2018,1.0,3:36,,False
+Arin Ray - Communication (feat. DRAM) (Explicit),Music/Arin Ray - Communication (feat. DRAM) (Explicit).mp3,,216686,Music,Unassigned,418,10983,1728,108,320k,True,2018,1.0,3:36,,True
 Arrested Development - People Everyday (Metamorphosis Mix),Music/Arrested Development - People Everyday (Metamorphosis Mix).mp3,https://music.youtube.com/playlist?list=OLAK5uy_loOk0UJCtP893PaOPI7_UaHzIugS6Hvvg,296376,Music,New School,0,2000,0,92,320,Unknown,2020,1.0,4:56,1,0
 Arthur Conley - Funky Street,Music/Arthur Conley - Funky Street.mp3,,143464,Music,Classics,627,10635,4445,152,320k,True,2007,1.0,2:23,2,Unknown
 Ashanti - Baby,Music/Ashanti - Baby.mp3,https://music.youtube.com/watch?v=bNMkLWk1IEk,265744,Music,Throwbacks,0,2000,0,103,320,True,2002,1.0,4:25,3,0
@@ -146,6 +156,7 @@ Ashanti - Body On Me (feat. Nelly & Akon),Music/Ashanti - Body On Me (feat. Nell
 Ashanti - Foolish,Music/Ashanti - Foolish.mp3,https://music.youtube.com/watch?v=-k2IbLbiDdQ,226000,Music,Unassigned,23,10008,4468,89,320,True,2002,1.0,3:47,3,1
 Ashanti - Foolish,Music/Ashanti - Foolish.mp3,https://music.youtube.com/watch?v=-k2IbLbiDdQ,227448,Music,Unassigned,23,10031,4445,89,320,True,2002,1.0,3:47,3,1
 Ashanti - Foolish,Music/Ashanti - Foolish.mp3,https://music.youtube.com/watch?v=6rrNR2YdF8c,227448,Music,Throwbacks,23,10008,4468,89,320,True,2002,1.0,3:47,,Unknown
+Ashanti - Foolish (Clean),Music/Ashanti - Foolish (Clean).mp3,,227448,Music,Unassigned,23,10031,4445,89,320k,True,2002,1.0,3:47,,False
 Ashanti - Happy,Music/Ashanti - Happy.mp3,https://music.youtube.com/watch?v=ES6gvvJL-Lk,259000,Music,Unassigned,5457,21595,4631,89,320,True,2002,1.0,4:22,3,1
 Ashanti - Happy,Music/Ashanti - Happy.mp3,https://music.youtube.com/watch?v=ES6gvvJL-Lk,262635,Music,Unassigned,5457,18251,5002,89,320,True,2002,1.0,4:22,3,1
 Ashanti - Happy (Clean),Music/Ashanti - Happy (Clean).mp3,,262635,Music,Throwbacks,5457,18251,5002,89,320k,True,2002,1.0,4:22,3,False
@@ -155,10 +166,12 @@ Ashanti - Rock Wit U (Awww Baby),Music/Ashanti - Rock Wit U (Awww Baby).mp3,http
 Ashanti - Unfoolish,Music/Ashanti - Unfoolish.mp3,https://music.youtube.com/watch?v=XWBKKIWQ8Zg,193000,Music,Unassigned,3390,27446,1101,89,320,True,2002,1.0,3:14,3,1
 Ashanti - Unfoolish,Music/Ashanti - Unfoolish.mp3,https://music.youtube.com/watch?v=XWBKKIWQ8Zg,194247,Music,Unassigned,3460,27492,1009,89,320,True,2002,1.0,3:14,3,1
 Ashanti - Unfoolish,Music/Ashanti - Unfoolish.mp3,https://music.youtube.com/watch?v=9NXVRraVK5A,194220,Music,Throwbacks,3390,27446,1101,89,320,True,2002,1.0,3:14,,Unknown
+Ashanti - Unfoolish (Clean),Music/Ashanti - Unfoolish (Clean).mp3,,194247,Music,Unassigned,3460,27492,1009,89,320k,True,2002,1.0,3:14,,False
 Ashford & Simpson - Solid,Music/Ashford & Simpson - Solid.mp3,,302000,Music,Unassigned,1602,27051,6651,103,320,Unknown,1984,1.0,5:02,7,0
 Atlantic Starr - Always,Music/Atlantic Starr - Always.mp3,https://music.youtube.com/watch?v=ploSorr-FH0,287033,Music,Old School,3111,47903,7650,129,320,True,1987,1.0,4:47,7,0
 Atlantic Starr - Am I Dreaming,Music/Atlantic Starr - Am I Dreaming.mp3,https://music.youtube.com/watch?v=q6aYCyCC7l0,330240,Music,Old School,2368,32763,4167,123,320,True,1980,1.0,5:30,,Unknown
 Atlantic Starr - Let’s Get Closer,Music/Atlantic Starr - Let’s Get Closer.mp3,https://music.youtube.com/watch?v=njyb7CXditk,322194,Music,Unassigned,32461,56889,13571,152,320,True,1982,1.0,5:22,,Unknown
+Atlantic Starr - Secret Lovers,Music/Atlantic Starr - Secret Lovers.mp3,,330736,Music,Unassigned,26355,15441,6535,81,320k,True,1985,1.0,5:30,,Unknown
 Atlantic Starr - Send For Me,Music/Atlantic Starr - Send For Me.mp3,https://music.youtube.com/watch?v=h9tbfrqPFrk,314018,Music,Old School,1625,20480,5072,136,320,True,1980,1.0,5:14,7,0
 August Alsina - No Love,Music/August Alsina - No Love.mp3,https://music.youtube.com/watch?v=cgjCjspsxaE,276000,Music,Unassigned,17972,20712,4701,129,320,True,2014,1.0,4:36,1,1
 August Alsina - No Love,Music/August Alsina - No Love.mp3,https://music.youtube.com/watch?v=cgjCjspsxaE,276140,Music,Unassigned,18506,28561,7046,129,320,True,2014,1.0,4:36,1,1
@@ -184,6 +197,7 @@ Babyface - Where Will You Go,Music/Babyface - Where Will You Go.mp3,https://musi
 Babyface - Whip Appeal (12-inch Version),Music/Babyface - Whip Appeal (12-inch Version).mp3,https://music.youtube.com/watch?v=P-zahjMjeiw,349884,Music,Old School,0,2000,5158,74,320,True,1989,1.0,5:49,7,0
 Barbara Acklin - Love Makes a Woman,Music/Barbara Acklin - Love Makes a Woman.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l856_e3Im5L28ZQd7SV8xxp3XUkNwrKY0,176000,Music,Unassigned,8568,34157,5676,117,320,True,2002,1.0,2:56,3,0
 "Barbara Mason - Yes, I'm Ready","Music/Barbara Mason - Yes, I'm Ready.mp3",,184398,Music,Classics,766,47996,5745,57,320k,True,1965,1.0,3:04,2,Unknown
+Barrett Strong - Money (That’s What I Want),Music/Barrett Strong - Money (That’s What I Want).mp3,,159530,Music,Unassigned,16231,49203,4979,129,320k,True,2020,1.0,2:39,,Unknown
 Barry White - Practice What You Preach,Music/Barry White - Practice What You Preach.mp3,https://www.youtube.com/watch,358872,Music,Unassigned,0,2000,3747,92,320,Unknown,2018,1.0,5:58,1,0
 Bar‐Kays - Soul Finger,Music/Bar‐Kays - Soul Finger.mp3,,142838,Music,Classics,13050,29025,5745,117,320k,True,1967,1.0,2:22,2,Unknown
 Bell Biv DeVoe - Poison,Music/Bell Biv DeVoe - Poison.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kzqu1g_MvkWzwuDHJUKHa67BoquBsk11g,261904,Music,Unassigned,116,36525,1891,112,320,True,1990,1.0,4:21,3,0
@@ -215,6 +229,7 @@ Bilal - Love It,Music/Bilal - Love It.mp3,https://music.youtube.com/playlist?lis
 Bilal - Soul Sista,Music/Bilal - Soul Sista.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mPThqjKHq_oI6vHe1mHIYBQrMJwmEeLTk,318696,Music,New School,2485,42005,6381,144,320k,Unknown,2018,1.0,5:18,1,0
 Bill Withers - Ain’t No Sunshine,Music/Bill Withers - Ain’t No Sunshine.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lRYRMllp2v7Zh2g9o7nz3DeDFRYbsVTcs,122000,Music,Classics,2949,12934,4840,161,320,Unknown,1971,1.0,2:02,7,0
 Bill Withers - Lovely Day,Music/Bill Withers - Lovely Day.mp3,https://music.youtube.com/watch?v=QCgeitX5xg0,254616,Music,Old School,21084,24056,9414,99,320,True,1977,1.0,4:14,7,0
+Billy Ocean - Suddenly,Music/Billy Ocean - Suddenly.mp3,,234762,Music,Unassigned,16347,47090,8625,129,320k,True,1984,1.0,3:54,,Unknown
 Billy Ocean - There'll Be Sad Songs (To Make You Cry),Music/Billy Ocean - There'll Be Sad Songs (To Make You Cry).mp3,https://music.youtube.com/watch?v=sMu00SLqeHA,292728,Music,Old School,52825,26796,7301,81,320,True,1986,1.0,4:52,7,0
 Billy Paul - Me and Mrs. Jones (Single Version),Music/Billy Paul - Me and Mrs. Jones (Single Version).mp3,https://music.youtube.com/watch?v=mhDsz2HSKwU,221623,Music,Classics,0,2000,0,68,320,True,1972,1.0,3:41,7,0
 Billy Stewart - Sitting in the Park,Music/Billy Stewart - Sitting in the Park.mp3,,200000,Music,Unassigned,13839,47717,6535,172,320,True,1989,1.0,3:20,3,0
@@ -225,6 +240,7 @@ BJ The Chicago Kid - Turnin' Me Up,Music/BJ The Chicago Kid - Turnin' Me Up.mp3,
 Blackstreet - Before I Let You Go,Music/Blackstreet - Before I Let You Go (Explicit).mp3,https://music.youtube.com/watch?v=BIl2Ujz-HkY,299000,Music,Throwbacks,3831,44002,4422,70,320,True,1994,1.0,4:59,3,1
 Blackstreet - Before I Let You Go,Music/Blackstreet - Before I Let You Go.mp3,https://music.youtube.com/watch?v=BIl2Ujz-HkY,299833,Music,Throwbacks,3831,44002,4422,70,320,True,1994,1.0,4:59,3,1
 Blackstreet - Before I Let You Go,Music/Blackstreet - Before I Let You Go.mp3,https://music.youtube.com/watch?v=BIl2Ujz-HkY,299833,Music,Throwbacks,3831,44002,4422,70,320,True,1994,1.0,4:59,,False
+Blackstreet - Before I Let You Go (Clean),Music/Blackstreet - Before I Let You Go (Clean).mp3,,299833,Music,Unassigned,3831,44002,4422,70,320k,True,1994,1.0,4:59,,False
 Blackstreet - Before I Let You Go (Explicit),Music/Blackstreet - Before I Let You Go (Explicit).mp3,,299833,Music,Unassigned,3831,44002,4422,70,320k,True,1994,1.0,4:59,,True
 Blackstreet - Don't Leave Me,Music/Blackstreet - Don't Leave Me.mp3,https://music.youtube.com/watch?v=Mku3c293arA,310909,Music,Throwbacks,0,2000,0,161,320,True,2003,1.0,5:10,3,0
 Blackstreet - Joy,Music/Blackstreet - Joy.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nyQ-xXl2mRujh-6_G70AlJvl8FPHlkuqA,295000,Music,Throwbacks,2879,36339,5235,96,320,True,1994,1.0,4:55,3,1
@@ -240,6 +256,7 @@ Bobby Brown - Every Little Step (With Rap),Music/Bobby Brown - Every Little Step
 Bobby Brown - Girlfriend,Music/Bobby Brown - Girlfriend.mp3,https://music.youtube.com/playlist?list=OLAK5uy_k9ysapgOhX7vyv55CE1eRUL9Jk8aEMr3o,245000,Music,Throwbacks,26030,42980,5745,99,320,True,2005,1.0,4:05,3,0
 Bobby Brown - Humpin' Around,Music/Bobby Brown - Humpin' Around.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lSoB1yvf1unowevtyVYp9uuM1scySVdnU,378000,Music,Unassigned,2717,14095,1961,112,320,True,1992,1.0,6:18,3,0
 Bobby Brown - My Prerogative,Music/Bobby Brown - My Prerogative.mp3,https://music.youtube.com/watch?v=5yyBy6pMqWc,291631,Music,Old School,2554,41215,8996,112,320,True,1988,1.0,4:51,,Unknown
+Bobby Brown - On Our Own,Music/Bobby Brown - On Our Own.mp3,,294452,Music,Unassigned,1509,43305,8857,103,320k,True,1989,1.0,4:54,,Unknown
 Bobby Brown - On Our Own (From Ghostbusters II Soundtrack Extended Club Version),Music/Bobby Brown - On Our Own (From Ghostbusters II Soundtrack Extended Club Version).mp3,https://music.youtube.com/watch?v=tDzrMn3SBeY,382041,Music,Old School,1022,12492,7487,103,320,True,1988,1.0,6:22,,Unknown
 Bobby Brown - Rock Wit'cha,Music/Bobby Brown - Rock Wit'cha.mp3,https://music.youtube.com/watch?v=gLdX4soAyTQ,289567,Music,Old School,12817,55403,12317,78,320,True,1988,1.0,4:49,7,0
 Bobby Brown - Roni,Music/Bobby Brown - Roni.mp3,https://music.youtube.com/watch?v=tGySW4HMdRE,358374,Music,Old School,1022,26424,11249,99,320,True,1988,1.0,5:58,,Unknown
@@ -260,11 +277,13 @@ Bow Wow - Girlfriend,Music/Bow Wow - Girlfriend.mp3,https://music.youtube.com/pl
 Bow Wow - Girlfriend,Music/Bow Wow - Girlfriend.mp3,https://music.youtube.com/watch?v=m94N0FDnblQ,288340,Music,Unassigned,12934,15256,6001,152,320,True,2007,1.0,4:48,3,1
 Bow Wow - Girlfriend,Music/Bow Wow - Girlfriend.mp3,https://music.youtube.com/watch?v=m94N0FDnblQ,288340,Music,Throwbacks,12934,15256,6001,152,320,True,2007,1.0,4:48,,False
 Bow Wow - Let Me Hold You (feat. Omarion),Music/Bow Wow - Let Me Hold You (feat. Omarion).mp3,https://music.youtube.com/watch?v=xZuDAK5grV4,248555,Music,Unassigned,4481,51827,5444,152,320,True,2005,1.0,4:08,,True
-Bow Wow feat. T‐Pain & Johntá Austin - Outta My System,Music/Bow Wow feat. T‐Pain & Johntá Austin - Outta My System.mp3,https://music.youtube.com/watch?v=lLJA2r-n6fY,238315,Music,Unassigned,2972,54381,6721,83,320,True,2006,1.0,3:58,,False
+Bow Wow - Let Me Hold You (feat. Omarion) (Clean),Music/Bow Wow - Let Me Hold You (feat. Omarion) (Clean).mp3,,251448,Music,Unassigned,4598,47206,8220,152,320k,Unknown,2005,1.0,4:11,,False
 Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin),Music/Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nhVHaCsx2rrZK2vu254TvN5oQU-9wSo6o,268000,Music,Unassigned,116,24590,6372,144,320,True,2006,1.0,4:28,3,1
 Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin),Music/Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin).mp3,https://music.youtube.com/watch?v=BFxCBGOdDbU,268121,Music,Unassigned,116,24590,6372,144,320,True,2006,1.0,4:28,3,1
 Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin) (Clean),Music/Bow Wow - Shortie Like Mine (feat. Chris Brown & Johntá Austin) (Clean).mp3,,268121,Music,Throwbacks,116,24590,6372,144,320k,True,2006,1.0,4:28,3,False
 Bow Wow feat. Ciara - Like You,Music/Bow Wow feat. Ciara - Like You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kcig4iG0HvN3BG1QY9KFPi9qzrznmVrY0,199000,Music,Unassigned,255,30209,5490,161,320,Unknown,2005,1.0,3:19,3,0
+Bow Wow feat. T‐Pain & Johntá Austin - Outta My System,Music/Bow Wow feat. T‐Pain & Johntá Austin - Outta My System.mp3,https://music.youtube.com/watch?v=lLJA2r-n6fY,238315,Music,Unassigned,2972,54381,6721,83,320,True,2006,1.0,3:58,,False
+Bow Wow feat. T‐Pain & Johntá Austin - Outta My System (album version),Music/Bow Wow feat. T‐Pain & Johntá Austin - Outta My System (album version).mp3,,238315,Music,Unassigned,2972,54381,6721,83,320k,True,2006,1.0,3:58,,Unknown
 Boyz II Men - A Song For Mama,Music/Boyz II Men - A Song For Mama.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kX6oONiQniGUkjttU6s-BBGsqe_vXSc_8,303412,Music,Throwbacks,27121,25890,4004,76,249,True,1997,1.0,5:03,3,0
 Boyz II Men - Doin' Just Fine,Music/Boyz II Men - Doin' Just Fine.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mlI7E6CIc31rMPIMWm2KEqEcIiM015zTw,332251,Music,Throwbacks,20341,42980,11458,112,247,True,1997,1.0,5:32,3,0
 Boyz II Men - End Of The Road,Music/Boyz II Men - End Of The Road.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kX6oONiQniGUkjttU6s-BBGsqe_vXSc_8,349701,Music,Throwbacks,57098,24427,1705,152,261,True,1991,1.0,5:49,3,0
@@ -295,19 +314,24 @@ Brownstone - If You Love Me,Music/Brownstone - If You Love Me.mp3,https://music.
 Bruno Mars - Leave The Door Open,Music/Bruno Mars - Leave The Door Open.mp3,https://music.youtube.com/watch?v=IYFqc9gk4qI,242129,Music,New School,604,35991,7441,152,320,True,2021,1.0,4:02,,Unknown
 Bryson Tiller - Exchange,Music/Bryson Tiller - Exchange.mp3,https://music.youtube.com/watch?v=CHE8VmFd00A,194664,Music,Throwbacks,14002,25635,2471,161,320,True,2015,1.0,3:14,,False
 Bryson Tiller - Exchange,Music/Bryson Tiller - Exchange (Explicit).mp3,https://music.youtube.com/watch?v=CHE8VmFd00A,194664,Music,Throwbacks,14002,25635,2471,161,320,True,2015,1.0,3:14,,True
+Bryson Tiller - Exchange (Clean),Music/Bryson Tiller - Exchange (Clean).mp3,,194638,Music,Unassigned,13955,25588,2471,161,320k,True,2015,1.0,3:14,,False
+Bryson Tiller - Exchange (Explicit),Music/Bryson Tiller - Exchange (Explicit).mp3,,194664,Music,Unassigned,14002,25635,2471,161,320k,True,2015,1.0,3:14,,True
 Bryson Tiller feat. Drake - Outta Time,Music/Bryson Tiller feat. Drake - Outta Time.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mVsiMFFvjNAc-Crb2K7_uyksqK5Z9h2zY,198000,Music,Unassigned,25008,26912,4445,92,320,Unknown,2020,1.0,3:18,1,0
 Busta Rhymes - I Know What You Want (feat. Flipmode Squad),Music/Busta Rhymes - I Know What You Want (feat. Flipmode Squad).mp3,https://music.youtube.com/watch?v=qjzNsIYHIns,324362,Music,Unassigned,627,32717,289,86,320,True,2002,1.0,5:24,,True
 Busta Rhymes - I Know What You Want (feat. Flipmode Squad) (Clean),Music/Busta Rhymes - I Know What You Want (feat. Flipmode Squad) (Clean).mp3,,252395,Music,Throwbacks,1765,24636,4306,86,320k,True,2003,1.0,4:12,3,False
 Busta Rhymes - Put Your Hands Where My Eyes Could See,Music/Busta Rhymes - Put Your Hands Where My Eyes Could See.mp3,https://music.youtube.com/watch?v=Qw8dRrInTk8,194351,Music,Unassigned,46,10310,2982,99,320,True,1997,1.0,3:14,,True
+Busta Rhymes - Put Your Hands Where My Eyes Could See (Clean),Music/Busta Rhymes - Put Your Hands Where My Eyes Could See (Clean).mp3,,198072,Music,Unassigned,186,10426,8348,99,320k,Unknown,1997,1.0,3:18,,False
 Busta Rhymes - Touch It,Music/Busta Rhymes - Touch It.mp3,https://music.youtube.com/watch?v=dYQv1YomNPk,215014,Music,Throwbacks,9474,42841,3168,68,320,True,2006,1.0,3:35,3,1
 Busta Rhymes - Touch It,Music/Busta Rhymes - Touch It.mp3,https://music.youtube.com/watch?v=dYQv1YomNPk,215014,Music,Throwbacks,9474,42841,3168,68,320,True,2006,1.0,3:35,3,1
 Busta Rhymes - Touch It (Clean),Music/Busta Rhymes - Touch It (Clean).mp3,,215014,Music,Throwbacks,9474,42841,3168,68,320k,True,2006,1.0,3:35,3,False
 Byron Cage - I Will Bless the Lord (Live),Shows/InspirationalChurch/Byron Cage - I Will Bless the Lord (Live).mp3,https://music.youtube.com/watch?v=OI_V30Bgc64,317989,Music,Throwbacks,13351,50039,10,99,320,True,2005,1.0,5:17,5,Unknown
 Calvin Richardson - More Than a Woman,Music/Calvin Richardson - More Than a Woman.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mPI0Z0TDz_SFp3KcAzo1acEPioCQ7rEqM,321000,Music,Unassigned,325,35782,8532,129,320,True,2003,1.0,5:21,3,1
-Calvin Richardson - More Than a Woman,Music/Calvin Richardson - More Than a Woman.mp3,https://music.youtube.com/watch?v=LgxtyHNxr4o,321750,Music,Unassigned,325,35782,8532,129,320,True,2003,1.0,5:21,,Unknown
+Calvin Richardson - More Than A Woman,Music/Calvin Richardson - More Than A Woman.mp3,https://music.youtube.com/watch?v=LgxtyHNxr4o,321750,Music,Throwbacks,325,35782,8532,129,320,True,2003,1.0,5:21,,Unknown
+Calvin Richardson - More Than a Woman (Clean),Music/Calvin Richardson - More Than a Woman (Clean).mp3,,321720,Music,Unassigned,325,35782,8512,129,320k,Unknown,2003,1.0,5:21,,False
 Cam'Ron - Oh Boy (feat. Juelz Santana),Music/Cam'Ron - Oh Boy (feat. Juelz Santana).mp3,https://music.youtube.com/watch?v=poINmD4s6DY,204000,Music,Unassigned,5619,54706,428,83,320,True,2002,1.0,3:27,3,1
 Cam'Ron - Oh Boy (feat. Juelz Santana),Music/Cam'Ron - Oh Boy (feat. Juelz Santana).mp3,https://music.youtube.com/watch?v=poINmD4s6DY,207517,Music,Unassigned,2926,54706,3191,83,320,True,2002,1.0,3:27,3,1
 Cam'Ron - Oh Boy (feat. Juelz Santana),Music/Cam'Ron - Oh Boy (feat. Juelz Santana).mp3,https://music.youtube.com/watch?v=GVTXRkGWqsU,204748,Music,Throwbacks,5619,54706,428,83,320,True,2002,1.0,3:24,,False
+Cam'Ron - Oh Boy (feat. Juelz Santana) (Clean),Music/Cam'Ron - Oh Boy (feat. Juelz Santana) (Clean).mp3,,207517,Music,Unassigned,2926,54706,3191,83,320k,True,2002,1.0,3:27,,False
 Cameo - Candy,Music/Cameo - Candy.mp3,,331000,Music,Old School,5573,15070,11806,112,320,True,1986,1.0,5:31,7,0
 Cameo - Single Life,Music/Cameo - Single Life.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lktt8wVC5MOJvG7VSap_d4ZGzvotiS8s8,269000,Music,Unassigned,6664,34992,3679,112,320,True,2001,1.0,4:29,3,0
 Cameo - Word Up,Music/Cameo - Word Up.mp3,,260000,Music,Unassigned,2252,13235,6883,117,320,True,1986,1.0,4:20,7,0
@@ -326,13 +350,14 @@ Case - Faded Pictures,Music/Case - Faded Pictures.mp3,https://music.youtube.com/
 Case - Happily Ever After,Music/Case - Happily Ever After.mp3,https://music.youtube.com/watch?v=HDfltk_fP4g,276036,Music,Throwbacks,16115,22872,2843,60,320,True,1999,1.0,4:17,3,1
 Case - Happily Ever After,Music/Case - Happily Ever After.mp3,https://music.youtube.com/watch?v=HDfltk_fP4g,257045,Music,Throwbacks,16347,39102,4561,60,320,True,2000,1.0,4:17,3,1
 Case - Happily Ever After,Music/Case - Happily Ever After.mp3,https://music.youtube.com/watch?v=SRIdaMBKgk8,276036,Music,Throwbacks,16115,22872,2843,60,320,True,1999,1.0,4:36,,Unknown
+Case - Happily Ever After (Clean),Music/Case - Happily Ever After (Clean).mp3,,257045,Music,Unassigned,16347,39102,4561,60,320k,True,2000,1.0,4:17,,False
 Case - Missing You,Music/Case - Missing You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nwMZxGsBR94ZLFcNBxI8hXqFRMN8SmruU,284735,Music,Throwbacks,12028,43236,8485,86,256,True,2001,1.0,4:44,3,0
 Case - Not Your Friend,Music/Case - Not Your Friend.mp3,https://music.youtube.com/watch?v=GPv7hRFhovs,230000,Music,Unassigned,2438,15743,7232,103,320,True,2001,1.0,4:34,3,1
 Case - Not Your Friend,Music/Case - Not Your Friend.mp3,https://music.youtube.com/watch?v=GPv7hRFhovs,274390,Music,Unassigned,2438,15743,7232,103,320,True,2001,1.0,4:34,3,1
 Case - Not Your Friend (Clean),Music/Case - Not Your Friend (Clean).mp3,,274390,Music,Throwbacks,2438,15743,7232,103,320k,True,2001,1.0,4:34,3,False
 Case - Think Of You,Music/Case - Think Of You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mnCD4usl4ss0eZIfFG-ApFCmjES-Aq_hg,210364,Music,Throwbacks,1672,29420,6326,161,257,True,1999,1.0,3:30,3,1
-Case - Touch Me Tease Me (feat. Foxy Brown),Music/Case - Touch Me Tease Me (feat. Foxy Brown).mp3,https://music.youtube.com/watch?v=m693eQN8AcQ,228911,Music,Unassigned,8591,35944,9205,86,320,True,2014,1.0,3:48,,True
 Case - Touch Me Tease Me (feat. Foxy Brown & Mary J. Blige) (Clean),Music/Case - Touch Me Tease Me (feat. Foxy Brown & Mary J. Blige) (Clean).mp3,,227527,Music,Throwbacks,8731,36084,7696,86,320k,True,1996,1.0,3:47,3,False
+Case - Touch Me Tease Me (feat. Foxy Brown),Music/Case - Touch Me Tease Me (feat. Foxy Brown).mp3,https://music.youtube.com/watch?v=m693eQN8AcQ,228911,Music,Unassigned,8591,35944,9205,86,320,True,2014,1.0,3:48,,True
 Cassidy - Hotel (feat. R.Kelly),Music/Cassidy - Hotel (feat. R.Kelly).mp3,https://music.youtube.com/playlist?list=OLAK5uy_m8mO_MPIt71ZQCKrrCvb5BEzLgc0mlh3E,246000,Music,Unassigned,4853,17160,3934,92,320,True,2004,1.0,4:06,3,1
 Cassidy - Hotel (feat. R.Kelly),Music/Cassidy - Hotel (feat. R.Kelly).mp3,https://music.youtube.com/watch?v=TY4mcpeodoM,246988,Music,Unassigned,4853,11238,3865,92,320,Unknown,2013,1.0,4:06,3,1
 Cassidy - Hotel (feat. R.Kelly) (Clean),Music/Cassidy - Hotel (feat. R.Kelly) (Clean).mp3,,246988,Music,Throwbacks,4853,11238,3865,92,320k,Unknown,2013,1.0,4:06,3,False
@@ -341,6 +366,7 @@ Cassie - Me&U,Music/Cassie - Me&U.mp3,https://music.youtube.com/playlist?list=OL
 CeeLo Green - Fool for You,Music/CeeLo Green - Fool for You.mp3,https://music.youtube.com/watch?v=QOiY6FsbFXE&si=pSHPUPVMe6JAiM09,221100,Music,New School,12098,34876,3307,144,320,True,2011,1.0,3:41,,Unknown
 Chaka Demus & Pliers - Murder She Wrote,Music/Chaka Demus & Pliers - Murder She Wrote.mp3,https://music.youtube.com/playlist?list=OLAK5uy_ke4GLJDlFZCAvBoa9St5j577XwAgcgSfg,244000,Music,Unassigned,1579,39358,1961,96,320,True,1992,1.0,4:04,3,1
 Chaka Demus & Pliers - Murder She Wrote (Clean),Music/Chaka Demus & Pliers - Murder She Wrote (Clean).mp3,,245472,Music,Unassigned,650,28305,163,129,320k,Unknown,1992,1.0,4:05,,False
+Chaka Khan - I Feel for You,Music/Chaka Khan - I Feel for You.mp3,,343458,Music,Unassigned,8568,30674,3609,123,320k,True,1984,1.0,5:43,,Unknown
 Chaka Khan - Through the Fire,Music/Chaka Khan - Through the Fire.mp3,https://music.youtube.com/watch?v=TmtkLP_jcEI,288705,Music,Old School,7036,23568,9368,66,320,True,1984,1.0,4:48,,Unknown
 Chaka Khan - What Cha’ Gonna Do for Me,Music/Chaka Khan - What Cha’ Gonna Do for Me.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nJB2UXFZwbL-24QgXDG3pvB0XraBCkd8c,229000,Music,Unassigned,5689,27539,8346,108,320,True,1996,1.0,3:49,7,0
 Changing Faces - G.H.E.T.T.O.U.T.,Music/Changing Faces - G.H.E.T.T.O.U.T..mp3,https://music.youtube.com/watch?v=DE2yGI7UOY4,265012,Music,Throwbacks,1231,17299,4306,108,320,True,1997,1.0,4:25,,Unknown
@@ -350,7 +376,7 @@ Charles Jenkins & Fellowship Chicago - War (Radio VersionLive),Shows/Inspiration
 Charles Jenkins - Keep The Faith (Remix),Shows/InspirationalChurch/Charles Jenkins - Keep The Faith (Remix).mp3,https://music.youtube.com/watch?v=1sefWmXucOI,233326,Music,Throwbacks,3088,12957,3911,117,320,True,2020,1.0,3:53,5,Unknown
 "Charlie Wilson - Charlie, Last Name Wilson","Music/Charlie Wilson - Charlie, Last Name Wilson.mp3",https://music.youtube.com/playlist?list=OLAK5uy_lDAC59y8pmIPX6VqRiaI8ZSglzqAaT2Jg,215928,Music,Unassigned,0,2000,0,66,320,True,2005,1.0,3:35,3,0
 Charlie Wilson - There Goes My Baby,Music/Charlie Wilson - There Goes My Baby.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lhD_Iib0SECmv-sa156ENBYHaJOZrondU,207000,Music,Unassigned,13491,36432,3377,161,320,True,2009,1.0,3:27,3,0
-Cherrelle - I Didn't Mean to Turn You On,Music/Cherrelle - I Didn't Mean to Turn You On.mp3,https://music.youtube.com/watch?v=f1i_RJOCXVA,423053,Music,Unassigned,20248,10495,2611,123,320,True,1984,1.0,7:03,,Unknown
+Cherrelle - I Didn't Mean To Turn You On,Music/Cherrelle - I Didn't Mean To Turn You On.mp3,https://music.youtube.com/watch?v=f1i_RJOCXVA,423053,Music,Old School,20248,10495,2611,123,320,True,1984,1.0,7:03,,Unknown
 Cherrelle - Saturday Love (feat. Alexander O'Neal),Music/Cherrelle - Saturday Love (feat. Alexander O'Neal).mp3,https://music.youtube.com/watch?v=baJDl27ff1Y,390661,Music,Old School,0,2000,2814,123,320,True,1985,1.0,6:30,7,0
 Cheryl Lynn - If This World Were Mine,Music/Cheryl Lynn - If This World Were Mine.mp3,https://music.youtube.com/watch?v=forWHmHy9tc,324049,Music,Old School,4063,10124,14499,123,320,True,1982,1.0,5:24,,Unknown
 Chicago L Announcement - Next Stop Back In The Day Jam,ondemand/sweepers/static/Chicago L Announcement - Next Stop Back In The Day Jam.mp3,,0,Music,Unassigned,0,0,0,100,Unknown,Unknown,Unknown,1.0,0:00,,0
@@ -429,7 +455,9 @@ City High - What Would You Do,Music/City High - What Would You Do.mp3,https://mu
 City High - What Would You Do,Music/City High - What Would You Do.mp3,https://music.youtube.com/watch?v=3xT_vdWa_WQ,212245,Music,Unassigned,7454,37013,10,96,320,True,1999,1.0,3:32,3,1
 City High - What Would You Do,Music/City High - What Would You Do.mp3,https://music.youtube.com/watch?v=3xT_vdWa_WQ,212245,Music,Unassigned,7454,37013,10,96,320,True,1999,1.0,3:32,3,1
 City High - What Would You Do,Music/City High - What Would You Do.mp3,https://music.youtube.com/watch?v=3xT_vdWa_WQ,212245,Music,Throwbacks,7454,37013,10,96,320,True,1999,1.0,3:32,,False
+City High - What Would You Do (Clean),Music/City High - What Would You Do (Clean).mp3,,212245,Music,Unassigned,7454,37013,10,96,320k,True,1999,1.0,3:32,,False
 City High - What Would You Do_ (radio edit),Music/City High - What Would You Do_ (radio edit).mp3,,175464,Music,Throwbacks,7546,49551,2077,96,320k,True,2015,1.0,2:55,3,Unknown
+City High - What Would You Do_ (radio edit) (1),Music/City High - What Would You Do_ (radio edit) (1).mp3,,175464,Music,Unassigned,7546,49551,2077,96,320k,True,2015,1.0,2:55,,Unknown
 Clarence Carter - Snatching It Back,Music/Clarence Carter - Snatching It Back.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l1HtNrhzfBMdp8AFWraF3RQH7kVM1w-tk,170000,Music,Unassigned,9102,15000,3191,103,320,True,1992,1.0,2:50,3,0
 Club Nouveau - Why You Treat Me So Bad,Music/Club Nouveau - Why You Treat Me So Bad.mp3,,311000,Music,Old School,23940,30395,9461,50,320,Unknown,1986,1.0,5:11,7,0
 Commissioned - Running Back To You,Shows/InspirationalChurch/Commissioned - Running Back To You.mp3,https://music.youtube.com/watch?v=Gou2Cbq8WYw,285806,Music,Throwbacks,16324,24822,9832,112,320,True,1986,1.0,4:45,5,Unknown
@@ -457,15 +485,16 @@ D'Angelo - Brown Sugar (Radio Version) (Clean),Music/D'Angelo - Brown Sugar (Rad
 D'Angelo - Send It On,Music/D'Angelo - Send It On.mp3,https://music.youtube.com/watch?v=YZ48dMwVqPg,356000,Music,Unassigned,650,38777,2843,129,320,True,2000,1.0,5:56,3,1
 D'Angelo - Send It On,Music/D'Angelo - Send It On.mp3,https://music.youtube.com/watch?v=YZ48dMwVqPg,356545,Music,Unassigned,650,38777,2843,129,320,True,2000,1.0,5:56,3,1
 D'Angelo - Send It On,Music/D'Angelo - Send It On.mp3,https://music.youtube.com/watch?v=cGQ226b6YK8,356545,Music,Throwbacks,650,38777,2843,129,320,True,2000,1.0,5:56,,Unknown
+D'Angelo - Send It On (Clean),Music/D'Angelo - Send It On (Clean).mp3,,356545,Music,Unassigned,650,38777,2843,129,320k,True,2000,1.0,5:56,,False
 Daniel Caesar - Best Part (feat. H.E.R.),Music/Daniel Caesar - Best Part (feat. H.E.R.).mp3,https://music.youtube.com/playlist?list=OLAK5uy_kVapYs6uu8iNoeho7CYiNZZH2iaThmnAI,209894,Music,New School,10449,13653,2657,144,230,True,2017,1.0,3:29,1,0
 Daniel Caesar - Get You (feat. Kali Uchis),Music/Daniel Caesar - Get You (feat. Kali Uchis).mp3,https://music.youtube.com/playlist?list=OLAK5uy_l3RfLDwBCUcjBgEQHmzKYuBiOh6m-aw1A,278230,Music,New School,6966,17856,1798,74,236,True,2017,1.0,4:38,1,0
 Danny Boy - Black Heart Intro,Shows/Danny Boy/Danny Boy - Black Heart Intro.mp3,https://music.youtube.com/watch?v=NDxWiVis-Ac,142838,Music,Throwbacks,9311,36525,660,136,320,Unknown,2023,1.0,2:22,,False
 Danny Boy - Can't Wait,Shows/Danny Boy/Danny Boy - Can't Wait.mp3,https://music.youtube.com/watch?v=XeeetYqqb_I,205662,Music,Throwbacks,9265,31417,3307,161,320,Unknown,2023,1.0,3:25,,False
 Danny Boy - Change Ya,Shows/Danny Boy/Danny Boy - Change Ya.mp3,https://music.youtube.com/watch?v=vsc3fAwdHRQ,188212,Music,Throwbacks,10472,38499,2309,92,320,Unknown,2023,1.0,3:08,,False
 Danny Boy - Coffee or Tea,Music/Danny Boy - Coffee or Tea.mp3,https://music.youtube.com/watch?v=Mt9Yk6MEsh4,139000,Music,Unassigned,929,44745,3679,185,320,Unknown,2023,1.0,2:19,1,0
-Danny Boy - Coffee or Tea,Music/Danny Boy - Coffee or Tea.mp3,https://music.youtube.com/watch?v=7J4X9x_r_mE,139102,Music,Unassigned,929,44745,3679,185,320,Unknown,2023,1.0,2:19,,True
+Danny Boy - Coffee or Tea,Shows/Danny Boy/Danny Boy - Coffee or Tea.mp3,https://music.youtube.com/watch?v=7J4X9x_r_mE,139102,Music,Throwbacks,929,44745,3679,185,320,Unknown,2023,1.0,2:19,,True
 Danny Boy - Come When I Call,Music/Danny Boy - Come When I Call.mp3,https://music.youtube.com/watch?v=wZwlS8dvNEI,295000,Music,Throwbacks,9683,26889,8880,81,320,Unknown,1996,1.0,4:55,3,1
-Danny Boy - Crazy,Music/Danny Boy - Crazy.mp3,https://music.youtube.com/watch?v=K_ULR4ApVmM,243958,Music,Unassigned,8429,11471,3818,117,320,Unknown,2023,1.0,4:03,,True
+Danny Boy - Crazy,Shows/Danny Boy/Danny Boy - Crazy.mp3,https://music.youtube.com/watch?v=K_ULR4ApVmM,243958,Music,Throwbacks,8429,11471,3818,117,320,Unknown,2023,1.0,4:03,,True
 Danny Boy - Crazy,Music/Danny Boy - Crazy.mp3,https://music.youtube.com/watch?v=Kx3DKxuVr0o,243958,Music,New School,8429,11471,3818,117,320,Unknown,2023,1.0,4:03,,Unknown
 Danny Boy - Different,Shows/Danny Boy/Danny Boy - Different.mp3,https://music.youtube.com/watch?v=clOfDvhcbZs,225724,Music,Throwbacks,10495,16045,5165,136,320,Unknown,2023,1.0,3:45,,True
 Danny Boy - Done Me Wrong,Shows/Danny Boy/Danny Boy - Done Me Wrong.mp3,https://music.youtube.com/watch?v=ibCMNuxd1cQ,194299,Music,Throwbacks,8197,15999,1821,161,320,Unknown,2023,1.0,3:14,,False
@@ -480,15 +509,19 @@ Danny Boy - So High,Music/Danny Boy - So High.mp3,https://music.youtube.com/watc
 Danny Boy - So In Love,Music/Danny Boy - So In Love.mp3,https://music.youtube.com/watch?v=UGVxKQHTJlc,238000,Music,Unassigned,35712,14466,8950,161,320,Unknown,2010,1.0,3:58,1,0
 Danny Boy - Special Kind of Fool,Music/Danny Boy - Special Kind of Fool.mp3,https://music.youtube.com/watch?v=Col8PF1xuf8,336000,Music,Unassigned,3622,41053,149,60,320,Unknown,2025,1.0,5:36,1,0
 Danny Boy - The One That Got Away,Shows/Danny Boy/Danny Boy - The One That Got Away.mp3,https://music.youtube.com/watch?v=HDZM7kHK3K0,214544,Music,Throwbacks,33901,11238,1543,86,320,Unknown,2023,1.0,3:34,,True
+Danny Boy - This Song (Radio),Music/Danny Boy - This Song (Radio).mp3,,203389,Music,Unassigned,16695,39288,1334,103,320k,True,2022,1.0,3:23,,Unknown
 Danny Boy - This song (remix) (Grown & sexy ),Music/Danny Boy - This song (remix) (Grown & sexy ).mp3,https://music.youtube.com/watch?v=MCLriZ2qR78,190145,Music,Unassigned,7152,19946,4654,108,320,Unknown,2026,1.0,3:10,,True
 Daryl Hall & John Oates - Everytime You Go Away,Music/Daryl Hall & John Oates - Everytime You Go Away.mp3,https://music.youtube.com/watch?v=m5Y0S6nMMWM,322978,Music,Old School,26030,10217,12247,152,320,True,1980,1.0,5:22,7,0
 Daryl Hall & John Oates - I Can’t Go For That (No Can Do),Music/Daryl Hall & John Oates - I Can’t Go For That (No Can Do).mp3,https://music.youtube.com/playlist?list=OLAK5uy_k0gfN9Dv56gM2tqobucrSw5DWY2zeszl0,309000,Music,Unassigned,4783,10704,6303,112,320,Unknown,2001,1.0,5:09,7,0
 Daryl Hall & John Oates - Say It Isn't So (Special Extended Dance Mix),Music/Daryl Hall & John Oates - Say It Isn't So (Special Extended Dance Mix).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mwW7zb5_ooM5hM8ku8xxuGiDYysBwdj_A,403513,Music,New School,255,24845,5769,112,320,True,2018,1.0,6:43,1,0
 Dave Hollister - One Woman Man,Music/Dave Hollister - One Woman Man.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mqdTh94jnQOyGxkvuh-ZLZudF8CY6hygA,272091,Music,Throwbacks,21595,19598,7766,92,320,True,2006,1.0,4:32,3,0
+DB Live Show Open Opening,ondemand/sweepers/DB Live Show Open Opening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,False
+DBLiveMixOpening,intro/DBLiveMixOpening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,Unknown
 DeBarge - A Dream,Music/DeBarge - A Dream.mp3,https://music.youtube.com/watch?v=_rdbos5E-GU,264281,Music,Old School,17578,10449,6396,144,320,True,1983,1.0,4:24,7,0
 DeBarge - All This Love,Music/DeBarge - All This Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nQdUtLu9UDxI48LD0FGca9w2IVPkyrr7A,350000,Music,Unassigned,22013,55983,6535,92,320,True,1997,1.0,5:50,7,0
 DeBarge - I Like It,Music/DeBarge - I Like It.mp3,https://music.youtube.com/watch?v=4Sn6Upf43TA,279458,Music,Old School,10588,18065,5560,86,320,True,1982,1.0,4:39,,Unknown
-DeBarge - Love Me in a Special Way,Music/DeBarge - Love Me in a Special Way.mp3,https://music.youtube.com/watch?v=_V-tfFSjlZY,255530,Music,Unassigned,57493,24149,7069,123,320,True,1983,1.0,4:15,,Unknown
+DeBarge - Love Me In A Special Way,Music/DeBarge - Love Me In A Special Way.mp3,https://music.youtube.com/watch?v=_V-tfFSjlZY,255530,Music,Old School,57493,24149,7069,123,320,True,1983,1.0,4:15,,Unknown
+DeBarge - Stay With Me,Music/DeBarge - Stay With Me.mp3,,226920,Music,Unassigned,17508,14095,16730,89,320k,Unknown,1983,1.0,3:46,,Unknown
 DeBarge - Time Will Reveal,Music/DeBarge - Time Will Reveal.mp3,https://music.youtube.com/watch?v=Vz2amSt6BKE,259527,Music,Old School,4296,11958,16357,65,320,True,1983,1.0,4:19,,Unknown
 DeBarge - Who's Holding Donna Now,Music/DeBarge - Who's Holding Donna Now.mp3,,267000,Music,Unassigned,40751,18274,7928,89,320,Unknown,1985,1.0,4:27,7,0
 Deborah Cox - Nobody's Supposed to Be Here,Music/Deborah Cox - Nobody's Supposed to Be Here.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kSr0j9-oW1LBHHcNcQxFGy1vUimzQLuoQ,262400,Music,Throwbacks,16951,52198,9089,60,320,True,1998,1.0,4:22,3,0
@@ -500,13 +533,13 @@ Deniece Williams - Silly,Music/Deniece Williams - Silly.mp3,https://music.youtub
 Dennis Edwards - Don’t Look Any Further,Music/Dennis Edwards - Don’t Look Any Further.mp3,,239000,Music,Unassigned,93,22129,6906,96,320,Unknown,1984,1.0,3:59,7,0
 Deon Jackson - Love Makes the World Go ’Round,Music/Deon Jackson - Love Makes the World Go ’Round.mp3,,148000,Music,Unassigned,11215,51270,4654,123,320,True,1966,1.0,2:28,3,0
 Destiny's Child - Dangerously In Love,Music/Destiny's Child - Dangerously In Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmknFkUeP48oC_XCKVHNU60QTNdgq4xyU,306364,Music,Throwbacks,19714,23266,1194,99,320,True,2001,1.0,5:06,3,0
-Destiny’s Child feat. T.I. & Lil Wayne - Soldier,Music/Destiny’s Child feat. T.I. & Lil Wayne - Soldier.mp3,https://music.youtube.com/watch?v=H7v7TXxeV3Y,244793,Music,Unassigned,604,13398,2843,78,320,True,2003,1.0,4:04,,Unknown
 Destiny's Child - Soldier (Radio Edit) (feat. T.I. & Lil' Wayne),Music/Destiny's Child - Soldier (Radio Edit) (feat. T.I. & Lil' Wayne).mp3,,244793,Music,Throwbacks,604,13398,2843,78,320k,True,2003,1.0,4:04,3,Unknown
 Destiny’s Child - Cater 2 U,Music/Destiny’s Child - Cater 2 U.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lUzDg742TuNNlemGzXmrDNmaUldad26Hw,244000,Music,Throwbacks,37872,52407,1009,129,320,Unknown,2001,1.0,4:04,3,0
 Destiny’s Child - Emotion,Music/Destiny’s Child - Emotion.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmknFkUeP48oC_XCKVHNU60QTNdgq4xyU,236000,Music,Unassigned,56123,11215,3911,86,320,Unknown,2001,1.0,3:56,3,0
 "Destiny’s Child - Independent Women, Pt. 1","Music/Destiny’s Child - Independent Women, Pt. 1.mp3",https://music.youtube.com/playlist?list=OLAK5uy_mmknFkUeP48oC_XCKVHNU60QTNdgq4xyU,221000,Music,Unassigned,3576,29791,7046,99,320,Unknown,2001,1.0,3:41,3,0
 Destiny’s Child - Say My Name,Music/Destiny’s Child - Say My Name.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nzHe-VCWcueMZv929tTjgwsiyJCNEPKoE,267000,Music,Unassigned,17926,44745,730,136,320,Unknown,1999,1.0,4:27,3,0
 Destiny’s Child - So Good,Music/Destiny’s Child - So Good.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m1-gIcD6_9eNcRaSTKGfKLKFXKNRtSyhc,191000,Music,Unassigned,11494,48553,242,99,320,Unknown,1999,1.0,3:11,3,0
+Destiny’s Child feat. T.I. & Lil Wayne - Soldier,Music/Destiny’s Child feat. T.I. & Lil Wayne - Soldier.mp3,https://music.youtube.com/watch?v=H7v7TXxeV3Y,244793,Music,Unassigned,604,13398,2843,78,320,True,2003,1.0,4:04,,Unknown
 Destiny’s Child feat. T.I. & Lil Wayne - Soldier,Music/Destiny’s Child feat. T.I. & Lil Wayne - Soldier.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l5qljrKq3mEB3RptCD3tiLqRsTjgbxlNc,301000,Music,Throwbacks,534,13328,6001,78,320,Unknown,2001,1.0,5:01,3,1
 Destiny’s Child feat. T.I. & Lil Wayne - Soldier,Music/Destiny’s Child feat. T.I. & Lil Wayne - Soldier.mp3,https://music.youtube.com/watch?v=H7v7TXxeV3Y,244793,Music,Throwbacks,604,13398,2843,78,320,True,2003,1.0,4:04,3,1
 Diana Ross & Lionel Richie - Endless Love (reprise),Music/Diana Ross & Lionel Richie - Endless Love (reprise).mp3,,268000,Music,Unassigned,37268,53986,7742,92,320,True,1981,1.0,4:28,7,0
@@ -518,6 +551,7 @@ Dionne Warwick - Don’t Make Me Over,Music/Dionne Warwick - Don’t Make Me Ove
 DJ Jazzy Jeff & The Fresh Prince - Summertime,Music/DJ Jazzy Jeff & The Fresh Prince - Summertime.mp3,https://music.youtube.com/watch?v=bC5wtwpyc58,271020,Music,Throwbacks,4876,37988,11876,96,320,True,1991,1.0,4:31,,False
 DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller),Music/DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Explicit).mp3,https://music.youtube.com/watch?v=YK67Hfcd4vU,204722,Music,Throwbacks,70,22732,3284,99,320,True,2017,1.0,3:24,,True
 DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Clean),Music/DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Clean).mp3,,204225,Music,New School,70,22732,2797,99,320k,True,2017,1.0,3:24,1,False
+DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Explicit),Music/DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Explicit).mp3,,204722,Music,Unassigned,70,22732,3284,99,320k,True,2017,1.0,3:24,,True
 DMX - Where The Hood At,Music/DMX - Where The Hood At.mp3,https://music.youtube.com/watch?v=kMof0W7tLkI,285000,Music,Unassigned,10449,39474,1403,92,320,True,2003,1.0,3:39,3,1
 DMX - Where The Hood At,Music/DMX - Where The Hood At.mp3,https://music.youtube.com/watch?v=kMof0W7tLkI,219220,Music,Unassigned,10124,39497,1148,92,320,True,2003,1.0,3:39,3,1
 DMX - Where The Hood At (Clean),Music/DMX - Where The Hood At (Clean).mp3,,219220,Music,Throwbacks,10124,39497,1148,92,320k,True,2003,1.0,3:39,3,False
@@ -552,6 +586,7 @@ Drake feat. Michael Jackson - Don’t Matter to Me,Music/Drake feat. Michael Jac
 Dru Hill - 5 Steps,Music/Dru Hill - 5 Steps.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mdMzuvu2LwcekmuZsbfIefPAeyKbvyuOU,342909,Music,Throwbacks,69590,15627,1659,108,252,True,1996,1.0,5:42,3,0
 Dru Hill - Beauty,Music/Dru Hill - Beauty (Explicit).mp3,https://music.youtube.com/watch?v=I36ilsvQW4Y,272614,Music,Throwbacks,24311,19249,11667,117,320,True,1998,1.0,4:30,3,1
 Dru Hill - Beauty,Music/Dru Hill - Beauty.mp3,https://music.youtube.com/watch?v=I36ilsvQW4Y,270707,Music,Throwbacks,24149,21084,10343,117,320,True,2006,1.0,4:30,3,1
+Dru Hill - Beauty (Clean),Music/Dru Hill - Beauty (Clean).mp3,,270707,Music,Unassigned,24149,21084,10343,117,320k,True,2006,1.0,4:30,,False
 Dru Hill - Beauty (Explicit),Music/Dru Hill - Beauty (Explicit).mp3,,272614,Music,Unassigned,24311,19249,11667,117,320k,True,1998,1.0,4:32,,True
 Dru Hill - How Deep Is Your Love,Music/Dru Hill - How Deep Is Your Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lymVOWsRg2NmdXASC3KVGQ51oQmo8h_Gw,243409,Music,Throwbacks,1695,15836,8346,96,260,True,1998,1.0,4:03,3,1
 Dru Hill - How Deep Is Your Love (Single Version) (feat. Redman),Music/Dru Hill - How Deep Is Your Love (Single Version) (feat. Redman).mp3,https://music.youtube.com/watch?v=2SA2aV99z4A,228754,Music,Throwbacks,2206,36734,6674,123,320,True,2005,1.0,3:48,3,0
@@ -599,6 +634,7 @@ Eminem - The Monster (feat. Rihanna) (Clean),Music/Eminem - The Monster (feat. R
 Eminem - The Monster (feat. Rihanna) (Explicit),Music/Eminem - The Monster (feat. Rihanna) (Explicit).mp3,,250253,Music,Unassigned,5689,47787,1821,112,320k,True,2013,1.0,4:10,,True
 En Vogue - Don't Go,Music/En Vogue - Don't Go.mp3,https://music.youtube.com/watch?v=RE932i7vEAo,347455,Music,Throwbacks,2206,38917,17216,152,320,True,1990,1.0,5:47,,Unknown
 En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster),Music/En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster) (Radio Edit).mp3,https://music.youtube.com/watch?v=NpDXejXpgYM,234553,Music,Throwbacks,2206,38917,8369,152,320,Unknown,1990,1.0,3:54,,Unknown
+En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster) (Radio Edit),Music/En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster) (Radio Edit).mp3,,234553,Music,Unassigned,2206,38917,8369,152,320k,Unknown,1990,1.0,3:54,,Unknown
 En Vogue - Don't Let Go (Love),Music/En Vogue - Don't Let Go (Love).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nsErh_chzfZlQO9b11ZCqiO_dh2W0aaVw,291918,Music,Throwbacks,13282,55983,8300,78,272,True,1997,1.0,4:51,3,0
 En Vogue - Free Your Mind,Music/En Vogue - Free Your Mind.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nsErh_chzfZlQO9b11ZCqiO_dh2W0aaVw,293146,Music,Throwbacks,4505,11192,6210,99,267,True,1992,1.0,4:53,3,0
 En Vogue - Giving Him Something He Can Feel,Music/En Vogue - Giving Him Something He Can Feel.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lYuU3My_S433E5mWcERFWuXLjxBi7S8Uk,235755,Music,Throwbacks,7245,20434,9646,68,260,True,1992,1.0,3:55,3,0
@@ -634,6 +670,8 @@ Erykah Badu - On & On (Clean),Music/Erykah Badu - On & On (Clean).mp3,,229851,Mu
 Erykah Badu - Other Side Of The Game,Music/Erykah Badu - Other Side Of The Game.mp3,https://music.youtube.com/watch?v=nkzFnXEKs5Y,393796,Music,Throwbacks,673,57237,6349,83,320,True,1997,1.0,6:33,,False
 Erykah Badu - Tyrone (Live),Music/Erykah Badu - Tyrone (Live) (Explicit).mp3,https://music.youtube.com/watch?v=Xdf54O6Ny08,236460,Music,Throwbacks,1625,31300,3075,129,320,True,1997,1.0,3:56,,True
 Erykah Badu - Tyrone (Live),Music/Erykah Badu - Tyrone (Live).mp3,https://music.youtube.com/watch?v=jLFNZ2gMMFw,221910,Music,Throwbacks,859,16927,10,129,320,True,1997,1.0,3:41,,Unknown
+Erykah Badu - Tyrone (Live) (Clean),Live/Erykah Badu - Tyrone (Live) (Clean).mp3,,221910,Music,Live,859,16927,10,129,320k,True,1997,1.0,3:41,,False
+Erykah Badu - Tyrone (Live) (Explicit),Music/Erykah Badu - Tyrone (Live) (Explicit).mp3,,221910,Music,Unassigned,859,16927,10,129,320k,True,1997,1.0,3:41,,True
 Erykah Badu - Window Seat,Music/Erykah Badu - Window Seat.mp3,https://music.youtube.com/playlist?list=OLAK5uy_knQqGG5REacBfap2EHJk-c7lgwoClx6Q4,289776,Music,Throwbacks,8824,23057,242,161,254,True,2009,1.0,4:49,3,0
 Erykah Badu feat. Common - Love of My Life (An Ode to Hip Hop),Music/Erykah Badu feat. Common - Love of My Life (An Ode to Hip Hop).mp3,https://music.youtube.com/playlist?list=OLAK5uy_llonDPVKsWgV3LEQdfuaGr0sff84v4moo,268000,Music,Unassigned,11773,32485,1728,86,320,True,2002,1.0,4:28,3,0
 Etta James - I'd Rather Go Blind,Music/Etta James - I'd Rather Go Blind.mp3,https://music.youtube.com/watch?v=Bcus42ihkTI,156709,Music,Classics,836,12725,7533,161,320,True,1968,1.0,2:36,,Unknown
@@ -691,6 +729,7 @@ Frank Ocean - Pink Matter (feat. André 3000),Music/Frank Ocean - Pink Matter (f
 Frank Ocean - Pink matter (Remix) (feat. Andre 3000 & Big Boi),Music/Frank Ocean - Pink matter (Remix) (feat. Andre 3000 & Big Boi).mp3,https://music.youtube.com/watch?v=LP8_Sh1xxQQ,316761,Music,Throwbacks,33065,18994,591,117,320,True,2000,1.0,5:16,,False
 Frank Ocean - Swim Good,Music/Frank Ocean - Swim Good.mp3,https://music.youtube.com/playlist?list=OLAK5uy_ltvAnceM9UdipqjI7-fJpcE5nZmvlZT9s,257000,Music,New School,418,23661,5838,108,320,True,2011,1.0,4:17,1,1
 Frank Ocean - Thinkin Bout You,Music/Frank Ocean - Thinkin Bout You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l-JgS4TWHVvlq-wQC_5h3vL4_vFSYhY4U,199000,Music,New School,7523,49064,1241,129,320,True,2012,1.0,3:19,1,0
+Frank Ocean feat. André 3000 - Pink Matter (Explicit),Music/Frank Ocean feat. André 3000 - Pink Matter (Explicit).mp3,,268878,Music,Unassigned,32949,37175,776,117,320k,True,2012,1.0,4:28,,True
 Frank Ocean feat. Earl Sweatshirt - Super Rich Kids,Music/Frank Ocean feat. Earl Sweatshirt - Super Rich Kids.mp3,https://music.youtube.com/playlist?list=OLAK5uy_ltvAnceM9UdipqjI7-fJpcE5nZmvlZT9s,304000,Music,New School,8081,20016,126,60,320,Unknown,2012,1.0,5:04,1,1
 Frankie J - Obsesion (No Es Amor) (feat. Baby Bash),Music/Frankie J - Obsesion (No Es Amor) (feat. Baby Bash).mp3,https://music.youtube.com/watch?v=6R66Fbkftn0,225672,Music,Throwbacks,14512,31440,3540,152,320,True,2005,1.0,3:45,,Unknown
 Frankie J feat. Baby Bash - Obsession (No es amor),Music/Frankie J feat. Baby Bash - Obsession (No es amor).mp3,https://music.youtube.com/playlist?list=OLAK5uy_l45kB3tLOJ3ekbubWp8mtD8J9qN-ecvW4,225000,Music,Unassigned,14512,31440,3540,152,320,True,2005,1.0,3:45,3,0
@@ -707,14 +746,16 @@ Fugees - Ready or Not,Music/Fugees - Ready or Not.mp3,https://music.youtube.com/
 Fugees - Ready or Not,Music/Fugees - Ready or Not.mp3,https://music.youtube.com/watch?v=PWOa_eeKzO0,227082,Music,Throwbacks,302,52709,219,89,320,True,1996,1.0,3:47,3,1
 Fugees - Ready or Not (Clean),Music/Fugees - Ready or Not (Clean).mp3,,227082,Music,Throwbacks,302,52709,219,89,320k,True,1996,1.0,3:47,3,False
 Galimatias - Blowback,Music/Galimatias - Blowback.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nJJF-JN5nqEFw7fwnQvQJ--fTvA9gA-yQ,244010,Music,Unassigned,39544,57539,1334,103,320,True,2017,1.0,4:04,1,0
+Gators Live Show Opening,ondemand/sweepers/Gators Live Show Opening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,False
 "Gene Chandler - Rainbow '65, Part 2","Music/Gene Chandler - Rainbow '65, Part 2.mp3",https://music.youtube.com/playlist?list=OLAK5uy_noAmqYFLg2J65yD9HmljEEQFd3atOCVYg,165000,Music,Unassigned,8638,12330,1891,172,320,Unknown,1997,1.0,2:45,3,0
 George Benson - Give Me the Night,Music/George Benson - Give Me the Night.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l9IflZAJLOgiwuSVPkqCUwIPY1PQfrv8k,297000,Music,Unassigned,4830,30023,5583,112,320,True,1980,1.0,4:57,7,0
 Gerald Levert - Baby Hold on to Me (feat. Eddie Levert),Music/Gerald Levert - Baby Hold on to Me (feat. Eddie Levert).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nq7WMU-cf6hgLr8-7i9UIijiZav99FSGg,345260,Music,Throwbacks,15534,37175,17263,117,320,True,1991,1.0,5:45,3,0
 Ghost Town DJ’s - My Boo (radio mix),Music/Ghost Town DJ’s - My Boo (radio mix).mp3,https://music.youtube.com/playlist?list=OLAK5uy_l1vjLrERxe_gLKwOYsh00chYt0Gbgzh1E,252000,Music,Unassigned,29652,59652,6628,65,320,Unknown,2018,1.0,4:12,3,0
-Ginuwine - Differences,Music/Ginuwine - Differences.mp3,https://music.youtube.com/watch?v=k4z6vH89G7o,248607,Music,Unassigned,17252,13212,3981,63,320,True,2001,1.0,4:08,,Unknown
+Ginuwine - Differences,Music/Ginuwine - Differences (Radio Edit).mp3,https://music.youtube.com/watch?v=k4z6vH89G7o,248607,Music,Throwbacks,17252,13212,3981,63,320,True,2001,1.0,4:08,,Unknown
 Ginuwine - Differences (radio edit),Music/Ginuwine - Differences (radio edit).mp3,,265587,Music,Throwbacks,17276,13235,1891,63,320k,True,2000,1.0,4:25,3,Unknown
 Ginuwine - In Those Jeans,Music/Ginuwine - In Those Jeans (Explicit).mp3,https://music.youtube.com/watch?v=zMmP02UKvX8,243357,Music,Throwbacks,7732,21711,5002,129,320,True,2003,1.0,4:03,,True
 Ginuwine - In Those Jeans,Music/Ginuwine - In Those Jeans (Radio Edit).mp3,https://music.youtube.com/watch?v=YLXiF8Tdxjk,243174,Music,Throwbacks,7895,21873,4654,129,320,True,2006,1.0,4:03,,Unknown
+Ginuwine - In Those Jeans (Explicit),Music/Ginuwine - In Those Jeans (Explicit).mp3,,243357,Music,Unassigned,7732,21711,5002,129,320k,True,2003,1.0,4:03,,True
 Ginuwine - In Those Jeans (Radio Edit),Music/Ginuwine - In Those Jeans (Radio Edit).mp3,,243174,Music,Throwbacks,7895,21873,4654,129,320k,True,2006,1.0,4:03,3,Unknown
 Ginuwine - Love You More,Music/Ginuwine - Love You More.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nyFnutO1bN4D3dPDmy3Ht1WvF_EqdZNCU,241000,Music,Unassigned,17136,30023,4306,117,320,True,2003,1.0,4:01,3,0
 Ginuwine - None Of Ur Friends Business,Music/Ginuwine - None Of Ur Friends Business.mp3,https://music.youtube.com/watch?v=6ij_AfmpCdg,255000,Music,Unassigned,1324,43654,475,99,320,True,1999,1.0,6:05,3,1
@@ -744,6 +785,7 @@ Guy - Let's Chill,Music/Guy - Let's Chill.mp3,https://music.youtube.com/playlist
 Guy - Piece of My Love,Music/Guy - Piece of My Love (Explicit).mp3,https://music.youtube.com/watch?v=162MW8QyCME,315000,Music,Throwbacks,2972,10681,12456,152,320,True,2002,1.0,5:17,3,1
 Guy - Piece Of My Love,Music/Guy - Piece Of My Love.mp3,https://music.youtube.com/watch?v=162MW8QyCME,317858,Music,Throwbacks,2972,10681,12456,152,320,True,2002,1.0,5:17,7,1
 Guy - Piece Of My Love,Music/Guy - Piece Of My Love.mp3,https://music.youtube.com/watch?v=JHEF4p8cErY,315690,Music,Throwbacks,3692,10844,10088,152,320,True,1988,1.0,5:15,,False
+Guy - Piece Of My Love (Clean),Music/Guy - Piece Of My Love (Clean).mp3,,317858,Music,Unassigned,2972,10681,12456,152,320k,True,2002,1.0,5:17,,False
 Guy - Piece of My Love (Explicit),Music/Guy - Piece of My Love (Explicit).mp3,,317858,Music,Unassigned,2972,10681,12456,152,320k,True,2002,1.0,5:17,,True
 Guy - Teddy’s Jam,Music/Guy - Teddy’s Jam.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kWS9CC5H0iCBgTrkuadk0ILODKUu_z6_c,212000,Music,Throwbacks,2508,11053,6628,103,320,Unknown,2007,1.0,3:32,3,0
 Guy - You Can Call Me Crazy,Music/Guy - You Can Call Me Crazy.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kWS9CC5H0iCBgTrkuadk0ILODKUu_z6_c,238000,Music,Unassigned,23,32392,1297,108,320,Unknown,2007,1.0,3:58,7,0
@@ -777,6 +819,7 @@ J-Kwon - Tipsy (Club Mix),Music/J-Kwon - Tipsy (Club Mix).mp3,https://music.yout
 J. Cole - Work Out,Music/J. Cole - Work Out.mp3,https://music.youtube.com/watch?v=qBDk6zrAjHM,235389,Music,New School,7593,55914,3331,92,320,True,2011,1.0,3:55,1,1
 J. Cole - Work Out,Music/J. Cole - Work Out.mp3,https://music.youtube.com/watch?v=qBDk6zrAjHM,235389,Music,New School,7593,55914,3331,92,320,True,2011,1.0,3:55,1,1
 J. Cole - Work Out (Clean),Music/J. Cole - Work Out (Clean).mp3,,235389,Music,New School,7593,55914,3331,92,320k,True,2011,1.0,3:55,1,False
+J. Cozier - She's All I Got (Radio Edit),Music/J. Cozier - She's All I Got (Radio Edit).mp3,,211200,Music,Unassigned,12260,45279,1427,99,320k,True,2001,1.0,3:31,,Unknown
 J. Holiday - I Know Love,Music/J. Holiday - I Know Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_naQKg2OS1mPn3p-7lDidrYmUzcogDWLHk,228000,Music,Throwbacks,1300,46277,7464,78,320,Unknown,2007,1.0,3:48,3,1
 J. Holiday - Run Into My Arms,Music/J. Holiday - Run Into My Arms.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m5ctSq9MgmsHkqB-_5tG7Kj38mVmXaQNE,244000,Music,Throwbacks,23243,39776,7394,83,320,True,2009,1.0,4:04,3,0
 Ja Rule - Always On Time (feat. Ashanti),Music/Ja Rule - Always On Time (feat. Ashanti).mp3,https://music.youtube.com/watch?v=nkwWiYDeMvE,245133,Music,Throwbacks,0,2000,0,96,320,True,2001,1.0,4:05,3,1
@@ -820,6 +863,9 @@ Jaheim - Put That Woman First (Clean),Music/Jaheim - Put That Woman First (Clean
 Jaheim - Waitin' on You (feat. Miss Jones),Music/Jaheim - Waitin' on You (feat. Miss Jones).mp3,https://music.youtube.com/playlist?list=OLAK5uy_msBxJTT_Tme3zwDU67kCSliqoi8UMTdmg,262687,Music,Throwbacks,4203,16347,5351,65,320,True,2001,1.0,4:22,3,0
 Jaheim feat. Next - Anything,Music/Jaheim feat. Next - Anything.mp3,https://music.youtube.com/playlist?list=OLAK5uy_msBxJTT_Tme3zwDU67kCSliqoi8UMTdmg,287000,Music,Unassigned,209,16091,5281,108,320,True,2001,1.0,4:47,3,0
 Jaheim feat. Terry Dexter - Remarkable,Music/Jaheim feat. Terry Dexter - Remarkable.mp3,https://music.youtube.com/playlist?list=OLAK5uy_msBxJTT_Tme3zwDU67kCSliqoi8UMTdmg,292000,Music,Unassigned,19389,27794,800,99,320,True,2001,1.0,4:52,3,0
+"James Brown & The Famous Flames - Please, Please, Please (single version)","Music/James Brown & The Famous Flames - Please, Please, Please (single version).mp3",,163762,Music,Unassigned,743,54567,1636,74,320k,True,2007,1.0,2:43,,Unknown
+James Brown - Say It Loud,Music/James Brown - Say It Loud.mp3,,182309,Music,Unassigned,2601,28700,8346,136,320k,True,2012,1.0,3:02,,Unknown
+James Brown - Try Me,Music/James Brown - Try Me.mp3,,134269,Music,Unassigned,534,46533,33,76,320k,True,1963,1.0,2:14,,Unknown
 James Fortune - In The Room,Shows/InspirationalChurch/James Fortune - In The Room.mp3,https://music.youtube.com/watch?v=nHnYjDtwW6Q,189440,Music,New School,5387,23359,2448,89,320,True,2025,1.0,3:09,5,0
 Jamie Foxx - Blame It (Club Mix) (feat. T-Pain),Music/Jamie Foxx - Blame It (Club Mix) (feat. T-Pain) (Explicit).mp3,https://music.youtube.com/playlist?list=OLAK5uy_lSDekVKH14SF9kACGs-bGr78fhEMYYaQ8,289776,Music,Throwbacks,16463,23963,6674,172,260,True,2008,1.0,4:49,3,1
 Jamie Foxx - Blame It (Club Mix) (feat. T-Pain),Music/Jamie Foxx - Blame It (Club Mix) (feat. T-Pain).mp3,https://music.youtube.com/watch?v=7Nt6pdOBAbU,289776,Music,Throwbacks,16463,23963,6674,172,320,True,2008,1.0,4:49,,False
@@ -831,6 +877,7 @@ Jamie Foxx - Can I Take You Home,Music/Jamie Foxx - Can I Take You Home (Explici
 Jamie Foxx - Can I Take You Home (Explicit),Music/Jamie Foxx - Can I Take You Home (Explicit).mp3,,255739,Music,Unassigned,31138,12864,6001,81,320k,True,2005,1.0,4:15,,True
 Jamie Foxx - DJ Play A Love Song (feat. Twista),Music/Jamie Foxx - DJ Play A Love Song (feat. Twista).mp3,https://music.youtube.com/watch?v=kZkWKKqd9wE,260571,Music,Throwbacks,697,16417,11597,117,320,True,2005,1.0,4:20,3,1
 Jamie Foxx - DJ Play A Love Song (feat. Twista),Music/Jamie Foxx - DJ Play A Love Song (feat. Twista).mp3,https://music.youtube.com/watch?v=kZkWKKqd9wE,260571,Music,Throwbacks,697,16417,11597,117,320,True,2005,1.0,4:20,3,1
+Jamie Foxx - DJ Play A Love Song (feat. Twista) (1),Music/Jamie Foxx - DJ Play A Love Song (feat. Twista) (1).mp3,,258847,Music,Unassigned,697,16068,6117,117,320k,True,2005,1.0,4:18,,Unknown
 Jamie Foxx - DJ Play a Love Song (feat. Twista) (Clean),Music/Jamie Foxx - DJ Play a Love Song (feat. Twista) (Clean).mp3,,260571,Music,Throwbacks,697,16417,11597,117,320k,True,2005,1.0,4:20,3,False
 Jamie Foxx - Do What It Do,Music/Jamie Foxx - Do What It Do.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lSDekVKH14SF9kACGs-bGr78fhEMYYaQ8,244000,Music,Throwbacks,16393,15372,4143,129,320,True,2005,1.0,4:04,3,1
 Jamie Foxx - Fall For Your Type (feat. Drake),Music/Jamie Foxx - Fall For Your Type (feat. Drake).mp3,https://music.youtube.com/watch?v=C1vqf-h5Cc4,270000,Music,Unassigned,3738,59002,2518,136,320,True,2010,1.0,4:31,1,1
@@ -845,6 +892,7 @@ Janet - Together Again,Music/Janet - Together Again.mp3,https://music.youtube.co
 Janet Jackson - All For You,Music/Janet Jackson - All For You.mp3,https://music.youtube.com/watch?v=CF6VLiW_LT4,329000,Music,Unassigned,17554,14559,10,112,320,True,2001,1.0,4:25,3,1
 Janet Jackson - All For You,Music/Janet Jackson - All For You.mp3,https://music.youtube.com/watch?v=CF6VLiW_LT4,265509,Music,Unassigned,19342,16347,6419,112,320,True,2023,1.0,4:25,3,1
 Janet Jackson - All For You,Music/Janet Jackson - All For You.mp3,https://music.youtube.com/watch?v=6dLVFWLDw2M,329979,Music,Throwbacks,17578,14559,10,112,320,True,2001,1.0,5:29,,Unknown
+Janet Jackson - All For You (Clean),Music/Janet Jackson - All For You (Clean).mp3,,265509,Music,Unassigned,19342,16347,6419,112,320k,True,2023,1.0,4:25,,False
 Janet Jackson - Alright,Music/Janet Jackson - Alright.mp3,https://music.youtube.com/watch?v=89aZ7wAehkE,386586,Music,Old School,15488,18692,80,112,320,True,1989,1.0,6:26,,Unknown
 "Janet Jackson - Any Time, Any Place","Music/Janet Jackson - Any Time, Any Place.mp3",https://music.youtube.com/playlist?list=OLAK5uy_n_uXoqt8KFnZ7_fnwqm2cHt8BfEJYCnwk,428251,Music,Throwbacks,0,2000,0,129,320,True,1993,1.0,7:08,3,0
 Janet Jackson - Escapade,Music/Janet Jackson - Escapade.mp3,https://music.youtube.com/watch?v=OOeObuVnaJ8,283977,Music,Old School,21943,37616,149,117,320,True,1989,1.0,4:43,,Unknown
@@ -855,6 +903,7 @@ Janet Jackson - If,Music/Janet Jackson - If.mp3,https://music.youtube.com/playli
 Janet Jackson - Let's Wait Awhile,Music/Janet Jackson - Let's Wait Awhile.mp3,https://music.youtube.com/watch?v=5cZ7IOApdfg,277447,Music,Old School,1115,53894,5258,86,320,True,1986,1.0,4:37,,Unknown
 Janet Jackson - Love Will Never Do (Without You),Music/Janet Jackson - Love Will Never Do (Without You).mp3,https://music.youtube.com/watch?v=UJ-AFddVwsI,350041,Music,Old School,26865,25403,266,103,320,True,1989,1.0,5:50,,Unknown
 Janet Jackson - Miss You Much,Music/Janet Jackson - Miss You Much.mp3,https://music.youtube.com/watch?v=uG1J_Uh5fdE,252369,Music,Old School,1161,14954,753,117,320,True,1989,1.0,4:12,,Unknown
+Janet Jackson - Rhythm Nation,Music/Janet Jackson - Rhythm Nation.mp3,,330971,Music,Unassigned,19992,13351,33,108,320k,True,1989,1.0,5:30,,Unknown
 Janet Jackson - Rhythm Nation (7 Edit),Music/Janet Jackson - Rhythm Nation (7 Edit).mp3,https://music.youtube.com/watch?v=j6pWRIp-J9k,270785,Music,Old School,9009,44280,4399,108,320,True,1989,1.0,4:30,,Unknown
 Janet Jackson - Someone To Call My Lover,Music/Janet Jackson - Someone To Call My Lover.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mtrZRlEpZx_pa4d3yEySzN7fx6BCBJXzE,272431,Music,Throwbacks,32833,29304,196,129,269,True,2001,1.0,4:32,3,0
 Janet Jackson - That's The Way Love Goes,Music/Janet Jackson - That's The Way Love Goes.mp3,https://music.youtube.com/playlist?list=OLAK5uy_n_uXoqt8KFnZ7_fnwqm2cHt8BfEJYCnwk,266397,Music,New School,13537,33831,2309,99,272,True,2023,1.0,4:26,1,0
@@ -869,11 +918,13 @@ Jazmine Sullivan - Forever Don't Last,Music/Jazmine Sullivan - Forever Don't Las
 Jazmine Sullivan - Let It Burn,Music/Jazmine Sullivan - Let It Burn.mp3,https://music.youtube.com/watch?v=bgv2DA_qfXI,220000,Music,Unassigned,4830,12353,4074,78,320,True,2015,1.0,3:43,1,1
 Jazmine Sullivan - Let It Burn,Music/Jazmine Sullivan - Let It Burn.mp3,https://music.youtube.com/watch?v=bgv2DA_qfXI,223138,Music,Unassigned,4830,12353,4074,78,320,True,2015,1.0,3:43,1,1
 Jazmine Sullivan - Let It Burn,Music/Jazmine Sullivan - Let It Burn.mp3,https://music.youtube.com/watch?v=PCj0drI6pQQ,223138,Music,New School,4830,12353,4074,78,320,True,2015,1.0,3:43,,Unknown
+Jazmine Sullivan - Let It Burn (Clean),Music/Jazmine Sullivan - Let It Burn (Clean).mp3,,223138,Music,Unassigned,4830,12353,4074,78,320k,True,2015,1.0,3:43,,False
 "Jazmine Sullivan - Lions, Tigers & Bears","Music/Jazmine Sullivan - Lions, Tigers & Bears.mp3",https://music.youtube.com/playlist?list=OLAK5uy_klb8iWm9Tw6NrArMCcpVhPMBd90A5U-Lk,251246,Music,Throwbacks,5132,49110,5653,96,320,True,2008,1.0,4:11,3,0
 Jazmine Sullivan - Need U Bad,Music/Jazmine Sullivan - Need U Bad.mp3,https://music.youtube.com/playlist?list=OLAK5uy_klb8iWm9Tw6NrArMCcpVhPMBd90A5U-Lk,257463,Music,Throwbacks,20341,20550,6953,136,320,True,2008,1.0,4:17,3,0
 Jazmine Sullivan - Pick Up Your Feelings,Music/Jazmine Sullivan - Pick Up Your Feelings (Explicit).mp3,https://music.youtube.com/watch?v=bjlh8edVe58,224000,Music,New School,12516,35828,4050,172,320,True,2021,1.0,3:49,1,1
 Jazmine Sullivan - Pick Up Your Feelings,Music/Jazmine Sullivan - Pick Up Your Feelings.mp3,https://music.youtube.com/watch?v=bjlh8edVe58,229460,Music,New School,12516,35828,4050,172,320,True,2021,1.0,3:49,1,1
 Jazmine Sullivan - Pick Up Your Feelings,Music/Jazmine Sullivan - Pick Up Your Feelings.mp3,https://music.youtube.com/watch?v=HBbMjHPBAkI,229460,Music,Throwbacks,12516,35828,4050,172,320,True,2021,1.0,3:49,,False
+Jazmine Sullivan - Pick Up Your Feelings (Clean),Music/Jazmine Sullivan - Pick Up Your Feelings (Clean).mp3,,229460,Music,Unassigned,12516,35828,4050,172,320k,True,2021,1.0,3:49,,False
 Jazmine Sullivan - Pick Up Your Feelings (Explicit),Music/Jazmine Sullivan - Pick Up Your Feelings (Explicit).mp3,,229460,Music,Unassigned,12516,35828,4050,172,320k,True,2021,1.0,3:49,,True
 Jazz Official - Sorry Not Sorry (feat. Anthony Radcliff),Music/Jazz Official - Sorry Not Sorry (feat. Anthony Radcliff) (Explicit).mp3,https://music.youtube.com/watch?v=vkO566I9zxo,226194,Music,New School,17252,37407,1171,112,320,True,2025,1.0,3:46,1,1
 Jazz Official - Sorry Not Sorry (feat. Anthony Radcliff) (Explicit),Music/Jazz Official - Sorry Not Sorry (feat. Anthony Radcliff) (Explicit).mp3,,226194,Music,Unassigned,17252,37407,1171,112,320k,True,2025,1.0,3:46,,True
@@ -905,6 +956,7 @@ Jeremih - Planez (feat. J. Cole),Music/Jeremih - Planez (feat. J. Cole).mp3,http
 Jeremih - Planez (feat. J. Cole),Music/Jeremih - Planez (feat. J. Cole).mp3,https://music.youtube.com/watch?v=vBNHn6EXZZ8,240379,Music,Unassigned,4365,54683,2913,129,320,True,2015,1.0,4:00,1,1
 Jeremih - Planez (feat. J. Cole) (Clean),Music/Jeremih - Planez (feat. J. Cole) (Clean).mp3,,240379,Music,New School,4365,54683,2913,129,320k,True,2015,1.0,4:00,1,False
 Jermaine Dolly - Never Shall Forget,Music/Jermaine Dolly - Never Shall Forget.mp3,https://music.youtube.com/watch?v=vyjsTSTqQ8o,216999,Music,New School,10333,23754,2355,152,320,True,2025,1.0,3:36,,False
+Jermaine Jackson - Let's Get Serious,Music/Jermaine Jackson - Let's Get Serious.mp3,,477309,Music,Unassigned,8522,48228,4050,108,320k,True,1979,1.0,7:57,,Unknown
 Jermaine Stewart - We Don't Have to Take Our Clothes Off (short version),Music/Jermaine Stewart - We Don't Have to Take Our Clothes Off (short version).mp3,,241000,Music,Unassigned,19621,42864,6372,123,320,Unknown,1986,1.0,4:01,7,0
 Jesse Powell - You (feat. Gerald Albright),Music/Jesse Powell - You (feat. Gerald Albright).mp3,https://music.youtube.com/playlist?list=OLAK5uy_knQrg0jIPfTc_dQ9nay_qx7iOk5X2Xi9M,318198,Music,Throwbacks,0,2000,6637,112,320,True,1998,1.0,5:18,3,0
 Jhené Aiko - Sativa (feat. Swae Lee),Music/Jhené Aiko - Sativa (feat. Swae Lee).mp3,https://music.youtube.com/playlist?list=OLAK5uy_lO5pZTV7jec6M0NAao89vrP1yHQYCWims,277000,Music,Unassigned,14443,41053,2518,123,320,True,2017,1.0,4:37,1,1
@@ -913,6 +965,7 @@ Jhené Aiko - Sativa (feat. Swae Lee) (Clean),Music/Jhené Aiko - Sativa (feat. 
 Jhené Aiko - Summer 2020,Music/Jhené Aiko - Summer 2020.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lY17JThgyxnQmWugafQ1mlUKfv6tvxZmc,196000,Music,New School,15999,31788,9205,172,320,True,2020,1.0,3:16,1,0
 Jhené Aiko - The Worst,Music/Jhené Aiko - The Worst (Explicit).mp3,https://music.youtube.com/watch?v=XDrZxGJvVew,254537,Music,Throwbacks,2763,12399,5188,92,320,True,2024,1.0,4:14,,True
 Jhené Aiko - The Worst (Clean),Music/Jhené Aiko - The Worst (Clean).mp3,,254485,Music,New School,2717,16231,5188,92,320k,True,2024,1.0,4:14,1,False
+Jhené Aiko - The Worst (Explicit),Music/Jhené Aiko - The Worst (Explicit).mp3,,254537,Music,Unassigned,2763,12399,5188,92,320k,True,2024,1.0,4:14,,True
 Jill Scott - A Long Walk,Music/Jill Scott - A Long Walk (Explicit).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nRNJp82QeXn2vYVpyLpiVKw-COJzQul6I,254000,Music,Throwbacks,12957,37431,3911,76,320,True,2000,1.0,4:14,1,1
 Jill Scott - A Long Walk,Music/Jill Scott - A Long Walk.mp3,https://music.youtube.com/watch?v=pO4zzgFAsxQ,281025,Music,Throwbacks,14396,37431,3911,76,320,True,2000,1.0,4:41,,False
 Jill Scott - A Long Walk (Explicit),Music/Jill Scott - A Long Walk (Explicit).mp3,,281025,Music,Unassigned,12957,37431,3911,76,320k,True,2000,1.0,4:41,,True
@@ -947,6 +1000,7 @@ Joe - The Love Scene,Music/Joe - The Love Scene.mp3,https://music.youtube.com/wa
 John Legend - Save Room,Music/John Legend - Save Room.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kODWgxVaMjz7RZMvGn4pE9OwLt3Rk0AFA,237000,Music,Unassigned,3692,29745,4979,112,320,True,2006,1.0,3:57,3,0
 John Legend feat. Ludacris - Tonight (Best You Ever Had),Music/John Legend feat. Ludacris - Tonight (Best You Ever Had).mp3,https://music.youtube.com/watch?v=DH7wr34rd8w,239491,Music,Unassigned,26215,24126,7789,89,320,True,2012,1.0,3:59,,Unknown
 John Legend feat. Ludacris - Tonight (Best You Ever Had),Music/John Legend feat. Ludacris - Tonight (Best You Ever Had).mp3,https://music.youtube.com/playlist?list=OLAK5uy_krRb-IcU5LgEcJurnRxYw-070IoB05vpY,237000,Music,Unassigned,26215,24126,7835,89,320,True,2012,1.0,3:57,1,1
+John Legend feat. Ludacris - Tonight (Best You Ever Had) (Clean),Music/John Legend feat. Ludacris - Tonight (Best You Ever Had) (Clean).mp3,,239496,Music,Unassigned,26215,24126,7788,89,320k,Unknown,2012,1.0,3:59,,False
 "Johnny Gill - A Dance, A Kiss","Music/Johnny Gill - A Dance, A Kiss.mp3",https://music.youtube.com/watch?v=rxgZ3BxvqrU,235311,Music,New School,604,41866,3006,76,320,Unknown,2026,1.0,3:55,,Unknown
 "Johnny Gill - My, My, My (single mix)","Music/Johnny Gill - My, My, My (single mix).mp3",https://music.youtube.com/playlist?list=OLAK5uy_mmasU69VVEhMeAi1Xma7HKYkENtNH1yNU,244000,Music,Unassigned,13375,28584,4120,74,320,True,2002,1.0,4:04,3,0
 Johnny Gill - Rub You the Right Way,Music/Johnny Gill - Rub You the Right Way.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmasU69VVEhMeAi1Xma7HKYkENtNH1yNU,332000,Music,Throwbacks,5201,38081,8067,112,320,True,1997,1.0,5:32,1,0
@@ -968,9 +1022,9 @@ Justin Timberlake - Damn Girl (feat. will.i.am),Music/Justin Timberlake - Damn G
 Justin Timberlake - Last Night,Music/Justin Timberlake - Last Night.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmVGRq9kYxee5QjMLO6QPvsme5tnydAFY,378000,Music,Unassigned,325,24404,4190,103,320,True,2002,1.0,6:18,3,0
 Justin Timberlake - Let’s Take a Ride,Music/Justin Timberlake - Let’s Take a Ride.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmVGRq9kYxee5QjMLO6QPvsme5tnydAFY,284000,Music,Unassigned,15279,53034,8532,117,320,Unknown,2002,1.0,4:44,3,0
 Justin Timberlake - Like I Love You,Music/Justin Timberlake - Like I Love You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmg_NX81W2zSIr0zp7hdnxGrvjI5IQoHg,283000,Music,Unassigned,952,45395,5653,112,320,True,2002,1.0,4:43,3,0
+Justin Timberlake - LoveStoned  I Think She Knows (Interlude),Music/Justin Timberlake - LoveStoned  I Think She Knows (Interlude).mp3,https://music.youtube.com/watch?v=0MuNbwGBtjg,444395,Music,Unassigned,18739,11564,9832,123,320,True,2006,1.0,7:24,,False
 Justin Timberlake - LoveStoned  I Think She Knows Interlude (Clean),Music/Justin Timberlake - LoveStoned  I Think She Knows Interlude (Clean).mp3,,444421,Music,Throwbacks,18808,17554,9809,123,320k,True,2006,1.0,7:24,3,False
 Justin Timberlake - Lovestoned _ I Think She Knows Me Interlude,Music/Justin Timberlake - Lovestoned _ I Think She Knows Me Interlude.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l_bOF6gmzF_KkCMy0Wru3BpK3sz9f4jds,327000,Music,Throwbacks,18739,11564,9832,123,320,Unknown,2006,1.0,5:27,3,1
-Justin Timberlake - LoveStoned  I Think She Knows (Interlude),Music/Justin Timberlake - LoveStoned  I Think She Knows (Interlude).mp3,https://music.youtube.com/watch?v=0MuNbwGBtjg,444395,Music,Unassigned,18739,11564,9832,123,320,True,2006,1.0,7:24,,False
 Justin Timberlake - Medley Let Me Talk to You  My Love (feat. T.I.),Music/Justin Timberlake - Medley Let Me Talk to You  My Love (feat. T.I.).mp3,,370181,Music,Throwbacks,1138,34296,1310,117,320k,True,2006,1.0,6:10,3,0
 Justin Timberlake - My Love (feat. T.I.),Music/Justin Timberlake - My Love (feat. T.I.).mp3,https://music.youtube.com/playlist?list=OLAK5uy_l_bOF6gmzF_KkCMy0Wru3BpK3sz9f4jds,281000,Music,Unassigned,627,29350,1264,117,320,True,2006,1.0,4:41,3,1
 Justin Timberlake - My Love (feat. T.I.) (Clean),Music/Justin Timberlake - My Love (feat. T.I.).mp3,,276193,Music,Throwbacks,627,29350,1264,117,320k,True,2006,1.0,4:36,,1
@@ -1016,6 +1070,7 @@ Keith Sweat - Get up on It (feat. Kut Klose),Music/Keith Sweat - Get up on It (f
 Keith Sweat - How Deep Is Your Love,Music/Keith Sweat - How Deep Is Your Love.mp3,https://music.youtube.com/watch?v=TmU7w3NzPpM,290847,Music,Old School,0,2000,3053,144,320,True,1987,1.0,4:50,7,0
 Keith Sweat - I Want Her,Music/Keith Sweat - I Want Her.mp3,https://music.youtube.com/watch?v=9XqKRipnNSk,360176,Music,Old School,766,51409,8787,108,320,True,1987,1.0,6:00,,Unknown
 Keith Sweat - I'll Give All My Love to You,Music/Keith Sweat - I'll Give All My Love to You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_niqDz7ngMGXESh9jDQmVQ_OVJMHu6Y2wI,392255,Music,Throwbacks,25403,38940,13524,144,248,True,1990,1.0,6:32,3,0
+Keith Sweat - Make It Last Forever,Music/Keith Sweat - Make It Last Forever.mp3,,296464,Music,Unassigned,1974,11215,8439,83,320k,True,1987,1.0,4:56,,Unknown
 Keith Sweat - Make It Last Forever (with Jacci McGhee) (feat. Jacci McGhee),Music/Keith Sweat - Make It Last Forever (with Jacci McGhee) (feat. Jacci McGhee).mp3,https://music.youtube.com/watch?v=K2ZEAm8GVVY,296464,Music,Old School,1974,11215,8439,83,320,True,1987,1.0,4:56,,Unknown
 Keith Sweat - Nobody (feat. Athena Cage),Music/Keith Sweat - Nobody (feat. Athena Cage).mp3,https://music.youtube.com/playlist?list=OLAK5uy_lFBdPcFoHHEn7qF2vYRLxsTv0tcDU40SA,264829,Music,Throwbacks,16742,36061,6396,117,264,True,1996,1.0,4:24,3,0
 Keith Sweat - Right and a Wrong Way,Music/Keith Sweat - Right and a Wrong Way.mp3,https://music.youtube.com/watch?v=5OZgQebWiq8,317179,Music,Old School,5480,56610,8787,117,320,True,1987,1.0,5:17,,Unknown
@@ -1108,6 +1163,7 @@ Lil Jon & The East Side Boyz - Lovers And Friends (Clean),Music/Lil Jon & The Ea
 Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins),Music/Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins).mp3,https://music.youtube.com/playlist?list=OLAK5uy_ny-j5NkbXEy4qijSFZHTFCf2pzeOthfZw,334000,Music,Unassigned,1138,15859,126,99,320,Unknown,2002,1.0,5:34,3,1
 Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins),Music/Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins).mp3,https://music.youtube.com/watch?v=zVmwxSWhBf0,274051,Music,Unassigned,1602,16393,6094,99,320,True,2002,1.0,4:34,3,1
 Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins),Music/Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins).mp3,https://music.youtube.com/watch?v=mRznzbGNXoY,324650,Music,Unassigned,1068,13491,219,99,320,True,2002,1.0,5:24,3,1
+Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins) (Clean),Music/Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins) (Clean).mp3,,324650,Music,Unassigned,1068,13491,219,99,320k,True,2002,1.0,5:24,,False
 Lil Wayne - Mrs. Officer (feat. Bobby V. & Kidd Kidd) (Clean),Music/Lil Wayne - Mrs. Officer (feat. Bobby V. & Kidd Kidd) (Clean).mp3,,287269,Music,Throwbacks,13700,10240,1078,112,320k,True,2008,1.0,4:47,3,False
 Lil Wayne - Mrs. Officer (feat. Lil Wayne & Bobby V.),Music/Lil Wayne - Mrs. Officer (feat. Lil Wayne & Bobby V.).mp3,https://music.youtube.com/playlist?list=OLAK5uy_l5qljrKq3mEB3RptCD3tiLqRsTjgbxlNc,286955,Music,Throwbacks,14234,12190,776,112,320,True,2008,1.0,4:46,3,1
 Lil Wayne - Mrs. Officer (feat. Lil Wayne & Bobby V.),Music/Lil Wayne - Mrs. Officer (feat. Lil Wayne & Bobby V.).mp3,https://music.youtube.com/watch?v=buyMOuKDG74,287269,Music,Throwbacks,13700,10240,1078,112,320,True,2008,1.0,4:47,3,1
@@ -1167,13 +1223,13 @@ Ludacris - Good Lovin (feat. Miguel),Music/Ludacris - Good Lovin (feat. Miguel).
 Ludacris - Good Lovin (feat. Miguel),Music/Ludacris - Good Lovin (feat. Miguel).mp3,https://music.youtube.com/watch?v=eblYmo42lLU,223530,Music,Unassigned,11656,32276,6233,172,320,True,2015,1.0,3:43,3,1
 Ludacris - Good Lovin (feat. Miguel) (Clean),Music/Ludacris - Good Lovin (feat. Miguel) (Clean).mp3,,223530,Music,Throwbacks,11656,32276,6233,172,320k,True,2015,1.0,3:43,3,False
 Luke James - Drip (feat. A$AP Ferg),Music/Luke James - Drip (feat. A$AP Ferg).mp3,https://music.youtube.com/watch?v=0IEigp5ddtY,224810,Music,New School,3692,10937,5722,74,320,True,2017,1.0,3:44,1,1
-Luke James - Drip (feat. A$AP Ferg) (Clean),Music/Luke James - Drip (feat. A$AP Ferg) (Clean).mp3,,224810,Music,New School,3692,10937,5722,74,320k,True,2017,1.0,3:44,1,False
 Luke James - Drip (feat. A$AP Ferg),Music/Luke James - Drip (feat. A$AP Ferg).mp3,https://music.youtube.com/playlist?list=OLAK5uy_m2HExOhN5w10CelETHgpzXFaH5pd2blsw,220000,Music,Unassigned,3692,10937,5699,74,320,True,2017,1.0,3:40,1,1
+Luke James - Drip (feat. A$AP Ferg) (Clean),Music/Luke James - Drip (feat. A$AP Ferg) (Clean).mp3,,224810,Music,New School,3692,10937,5722,74,320k,True,2017,1.0,3:44,1,False
 Luke James feat. A$AP Ferg - Drip (Explicit),Music/Luke James feat. A$AP Ferg - Drip (Explicit).mp3,,224810,Music,Unassigned,3692,10937,5699,74,320k,True,2017,1.0,3:44,,True
 "Lumidee - Never Leave You (Uh Oooh, Uh Oooh)","Music/Lumidee - Never Leave You (Uh Oooh, Uh Oooh).mp3",https://music.youtube.com/playlist?list=OLAK5uy_mzuJtZXB_FmXRiLbMcaAAX3Tk43s76Jyk,237000,Music,Unassigned,22291,14141,5142,99,320,True,2003,1.0,3:57,3,0
 "Lumidee - Never Leave You (Uh Oooh, Uh Oooh) (Uh Oooh Remix) (feat. Busta Rhymes & Fabolous)","Music/Lumidee - Never Leave You (Uh Oooh, Uh Oooh) (Uh Oooh Remix) (feat. Busta Rhymes & Fabolous).mp3",https://music.youtube.com/playlist?list=OLAK5uy_mBLbP-gGvtEo3aoCK1COYZRzX7pKs9q0c,203000,Music,Unassigned,28886,10542,4956,99,320,True,2003,1.0,3:23,3,1
 "Lumidee - Never Leave You (Uh Oooh, Uh Oooh) (Uh Oooh Remix) (feat. Busta Rhymes & Fabolous) (Clean)","Music/Lumidee - Never Leave You (Uh Oooh, Uh Oooh) (Uh Oooh Remix) (feat. Busta Rhymes & Fabolous) (Clean).mp3",,212304,Music,Unassigned,28886,10542,4946,99,320k,Unknown,2003,1.0,3:32,,False
-Luther Vandross - A House Is Not a Home,Music/Luther Vandross - A House Is Not a Home.mp3,https://music.youtube.com/watch?v=_z7D-h5rcaM,427860,Music,Unassigned,38336,27609,6372,108,320,True,1989,1.0,7:07,,Unknown
+Luther Vandross - A House Is Not A Home,Music/Luther Vandross - A House Is Not A Home.mp3,https://music.youtube.com/watch?v=_z7D-h5rcaM,427860,Music,Old School,38336,27609,6372,108,320,True,1989,1.0,7:07,,Unknown
 Luther Vandross - Anyone Who Had a Heart,Music/Luther Vandross - Anyone Who Had a Heart.mp3,,346305,Music,Old School,441,52315,16891,117,241,True,1986,1.0,5:46,7,0
 Luther Vandross - Bad Boy  Having a Party (Single Version),Music/Luther Vandross - Bad Boy  Having a Party (Single Version).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mAjf3_A3-ImvvChsq1nls_Vv1XdyLuURI,237140,Music,New School,0,2000,0,117,320,Unknown,2015,1.0,3:57,1,0
 Luther Vandross - Dance With My Father,Music/Luther Vandross - Dance With My Father.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kVsFN41ujiwZEVDCiFoOU2PnmElKfIkbU,266057,Music,Throwbacks,22663,20410,6535,161,251,True,2003,1.0,4:26,3,0
@@ -1200,12 +1256,17 @@ Mariah Carey - We Belong Together,Music/Mariah Carey - We Belong Together.mp3,ht
 Mariah Carey feat. Boyz II Men - One Sweet Day,Music/Mariah Carey feat. Boyz II Men - One Sweet Day.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kX6oONiQniGUkjttU6s-BBGsqe_vXSc_8,282000,Music,Unassigned,4830,34783,3586,65,320,True,1996,1.0,4:42,3,0
 Mariah Carey feat. Jermaine Dupri & Fatman Scoop - It’s Like That (main version),Music/Mariah Carey feat. Jermaine Dupri & Fatman Scoop - It’s Like That (main version).mp3,https://music.youtube.com/playlist?list=OLAK5uy_kYhN32qmQ2lB9TqY3todUNhsiCZxdiILc,204000,Music,Unassigned,5735,32253,2007,199,320,Unknown,2005,1.0,3:24,3,0
 Mario - Crying Out For Me,Music/Mario - Crying Out For Me.mp3,https://music.youtube.com/watch?v=Iq1n4WY3FJg,288444,Music,Throwbacks,16672,19296,5420,65,320,True,2007,1.0,4:48,,Unknown
+Mario - Crying Out for Me (Radio Edit),Music/Mario - Crying Out for Me (Radio Edit).mp3,,288444,Music,Unassigned,16672,19296,5420,65,320k,True,2007,1.0,4:48,,Unknown
+Mario - Crying Out for Me (radio edit) (1),Music/Mario - Crying Out for Me (radio edit) (1).mp3,,288444,Music,Unassigned,16672,19296,5420,65,320k,True,2007,1.0,4:48,,Unknown
 Mario - How Could You,Music/Mario - How Could You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kvPqrez8Bv6ZfGaVuRtN2-1h12AKxTji0,237000,Music,Throwbacks,15023,15000,7557,123,320,True,2004,1.0,3:57,3,1
 Mario - How Do I Breathe,Music/Mario - How Do I Breathe.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nCuJ0JszjtdJq2Fnio68Ujo3xy3vI-fr4,214000,Music,Unassigned,20898,50898,7278,99,320,True,2007,1.0,3:34,3,0
+Mario - I Choose You,Music/Mario - I Choose You.mp3,,263079,Music,Unassigned,26006,30627,4793,123,320k,True,2009,1.0,4:23,,Unknown
+Mario - Just a Friend 2002 (Radio Edit),Music/Mario - Just a Friend 2002 (Radio Edit).mp3,,214256,Music,Unassigned,8731,12725,2216,129,320k,True,2002,1.0,3:34,,Unknown
 Mario - Let Me Love You,Music/Mario - Let Me Love You.mp3,https://music.youtube.com/watch?v=D6vCMxmkMKI&si=26m-MHHDLbP3jVRc,256784,Music,Throwbacks,650,29234,10668,185,320,True,2004,1.0,4:16,,Unknown
 Mario - Let Me Love You,Music/Mario - Let Me Love You (Explicit).mp3,https://music.youtube.com/watch?v=SzF6IhXIjxk,249156,Music,Throwbacks,534,29095,3168,185,320,True,2004,1.0,4:09,,1
 Mario - Let Me Love You (Explicit),Music/Mario - Let Me Love You (Explicit).mp3,,249156,Music,Unassigned,534,29095,3168,185,320k,True,2004,1.0,4:09,,True
 Mario - Music For Love,Music/Mario - Music For Love.mp3,https://music.youtube.com/watch?v=Sgy47OdNjvw,229642,Music,Throwbacks,17345,35782,1728,123,320,True,2007,1.0,3:49,,Unknown
+Mario - Music for Love (1),Music/Mario - Music for Love (1).mp3,,229800,Music,Unassigned,17485,39822,1742,117,320k,Unknown,2007,1.0,3:49,,Unknown
 Mario Vazquez - Gallery,Music/Mario Vazquez - Gallery.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nh-1_t6tq1IPqdo6RzyQEjDaz6jYHAwzI,223000,Music,Unassigned,56262,11424,2611,86,320,True,2006,1.0,3:43,3,0
 Mario Winans feat. Enya & P. Diddy - I Don't Wanna Know,Music/Mario Winans feat. Enya & P. Diddy - I Don't Wanna Know.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nCu_f1HMAkpcByMH1Yr0wuZT5198AozZ0,253000,Music,Unassigned,9985,24195,7208,96,320,Unknown,2004,1.0,4:13,3,0
 "Mario Winans, Enya, P. Diddy - I Don't Wanna Know (feat. Enya & P. Diddy) (2016 Remaster)","Music/Mario Winans, Enya, P. Diddy - I Don't Wanna Know (feat. Enya & P. Diddy) (2016 Remaster).mp3",https://www.youtube.com/watch,257376,Music,Throwbacks,9961,34087,7162,96,320,Unknown,2017,1.0,4:17,,Unknown
@@ -1218,8 +1279,10 @@ Mark Ronson - Uptown Funk (Trinidad James Remix) (feat. Bruno Mars) (Explicit),M
 Marques Houston - Smile,Music/Marques Houston - Smile.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lbO3l2uEdWD0Qs-FbDeOHGgyJE5jxMQUk,180000,Music,Unassigned,186,14675,9228,89,320,True,2003,1.0,3:00,3,0
 Marvin Gaye & Tammi Terrell - Ain’t No Mountain High Enough,Music/Marvin Gaye & Tammi Terrell - Ain’t No Mountain High Enough.mp3,https://music.youtube.com/playlist?list=OLAK5uy_krX0fJe76Bn94CYq8Vw-zFmQ9UDEF_Kcg,151000,Music,Unassigned,13862,10635,7905,129,320,Unknown,2001,1.0,2:31,3,0
 Marvin Gaye - Distant Lover,Music/Marvin Gaye - Distant Lover.mp3,https://music.youtube.com/watch?v=KJoeTh00gjk,256784,Music,Old School,1695,11796,8532,144,320,True,1973,1.0,4:16,7,0
+Marvin Gaye - Got To Give It Up,Music/Marvin Gaye - Got To Give It Up.mp3,,712725,Music,Unassigned,12678,28026,5002,123,320k,True,1977,1.0,11:52,,Unknown
 Marvin Gaye - How Sweet It Is (To Be Loved by You),Music/Marvin Gaye - How Sweet It Is (To Be Loved by You).mp3,https://music.youtube.com/playlist?list=OLAK5uy_luUSrfh3tD8-anjvjnmACmO6t1ba4d-34,175000,Music,Unassigned,1370,58352,6071,112,320,True,1999,1.0,2:55,3,0
 Marvin Gaye - Let’s Get It On,Music/Marvin Gaye - Let’s Get It On.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lno9TRSHksq_rJEBKvGHDZ5jDvjpkVVew,292000,Music,Unassigned,4667,11471,7533,172,320,Unknown,2011,1.0,4:52,1,0
+Marvin Gaye - Sexual Healing,Music/Marvin Gaye - Sexual Healing.mp3,,238655,Music,Unassigned,2229,16184,3702,96,320k,True,1982,1.0,3:58,,Unknown
 Marvin Sapp - Never Would Have Made It,Shows/InspirationalChurch/Marvin Sapp - Never Would Have Made It.mp3,https://music.youtube.com/watch?v=nqPLhgy4yLc,415164,Music,Throwbacks,789,52733,3261,83,320,True,2007,1.0,6:55,5,Unknown
 Marvin Sapp - Never Would Have Made It (Long Radio Edit),Shows/InspirationalChurch/Marvin Sapp - Never Would Have Made It (Long Radio Edit) (Radio Edit).mp3,https://music.youtube.com/watch?v=6OI_E4OJi0w,300330,Music,Throwbacks,2577,43096,8416,83,320,True,2011,1.0,5:00,5,False
 Marvin Sapp - The Best In Me,Shows/InspirationalChurch/Marvin Sapp - The Best In Me.mp3,https://music.youtube.com/watch?v=CQt4xBGwaI4,514351,Music,Throwbacks,6989,52756,11318,103,320,True,2010,1.0,8:34,5,False
@@ -1256,12 +1319,14 @@ Maxwell - Lake By the Ocean,Music/Maxwell - Lake By the Ocean.mp3,https://music.
 Maxwell - Lifetime,Music/Maxwell - Lifetime.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mYL55s_mrDtDJZOZ8YE5nliU94ZdEeJ8A,329000,Music,Unassigned,13026,11540,3516,65,320,True,2001,1.0,5:29,3,0
 Maxwell - Luxury_ Cococure,Music/Maxwell - Luxury_ Cococure.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lp83CW6085ifF7YBPPehDTskwKLjkhc0k,332000,Music,Unassigned,9288,37175,2146,99,320,Unknown,1998,1.0,5:32,3,0
 Maxwell - Pretty Wings,Music/Maxwell - Pretty Wings.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mV11IW3t3TOZc2XneD3gaPyrtSLQ_1xe8,255000,Music,Unassigned,8661,32670,10761,117,320,True,2009,1.0,4:15,3,0
+maxwell - The Suite Theme (Remastered 2021),ondemand/beds/maxwell - The Suite Theme (Remastered 2021).mp3,,359680,Music,Unassigned,19273,49714,4979,152,320k,True,1996,1.0,5:59,,False
 Maxwell - This Woman's Work,Music/Maxwell - This Woman's Work.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mYL55s_mrDtDJZOZ8YE5nliU94ZdEeJ8A,237000,Music,Unassigned,77067,57562,6628,112,320,Unknown,2001,1.0,3:57,3,0
 Maze - Before I Let Go (feat. Maze),Live/Maze - Before I Let Go (feat. Maze).mp3,https://music.youtube.com/watch?v=y4854yQ1sHc,309394,Music,Live,0,2000,5520,103,320,True,1981,1.0,5:09,3,0
 Maze - Happy Feelin's (Remastered 2004) (feat. Maze),Music/Maze - Happy Feelin's (Remastered 2004) (feat. Maze).mp3,https://music.youtube.com/playlist?list=OLAK5uy_m4dhRBzQqN1OiyGr_FH7CIP0NURm81yxI,431047,Music,Throwbacks,0,2000,0,144,320,True,2004,1.0,7:11,3,0
 Maze - Love Is The Key (Remastered 2004) (feat. Maze),Music/Maze - Love Is The Key (Remastered 2004) (feat. Maze).mp3,https://music.youtube.com/watch?v=bNZsZFwmGF8,268591,Music,Old School,5062,11099,7046,123,320,True,1983,1.0,4:28,7,0
 Maze Featuring Frankie Beverly - Joy and Pain,Music/Maze Featuring Frankie Beverly - Joy and Pain.mp3,,432000,Music,Old School,8359,48530,4306,108,320,Unknown,1986,1.0,7:12,7,0
 Michael Jackson - Bad,Music/Michael Jackson - Bad.mp3,https://music.youtube.com/watch?v=-DlMoJ2V6uk,247406,Music,Old School,3274,13003,1403,112,320,True,1987,1.0,4:07,,Unknown
+Michael Jackson - Beat It,Music/Michael Jackson - Beat It.mp3,,258432,Music,Unassigned,348,17995,8971,136,320k,Unknown,1982,1.0,4:18,,Unknown
 Michael Jackson - Billie Jean,Music/Michael Jackson - Billie Jean.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l1U925dsiDi2DqlG-KCbODG6BaibpxbQE,288000,Music,Unassigned,4458,19040,1708,117,320,True,1982,1.0,4:48,7,0
 Michael Jackson - Break of Dawn,Music/Michael Jackson - Break of Dawn.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lQq3vGlP81JruELvDx3izUej85ZXIhoLA,333000,Music,Unassigned,14652,58259,8323,81,320,True,2001,1.0,5:33,3,0
 Michael Jackson - Butterflies,Music/Michael Jackson - Butterflies.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lQq3vGlP81JruELvDx3izUej85ZXIhoLA,279000,Music,Throwbacks,21548,40797,5699,89,320,True,2001,1.0,4:39,3,0
@@ -1279,7 +1344,9 @@ Michael Jackson - Wanna Be Startin’ Somethin’,Music/Michael Jackson - Wanna 
 Michael Jackson - You Are Not Alone,Music/Michael Jackson - You Are Not Alone.mp3,https://www.youtube.com/watch,345624,Music,Unassigned,0,2000,2411,117,320,Unknown,2017,1.0,5:45,1,0
 Michael Jackson - You Rock My World,Music/Michael Jackson - You Rock My World.mp3,https://music.youtube.com/watch?v=MiE1inuK5tE,337789,Music,Throwbacks,34876,37361,358,96,320,True,2001,1.0,5:37,,Unknown
 Michael Jackson - You Rock My World (radio edit),Music/Michael Jackson - You Rock My World (radio edit).mp3,,265979,Music,Throwbacks,3437,29304,428,96,320k,True,2003,1.0,4:25,3,Unknown
+Michael Jackson - You Rock My World (radio edit) (1),Music/Michael Jackson - You Rock My World (radio edit) (1).mp3,,265979,Music,Unassigned,3437,29304,428,96,320k,True,2003,1.0,4:25,,Unknown
 Michael McDonald - I Keep Forgettin' (Every Time You're Near),Music/Michael McDonald - I Keep Forgettin' (Every Time You're Near).mp3,,215000,Music,Old School,8800,18715,7835,96,320,Unknown,1982,1.0,3:35,7,0
+Michel’le - Something in My Heart,Music/Michel’le - Something in My Heart.mp3,,353071,Music,Unassigned,2949,52686,9275,129,320k,True,1989,1.0,5:53,,Unknown
 Miguel - Adorn,Music/Miguel - Adorn.mp3,,192000,Music,Unassigned,325,17090,2843,89,320k,True,2012,1.0,3:13,1,0
 Miguel - All I Want Is You (feat. J. Cole),Music/Miguel - All I Want Is You (feat. J. Cole).mp3,https://music.youtube.com/watch?v=O1r16NYKniY,295967,Music,Unassigned,1811,30627,6140,96,320,True,2010,1.0,4:55,,True
 Miguel - All I Want Is You (feat. J. Cole) (Clean),Music/Miguel - All I Want Is You (feat. J. Cole).mp3,,295967,Music,Throwbacks,1811,30627,6140,96,320k,True,2010,1.0,4:55,3,0
@@ -1316,6 +1383,7 @@ Missy Elliott - Work It,Music/Missy Elliott - Work It.mp3,https://music.youtube.
 Missy Elliott - Work It,Music/Missy Elliott - Work It.mp3,https://music.youtube.com/watch?v=S6-USA59450,292989,Music,Throwbacks,11819,18158,103,103,320,True,2002,1.0,4:52,3,1
 Missy Elliott - Work It (Clean),Music/Missy Elliott - Work It (Clean).mp3,,292989,Music,Throwbacks,11819,18158,103,103,320k,True,2002,1.0,4:52,3,False
 Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]),Music/Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]) (Radio Edit).mp3,https://music.youtube.com/watch?v=S3_JIn9k2rE,238811,Music,Throwbacks,18321,20480,3888,108,320,True,2002,1.0,3:58,,Unknown
+Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]) (Radio Edit),Music/Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]) (Radio Edit).mp3,,238811,Music,Unassigned,18321,20480,3888,108,320k,True,2002,1.0,3:58,,Unknown
 Monica - Angel of Mine,Music/Monica - Angel of Mine.mp3,https://music.youtube.com/playlist?list=OLAK5uy_niMRpprZ3JwriPTh7TSfoYimG3ubVhHUg,250227,Music,Throwbacks,44234,47531,2611,89,320,True,1998,1.0,4:10,3,0
 Monica - Before You Walk Out of My Life,Music/Monica - Before You Walk Out of My Life.mp3,https://music.youtube.com/playlist?list=OLAK5uy_ltl5jTfIcLjXHsUExTULSAexAcnqbAle4,292000,Music,Unassigned,48460,44861,1914,172,320,Unknown,1995,1.0,4:52,3,0
 Monica - Don’t Take It Personal (Just One of Dem Days),Music/Monica - Don’t Take It Personal (Just One of Dem Days).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nl8HFtdAN2bChtFlKOke9L7Q4i8C8ieeY,258000,Music,Unassigned,12632,26865,11086,172,320,Unknown,1995,1.0,4:18,3,0
@@ -1328,6 +1396,7 @@ Montell Jordan - Falling,Music/Montell Jordan - Falling.mp3,https://music.youtub
 Montell Jordan - Get It On Tonite,Music/Montell Jordan - Get It On Tonite.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kp9vvTKq3zSanujjr2ukQt0TURfIkqkfs,277000,Music,Unassigned,10124,13096,5629,99,320,True,2015,1.0,4:37,3,0
 Montell Jordan - This Is How We Do It,Music/Montell Jordan - This Is How We Do It.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kfYeeE9ysmQD0DefTD941pHky4PRjr-As,233000,Music,Unassigned,14721,59304,7998,103,320,True,1995,1.0,3:53,3,1
 Montell Jordan - This Is How We Do It,Music/Montell Jordan - This Is How We Do It.mp3,https://music.youtube.com/watch?v=kNAZa-ORLIU,277342,Music,Throwbacks,14721,59304,7998,103,320,True,1995,1.0,4:37,,Unknown
+Montell Jordan - This Is How We Do It (Clean),Music/Montell Jordan - This Is How We Do It (Clean).mp3,,215568,Music,Unassigned,14884,54915,5561,103,320k,Unknown,1995,1.0,3:35,,False
 Montell Jordan - What's On Tonight,Music/Montell Jordan - What's On Tonight.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kp9vvTKq3zSanujjr2ukQt0TURfIkqkfs,276000,Music,Unassigned,17043,31718,1914,112,320,Unknown,1996,1.0,4:36,3,0
 Mr.Cheeks - Crush On You (feat. Mario Winans),Music/Mr.Cheeks - Crush On You (feat. Mario Winans).mp3,https://music.youtube.com/watch?v=fgt3ROI-V4M,237322,Music,Throwbacks,4435,21827,7789,99,320,True,2003,1.0,3:55,3,1
 Mr.Cheeks - Crush On You (feat. Mario Winans),Music/Mr.Cheeks - Crush On You (feat. Mario Winans).mp3,https://music.youtube.com/watch?v=fgt3ROI-V4M,235024,Music,Throwbacks,4435,16974,10,99,320,True,2003,1.0,3:55,3,1
@@ -1337,6 +1406,7 @@ Mtume - Juicy Fruit (Vocal Remix),Music/Mtume - Juicy Fruit (Vocal Remix).mp3,,3
 Muni Long - Hrs & Hrs,Music/Muni Long - Hrs & Hrs (Explicit).mp3,https://music.youtube.com/watch?v=IiniTp0ZrxQ,204356,Music,New School,6432,11053,312,144,320,True,2022,1.0,3:24,1,1
 Muni Long - Hrs & Hrs,Music/Muni Long - Hrs & Hrs.mp3,https://music.youtube.com/watch?v=IiniTp0ZrxQ,204356,Music,New School,6432,11053,312,144,320,True,2022,1.0,3:24,1,1
 Muni Long - Hrs & Hrs,Music/Muni Long - Hrs & Hrs.mp3,https://music.youtube.com/watch?v=riQDyioLDf8,204356,Music,New School,6432,11053,312,144,320,True,2022,1.0,3:24,,False
+Muni Long - Hrs & Hrs (Clean),Music/Muni Long - Hrs & Hrs (Clean).mp3,,204356,Music,Unassigned,6432,11053,312,144,320k,True,2022,1.0,3:24,,False
 Muni Long - Hrs & Hrs (Explicit),Music/Muni Long - Hrs & Hrs (Explicit).mp3,,204356,Music,Unassigned,6432,11053,312,144,320k,True,2022,1.0,3:24,,True
 Musiq - Dontchange,Music/Musiq - Dontchange.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nmJvqzm_ke3umjATCPaafqi8UMXDgpG38,304000,Music,Unassigned,42934,32369,6558,103,320,True,2002,1.0,5:04,3,0
 Musiq Soulchild - 143,Music/Musiq Soulchild - 143.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mIWm-C89NsV7DHpS9AnInzyWopVBYSwVQ,297927,Music,Throwbacks,76765,39822,8276,89,320,True,2000,1.0,4:57,3,0
@@ -1361,6 +1431,8 @@ Ne-Yo - Sex With My Ex,Music/Ne-Yo - Sex With My Ex.mp3,https://music.youtube.co
 Ne-Yo - She Got Her Own (feat. Jamie Foxx & Fabolous),Music/Ne-Yo - She Got Her Own (feat. Jamie Foxx & Fabolous).mp3,https://music.youtube.com/watch?v=ai9UCa3o_0o,332330,Music,New School,0,2000,0,144,320,True,2021,1.0,5:32,1,0
 Ne-Yo - U 2 Luv,Music/Ne-Yo - U 2 Luv (Explicit).mp3,https://music.youtube.com/watch?v=ZXg74rXLpwk,208274,Music,Throwbacks,1463,53824,5629,89,320,True,2022,1.0,3:28,,True
 Ne-Yo - U 2 Luv,Music/Ne-Yo - U 2 Luv.mp3,https://music.youtube.com/watch?v=ZXg74rXLpwk,208274,Music,New School,1463,53824,5629,89,320,True,2022,1.0,3:28,,Unknown
+Ne-Yo - U 2 Luv (Clean),Music/Ne-Yo - U 2 Luv (Clean).mp3,,208274,Music,Unassigned,1463,53824,5629,89,320k,True,2022,1.0,3:28,,False
+Ne-Yo - U 2 Luv (Explicit),Music/Ne-Yo - U 2 Luv (Explicit).mp3,,208274,Music,Unassigned,1463,53824,5629,89,320k,True,2022,1.0,3:28,,True
 Ne-Yo - Up Out & Gone,Music/Ne-Yo - Up Out & Gone.mp3,https://music.youtube.com/watch?v=V32ElJVPT64,176718,Music,New School,24729,11029,3865,89,320,True,2026,1.0,2:56,,Unknown
 Ne-Yo - When You're Mad,Music/Ne-Yo - When You're Mad.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kaw5iXx9hIcjo3ArcOXT6pp2UdQ61I1hI,222067,Music,Throwbacks,302,50620,9275,86,320,True,2006,1.0,3:42,3,0
 "Nelly - Air Force Ones (feat. Murphy Lee, Ali & Kyjuan)","Music/Nelly - Air Force Ones (feat. Murphy Lee, Ali & Kyjuan).mp3",https://music.youtube.com/watch?v=1xLUO4qXEyw,302000,Music,Unassigned,11981,43421,1845,161,320,True,2002,1.0,5:04,3,1
@@ -1419,6 +1491,7 @@ Omarion - Obsession,Music/Omarion - Obsession.mp3,https://music.youtube.com/play
 Omarion - Post to Be (feat. Chris Brown & Jhene Aiko),Music/Omarion - Post to Be (feat. Chris Brown & Jhene Aiko).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mj1kdHl_uwaAWMwx4hEa5fMLfwjBkrWS4,225000,Music,Unassigned,19876,34342,4840,96,320,True,2014,1.0,3:45,3,1
 Omarion - Post to Be (feat. Chris Brown & Jhene Aiko),Music/Omarion - Post to Be (feat. Chris Brown & Jhene Aiko).mp3,https://music.youtube.com/watch?v=6z9UXPWAwEY,226638,Music,Unassigned,19876,34342,4840,96,320,True,2014,1.0,3:46,3,1
 Omarion - Post to Be (feat. Chris Brown & Jhene Aiko),Music/Omarion - Post to Be (feat. Chris Brown & Jhene Aiko).mp3,https://music.youtube.com/watch?v=JSIJjfmUaUY,226638,Music,New School,19876,34342,4840,96,320,True,2014,1.0,3:46,,Unknown
+Omarion - Post to Be (feat. Chris Brown & Jhene Aiko) (Clean),Music/Omarion - Post to Be (feat. Chris Brown & Jhene Aiko) (Clean).mp3,,226638,Music,Unassigned,19876,34342,4840,96,320k,True,2014,1.0,3:46,,False
 Omarion - The One,Music/Omarion - The One.mp3,https://music.youtube.com/watch?v=GJU9EGD7Pck,168046,Music,New School,627,14582,1705,199,320,True,2026,1.0,2:48,,Unknown
 Oran “Juice” Jones - The Rain,Music/Oran “Juice” Jones - The Rain.mp3,,309000,Music,Old School,20434,14420,2657,108,320,Unknown,1986,1.0,5:09,7,0
 Otis Redding - I’ve Been Loving You Too Long (live in Europe),Music/Otis Redding - I’ve Been Loving You Too Long (live in Europe).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mc1Je22BJRbKl8ixjlpTansJprj7ZiMa0,250000,Music,Throwbacks,488,54102,7533,152,320,Unknown,1992,1.0,4:10,3,0
@@ -1431,6 +1504,7 @@ OutKast - Prototype,Music/OutKast - Prototype.mp3,https://music.youtube.com/play
 Outkast - She Lives in My Lap (feat. Rosario Dawson),Music/Outkast - She Lives in My Lap (feat. Rosario Dawson).mp3,,267311,Music,Throwbacks,22686,38545,2379,96,263,True,2003,1.0,4:27,3,0
 "Outkast - So Fresh, So","Music/Outkast - So Fresh, So.mp3",https://music.youtube.com/watch?v=p0SNRDRSOLI,240065,Music,Unassigned,2624,11099,7533,112,320,True,2000,1.0,4:00,,True
 "Outkast - So Fresh, So","Music/Outkast - So Fresh, So.mp3",https://music.youtube.com/watch?v=p0SNRDRSOLI,240065,Music,Throwbacks,2624,11099,7533,112,320,True,2000,1.0,4:00,,False
+"Outkast - So Fresh, So Clean","Music/Outkast - So Fresh, So Clean.mp3",,240065,Music,Unassigned,2624,11099,7533,112,320k,Unknown,2000,1.0,4:00,,False
 Outkast - The Way You Move (feat. Sleepy Brown),Music/Outkast - The Way You Move (feat. Sleepy Brown).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mgxl_FD_dJW9UF6U9b8u1xjb0sE7uiqxE,234057,Music,Throwbacks,1672,16440,7533,123,320,True,2003,1.0,3:54,3,1
 Outkast - The Way You Move (Radio Mix) (feat. Sleepy Brown),Music/Outkast - The Way You Move (Radio Mix) (feat. Sleepy Brown).mp3,https://music.youtube.com/watch?v=schL0jZKCA8,234005,Music,Throwbacks,1625,14489,7533,123,320,True,2003,1.0,3:54,3,0
 P. Diddy - I Need a Girl (Pt. 1) (feat. Loon & Usher),Music/P. Diddy - I Need a Girl (Pt. 1) (feat. Loon & Usher).mp3,https://music.youtube.com/playlist?list=OLAK5uy_m80fSlhxs1_9oUalogqXUvoLPpdWEEwk0,268000,Music,Unassigned,8545,20248,9345,89,320,Unknown,2005,1.0,4:28,3,1
@@ -1440,7 +1514,7 @@ Parliament - Flashlight,Music/Parliament - Flashlight.mp3,https://music.youtube.
 Pastor Mike Jr. - Turn It Around,Shows/InspirationalChurch/Pastor Mike Jr. - Turn It Around.mp3,https://music.youtube.com/watch?v=9wq7jpiVrl4,137091,Music,Throwbacks,33599,57980,3098,86,320,True,2025,1.0,2:17,5,Unknown
 Patrice Rushen - Forget Me Nots,Music/Patrice Rushen - Forget Me Nots.mp3,https://music.youtube.com/watch?v=vP709vKwkD0,284552,Music,Old School,0,2000,3448,112,320,True,1982,1.0,4:44,7,0
 Patrice Rushen - Remind Me,Music/Patrice Rushen - Remind Me.mp3,,312000,Music,Unassigned,5875,30627,12247,92,320,Unknown,1982,1.0,5:12,7,0
-Patrice Rushen - Settle for My Love,Music/Patrice Rushen - Settle for My Love.mp3,https://music.youtube.com/watch?v=Xf5eswg8Vmw,315481,Music,Unassigned,15209,14512,10622,129,320,True,1979,1.0,5:15,,Unknown
+Patrice Rushen - Settle For My Love,Music/Patrice Rushen - Settle For My Love.mp3,https://music.youtube.com/watch?v=Xf5eswg8Vmw,315481,Music,Old School,15209,14512,10622,129,320,True,1979,1.0,5:15,,Unknown
 Patti LaBelle - If Only You Knew,Music/Patti LaBelle - If Only You Knew.mp3,https://music.youtube.com/watch?v=HwJDu6W13WQ,285388,Music,Old School,31115,48089,8184,129,320,True,1983,1.0,4:45,,Unknown
 Patti LaBelle - If You Asked Me To,Music/Patti LaBelle - If You Asked Me To.mp3,https://music.youtube.com/watch?v=bkCWOsNzrH0,239882,Music,Old School,0,2000,4684,86,320,True,1989,1.0,3:59,7,0
 Patti LaBelle - On My Own,Music/Patti LaBelle - On My Own.mp3,,285000,Music,Old School,32415,39149,8485,92,320,True,1986,1.0,4:45,7,0
@@ -1578,6 +1652,7 @@ Rockwell - Somebody's Watching Me (Single Version),Music/Rockwell - Somebody's W
 Rome - I Belong To You (Every Time I See Your Face),Music/Rome - I Belong To You (Every Time I See Your Face).mp3,https://music.youtube.com/playlist?list=OLAK5uy_lFfLz719IrbxZkTC_CUO6ShnEJ6vOxP6w,273319,Music,Throwbacks,0,2000,2813,117,320,True,1990,1.0,4:33,3,0
 Ron Carter - Open My Eyes,Shows/InspirationalChurch/Ron Carter - Open My Eyes.mp3,https://music.youtube.com/watch?v=j7-6vDRl7wo,300434,Music,Throwbacks,6316,18065,7069,161,320,True,2026,1.0,5:00,5,Unknown
 Roy Ayers - Everybody Loves the Sunshine,Music/Roy Ayers - Everybody Loves the Sunshine.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lxggW9pPJYyAlEkumhr48p6tFHR7igAzw,233000,Music,Unassigned,26215,25078,6280,161,320,Unknown,1997,1.0,3:53,7,0
+Royal Philharmonic Orchestra - Dancing In The Street,Music/Royal Philharmonic Orchestra - Dancing In The Street.mp3,,161332,Music,Unassigned,9520,14025,5095,63,320k,True,2021,1.0,2:41,,Unknown
 Rude Boys with Gerald Levert - Written All over Your Face,Music/Rude Boys with Gerald Levert - Written All over Your Face.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m2A3EgEloXWHp3fdxAvnvth7d6T0K2bgw,383634,Music,Throwbacks,789,17763,3934,136,265,True,2005,1.0,6:23,3,0
 Rude Boys with Gerald Levert - Written All over Your Face - Alternate,Music/Rude Boys with Gerald Levert - Written All over Your Face - Alternate.mp3,https://music.youtube.com/watch?v=a0bnlxYl3HQ,381100,Music,Throwbacks,0,2000,0,136,320,True,1990,1.0,6:21,3,0
 Ruff Endz - Someone To Love You,Music/Ruff Endz - Someone To Love You.mp3,https://music.youtube.com/watch?v=259C_El7rlg,261000,Music,Unassigned,27632,24126,6047,78,320,True,2002,1.0,4:57,3,1
@@ -1585,11 +1660,13 @@ Ruff Endz - Someone To Love You,Music/Ruff Endz - Someone To Love You.mp3,https:
 Ruff Endz - Someone To Love You (Clean),Music/Ruff Endz - Someone To Love You (Clean).mp3,,297404,Music,Throwbacks,27632,24126,6047,78,320k,True,2002,1.0,4:57,3,False
 Rufus - Ain't Nobody,Music/Rufus - Ain't Nobody.mp3,https://music.youtube.com/watch?v=uBnISf3Rjx8,285309,Music,Old School,0,2000,4061,103,320,True,1983,1.0,4:45,7,0
 Rufus - Sweet Thing (feat. Chaka Khan),Music/Rufus - Sweet Thing (feat. Chaka Khan).mp3,https://music.youtube.com/watch?v=N_qasjqcpjw,200202,Music,Classics,627,40983,6814,81,320,True,1975,1.0,3:20,7,0
+Sade - Cherish the Day,Music/Sade - Cherish the Day.mp3,,332199,Music,Unassigned,2647,58561,7719,108,320k,True,1992,1.0,5:32,,Unknown
 Sade - Cherish the Day (Live 2011),Live/Sade - Cherish the Day (Live 2011).mp3,https://music.youtube.com/watch?v=Z6G6s0rBpww,454322,Music,Live,46858,32020,10413,161,320,True,2012,1.0,7:34,,Unknown
-Sade - Hang On to Your Love,Music/Sade - Hang On to Your Love.mp3,https://music.youtube.com/watch?v=4h1_x0dtLXE,270524,Music,Unassigned,1672,25588,6581,108,320,True,1994,1.0,4:30,,Unknown
+Sade - Hang on to Your Love,Music/Sade - Hang on to Your Love.mp3,https://music.youtube.com/watch?v=4h1_x0dtLXE,270524,Music,Throwbacks,1672,25588,6581,108,320,True,1994,1.0,4:30,,Unknown
 Sade - Is It a Crime,Music/Sade - Is It a Crime.mp3,https://music.youtube.com/watch?v=uScPm9AQYjw,381179,Music,Old School,1231,57887,10598,123,320,True,1985,1.0,6:21,,Unknown
 Sade - Kiss of Life,Music/Sade - Kiss of Life.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mn-MpwVjDlA228kMT2lHhVCRt98EUqkPQ,350041,Music,Throwbacks,2949,19667,6024,96,259,True,1992,1.0,5:50,3,0
 Sade - No Ordinary Love,Music/Sade - No Ordinary Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mn-MpwVjDlA228kMT2lHhVCRt98EUqkPQ,440503,Music,Throwbacks,1440,11471,6883,112,256,True,1992,1.0,7:20,3,0
+Sade - Smooth Operator,Music/Sade - Smooth Operator.mp3,,258743,Music,Unassigned,25751,21177,7626,117,320k,True,1994,1.0,4:18,,Unknown
 Sade - Smooth Operator (Single Version),Music/Sade - Smooth Operator (Single Version).mp3,https://music.youtube.com/watch?v=mRNcPbCJNJ8,258743,Music,Throwbacks,25751,21177,7626,117,320,True,1994,1.0,4:18,,Unknown
 Sade - The Sweetest Taboo,Music/Sade - The Sweetest Taboo.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mTdTiMQbk4FRor2slefb8RMQOOE-luo-s,302000,Music,Throwbacks,24288,44280,6883,123,320,True,1994,1.0,5:02,7,0
 Sade - The Sweetest Taboo - Alternate,Music/Sade - The Sweetest Taboo - Alternate.mp3,,277447,Music,Unassigned,24590,45232,7301,123,264,True,1985,1.0,4:37,7,0
@@ -1602,6 +1679,7 @@ Santana - Smooth (feat. Rob Thomas),Music/Santana - Smooth (feat. Rob Thomas).mp
 Sean Paul - Get Busy,Music/Sean Paul - Get Busy.mp3,https://music.youtube.com/watch?v=tshxBEBMaA8,211722,Music,New School,12516,25960,2680,99,320,True,2022,1.0,3:31,,False
 Sean Paul - Gimme the Light,Music/Sean Paul - Gimme the Light.mp3,https://music.youtube.com/watch?v=k0FmIMbSGbw,228049,Music,New School,14443,42214,428,144,320,True,2022,1.0,3:48,,Unknown
 Sean Paul - Gimme the Light,Music/Sean Paul - Gimme the Light (Explicit).mp3,https://music.youtube.com/watch?v=om4cKOIrP3g,228049,Music,New School,14443,42214,428,144,320,True,2003,1.0,3:48,,True
+Sean Paul - Gimme the Light (Explicit),Music/Sean Paul - Gimme the Light (Explicit).mp3,,228049,Music,Unassigned,14443,42214,428,144,320k,True,2003,1.0,3:48,,True
 Sentury - Don't Mind,Music/Sentury - Don't Mind.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nAi5DC-bNau7GAN9V1Xax0IEPcsx7TPY0,281182,Music,Unassigned,6687,41123,4677,112,320,Unknown,2026,1.0,4:41,1,0
 Seven Days - Angel,Music/Seven Days - Angel.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mxY_ZZIOxGwF_1f7Beb2_9SsypdxChI4Y,195000,Music,Unassigned,13560,36734,5235,103,320,Unknown,2010,1.0,3:15,3,0
 Shai - Comforter,Music/Shai - Comforter.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mEoyPm-muNe3cjUaByJ2YZUrsGtvk4zgI,250671,Music,Throwbacks,139,14930,6256,123,320,True,1992,1.0,4:10,3,0
@@ -1615,6 +1693,7 @@ Silk - Girl U for Me,Music/Silk - Girl U for Me.mp3,https://music.youtube.com/pl
 Silk - If You,Music/Silk - If You.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m4cpclvXD73wWXqVHXDvqYAcfPgTLLV2g,337528,Music,Throwbacks,10426,18878,2773,99,255,True,1999,1.0,5:37,3,0
 Silk - Lose Control,Music/Silk - Lose Control.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mGFw8g0ApvfDijVo4WGry1boRzREGltWc,314906,Music,Throwbacks,1231,56123,16566,123,256,True,1992,1.0,5:14,3,0
 Silk - Meeting in My Bedroom,Music/Silk - Meeting in My Bedroom.mp3,https://music.youtube.com/playlist?list=OLAK5uy_m4cpclvXD73wWXqVHXDvqYAcfPgTLLV2g,306129,Music,Throwbacks,1161,34505,5165,112,248,True,1999,1.0,5:06,3,0
+Simply Red - If You Don’t Know Me by Now,Music/Simply Red - If You Don’t Know Me by Now.mp3,,206080,Music,Unassigned,464,10008,6047,96,320k,True,1989,1.0,3:26,,Unknown
 SiR & Isaiah Rashad - KARMA,Music/SiR & Isaiah Rashad - KARMA.mp3,https://music.youtube.com/playlist?list=OLAK5uy_l3YYvlpGGbRP5cq7z-uJXRg1QAmvr-ylk,188000,Music,New School,15581,33390,544,92,320,True,2024,1.0,3:08,1,1
 SiR - All in My Head,Music/SiR - All in My Head.mp3,https://music.youtube.com/watch?v=l7wVoMTZbdo,214000,Music,Unassigned,6571,10519,5258,74,320,True,2016,1.0,3:34,1,1
 SiR - All in My Head,Music/SiR - All in My Head.mp3,https://music.youtube.com/watch?v=l7wVoMTZbdo,214282,Music,Unassigned,6571,10519,5258,74,320,True,2016,1.0,3:34,1,1
@@ -1629,6 +1708,7 @@ SiR - Hair Down (Explicit),Music/SiR - Hair Down (Explicit).mp3,,216999,Music,Un
 SiR - John Redcorn,Music/SiR - John Redcorn (Explicit).mp3,https://music.youtube.com/watch?v=7k_SBQNHEOw,187000,Music,New School,13468,19249,2588,144,320,True,2019,1.0,3:08,1,1
 SiR - John Redcorn,Music/SiR - John Redcorn.mp3,https://music.youtube.com/watch?v=7k_SBQNHEOw,188003,Music,New School,13468,19249,2588,144,320,True,2019,1.0,3:08,1,1
 SiR - John Redcorn,Music/SiR - John Redcorn.mp3,https://music.youtube.com/watch?v=cPSQoVCWv5Q,187951,Music,Throwbacks,13421,37547,2588,144,320,True,2019,1.0,3:07,,False
+SiR - John Redcorn (Clean),Music/SiR - John Redcorn (Clean).mp3,,188003,Music,Unassigned,13468,19249,2588,144,320k,True,2019,1.0,3:08,,False
 SiR - John Redcorn (Explicit),Music/SiR - John Redcorn (Explicit).mp3,,188003,Music,Unassigned,13468,19249,2588,144,320k,True,2019,1.0,3:08,,True
 SiR - POETRY IN MOTION,Music/SiR - POETRY IN MOTION.mp3,https://music.youtube.com/watch?v=it04tEFtm60,191000,Music,Unassigned,13677,11285,7487,161,320,True,2024,1.0,3:11,1,1
 SiR - POETRY IN MOTION,Music/SiR - POETRY IN MOTION.mp3,https://music.youtube.com/watch?v=it04tEFtm60,191948,Music,Unassigned,13677,11285,7487,161,320,True,2024,1.0,3:11,1,1
@@ -1644,7 +1724,8 @@ Sisqo - Incomplete (Stargate Radio Edit),Music/Sisqo - Incomplete (Stargate Radi
 Sisqo - Thong Song,Music/Sisqo - Thong Song.mp3,https://music.youtube.com/watch?v=ZlJnJ2VQT9s,253780,Music,Throwbacks,16602,23522,11202,123,320,True,1999,1.0,4:13,3,1
 Sisqo - Thong Song,Music/Sisqo - Thong Song.mp3,https://music.youtube.com/watch?v=ZlJnJ2VQT9s,253780,Music,Throwbacks,16649,23545,11156,123,320,True,1999,1.0,4:13,3,1
 Sisqo - Thong Song,Music/Sisqo - Thong Song.mp3,https://music.youtube.com/watch?v=XMT9DRTS6mY,253780,Music,Throwbacks,16602,23522,11202,123,320,True,1999,1.0,4:13,,False
-Slave - Watching You (single version),Music/Slave - Watching You (single version).mp3,https://music.youtube.com/watch?v=DauyhG15fuY,209006,Music,Unassigned,10077,53777,8625,112,320,True,1980,1.0,3:29,,Unknown
+Sisqo - Thong Song (Clean),Music/Sisqo - Thong Song (Clean).mp3,,253780,Music,Unassigned,16649,23545,11156,123,320k,True,1999,1.0,4:13,,False
+Slave - Watching You (Single Version),Music/Slave - Watching You (Single Version).mp3,https://music.youtube.com/watch?v=DauyhG15fuY,209006,Music,Old School,10077,53777,8625,112,320,True,1980,1.0,3:29,,Unknown
 Sleepy Brown - I Can't Wait (feat. OutKast),Music/Sleepy Brown - I Can't Wait (feat. OutKast).mp3,https://music.youtube.com/watch?v=WOCBQVhbp0Y,273000,Music,Unassigned,10000,0,20000,103,320,True,2004,1.0,4:32,3,1
 Sleepy Brown - I Can't Wait (feat. OutKast),Music/Sleepy Brown - I Can't Wait (feat. OutKast).mp3,https://music.youtube.com/watch?v=WOCBQVhbp0Y,272953,Music,Unassigned,16184,11471,11759,103,320,True,2004,1.0,4:32,3,1
 Sleepy Brown - I Can't Wait (feat. OutKast) (Clean),Music/Sleepy Brown - I Can't Wait (feat. OutKast) (Clean).mp3,,272953,Music,Throwbacks,16184,11471,11759,103,320k,True,2004,1.0,4:32,3,False
@@ -1670,8 +1751,10 @@ Soul II Soul - Keep on Movin',Music/Soul II Soul - Keep on Movin'.mp3,https://mu
 Sounds Of Blackness - Hold On (Change Is Comin'),Music/Sounds Of Blackness - Hold On (Change Is Comin').mp3,https://music.youtube.com/playlist?list=OLAK5uy_mrVnu4_YxSxIQgJPUu7Kdl_YnNNosOsIE,260754,Music,Throwbacks,0,2000,2575,92,320,True,1997,1.0,4:20,3,0
 Sounds Of Blackness - I Believe,Shows/InspirationalChurch/Sounds Of Blackness - I Believe.mp3,https://music.youtube.com/watch?v=985PEKzVVig,279014,Music,Throwbacks,7523,10913,4910,96,320,True,1994,1.0,4:39,5,Unknown
 Sounds Of Blackness - Optimistic,Music/Sounds Of Blackness - Optimistic.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kBhV-QVXtgkTkQOpdlyr-SdROD3zYba6M,318589,Music,Throwbacks,0,2000,0,103,320,True,1991,1.0,5:18,3,0
+Stephanie Mills - I Feel Good All Over,Music/Stephanie Mills - I Feel Good All Over.mp3,,302263,Music,Unassigned,42864,30209,5444,123,320k,True,1987,1.0,5:02,,Unknown
 Stephanie Mills - Never Knew Love Like This Before (Extended Mix),Music/Stephanie Mills - Never Knew Love Like This Before (Extended Mix).mp3,https://music.youtube.com/playlist?list=OLAK5uy_kssm_7H1-rjAs2Afcd0872yyOOTlIc-x0,328307,Music,New School,0,2000,2913,112,320,True,2021,1.0,5:28,1,0
 Stephanie Mills - Something in the Way You Make Me Feel,Music/Stephanie Mills - Something in the Way You Make Me Feel.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mfQUa_tzbsHQjlRfH1fG5qdg5mpiGFUX4,327000,Music,Throwbacks,2670,11146,11365,96,320,Unknown,2006,1.0,5:27,7,0
+Steve Arrington - Feel So Real,Music/Steve Arrington - Feel So Real.mp3,,306181,Music,Unassigned,13886,24985,10,112,320k,True,1985,1.0,5:06,,Unknown
 Stevie Wonder - A Place in the Sun,Music/Stevie Wonder - A Place in the Sun.mp3,,169718,Music,Classics,9706,13026,3029,117,320k,True,1999,1.0,2:49,2,Unknown
 Stevie Wonder - All I Do,Music/Stevie Wonder - All I Do.mp3,https://music.youtube.com/watch?v=-bnx_Qwy7w4,306704,Music,Old School,0,2000,0,117,320,True,1980,1.0,5:06,7,0
 Stevie Wonder - As,Music/Stevie Wonder - As.mp3,https://music.youtube.com/playlist?list=OLAK5uy_mmSLtHX8RxMd-Y8Kp9h44prOMFQLYou7M,428330,Music,Throwbacks,50062,10310,428,103,320,True,1999,1.0,7:08,3,0
@@ -1759,6 +1842,7 @@ Tank - When We (Remix) (feat. Ty Dolla $ign & Trey Songz),Music/Tank - When We (
 Tank - When We (Remix) (feat. Ty Dolla $ign & Trey Songz) (Clean),Music/Tank - When We (Remix) (feat. Ty Dolla $ign & Trey Songz) (Clean).mp3,,280738,Music,New School,32670,37732,2611,117,320k,True,2018,1.0,4:40,1,False
 Tasha Cobbs - Put A Praise On It (Live) (feat. Kierra Sheard),Shows/InspirationalChurch/Tasha Cobbs - Put A Praise On It (Live) (feat. Kierra Sheard).mp3,https://music.youtube.com/watch?v=fWE-mIR1Ywk,376712,Music,Throwbacks,31556,35016,5583,152,320,True,2015,1.0,6:16,5,Unknown
 Ted & Sheri - You’ve Been so Faithful (Groove),Shows/InspirationalChurch/Ted & Sheri - You’ve Been so Faithful (Groove).mp3,https://music.youtube.com/playlist?list=OLAK5uy_mg4bBTlsrVRv2qbpzPmaJCeEQzaCahqj4,196284,Music,New School,6200,11796,3052,161,320,Unknown,2024,1.0,3:16,5,0
+Teddy Pendergrass - Love T.K.O.,Music/Teddy Pendergrass - Love T.K.O..mp3,,299180,Music,Unassigned,302,26053,6860,74,320k,True,1980,1.0,4:59,,Unknown
 Teddy Pendergrass - Turn off the Lights,Music/Teddy Pendergrass - Turn off the Lights.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lAw2jL29JRnRvVD5ofbmVyqRopuNsMNh0,354672,Music,New School,1138,24427,4121,117,320,Unknown,2017,1.0,5:54,1,0
 Teddy Pendergrass - When Somebody Loves You Back,Music/Teddy Pendergrass - When Somebody Loves You Back.mp3,https://music.youtube.com/watch?v=l0fYDgmE1NQ,296934,Music,Old School,10797,32461,5537,99,320,True,1978,1.0,4:56,,Unknown
 Teena Marie - I Need Your Lovin',Music/Teena Marie - I Need Your Lovin'.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kzFlyAilBrAAgz0OdTaq6PQUBK1_XEnmI,231053,Music,Throwbacks,4667,13398,10180,108,320,True,1993,1.0,3:51,3,0
@@ -1794,7 +1878,7 @@ The Game - Hate It Or Love It (feat. 50 Cent),Music/The Game - Hate It Or Love I
 The Game - Hate It Or Love It (feat. 50 Cent),Music/The Game - Hate It Or Love It (feat. 50 Cent).mp3,https://music.youtube.com/watch?v=zBJCGXbjhRA,206498,Music,Throwbacks,19969,37895,3191,99,320,True,2004,1.0,3:26,3,1
 The Game - Hate It Or Love It (feat. 50 Cent) (Clean),Music/The Game - Hate It Or Love It (feat. 50 Cent) (Clean).mp3,,206498,Music,Throwbacks,19969,37895,3191,99,320k,True,2004,1.0,3:26,3,False
 The Gap Band - Outstanding,Music/The Gap Band - Outstanding.mp3,https://music.youtube.com/watch?v=xBcpaB8lq44,198870,Music,Old School,1881,13723,10064,99,320,True,1982,1.0,3:18,,Unknown
-The Gap Band - Yearning for Your Love,Music/The Gap Band - Yearning for Your Love.mp3,https://music.youtube.com/watch?v=m_-Gh-UbT58,345156,Music,Unassigned,627,19064,9716,92,320,True,2000,1.0,5:45,,Unknown
+The Gap Band - Yearning For Your Love,Music/The Gap Band - Yearning For Your Love.mp3,https://music.youtube.com/watch?v=m_-Gh-UbT58,345156,Music,Throwbacks,627,19064,9716,92,320,True,2000,1.0,5:45,,Unknown
 The Group Fire - I Can Count On You,Shows/InspirationalChurch/The Group Fire - I Can Count On You.mp3,https://music.youtube.com/watch?v=ZzhTolK79E0,231915,Music,Throwbacks,673,39520,6558,123,320,True,2025,1.0,3:51,5,Unknown
 The Ikettes - I’m Blue (The Gong‐Gong Song),Music/The Ikettes - I’m Blue (The Gong‐Gong Song).mp3,https://music.youtube.com/playlist?list=OLAK5uy_kSAm8CXLjU5mE4Y-j8JIKghSUoRTVEpvI,153000,Music,Unassigned,15627,14745,6210,112,320,Unknown,2004,1.0,2:33,3,0
 The Impressions - Keep on Pushing,Music/The Impressions - Keep on Pushing.mp3,,152000,Music,Classics,2926,27353,7835,136,320,Unknown,1964,1.0,2:32,3,0
@@ -1802,6 +1886,7 @@ The Impressions - People Get Ready,Music/The Impressions - People Get Ready.mp3,
 The Internet - Girl (feat. KAYTRANADA),Music/The Internet - Girl (feat. KAYTRANADA).mp3,https://music.youtube.com/watch?v=HCyx37fZh-A,324000,Music,New School,22547,15627,8532,152,320,True,2015,1.0,3:55,1,1
 The Internet - Girl (feat. KAYTRANADA),Music/The Internet - Girl (feat. KAYTRANADA).mp3,https://music.youtube.com/watch?v=HCyx37fZh-A,235520,Music,New School,13700,48785,1450,103,320,True,2015,1.0,3:55,1,1
 The Internet - Girl (Radio Edit) (feat. KAYTRANADA),Music/The Internet - Girl (Radio Edit) (feat. KAYTRANADA).mp3,,235520,Music,New School,13700,48785,1450,103,320k,True,2015,1.0,3:55,1,Unknown
+The Intruders - Together,Music/The Intruders - Together.mp3,,178860,Music,Unassigned,14327,30232,3470,92,320k,True,2007,1.0,2:58,,Unknown
 The Isley Brothers - Between the Sheets,Music/The Isley Brothers - Between the Sheets.mp3,https://music.youtube.com/watch?v=TNDb8qKZEX8,340062,Music,Old School,24126,16742,7882,83,320,True,1983,1.0,5:40,7,0
 The Isley Brothers - Busted (feat. Ronald Isley & JS),Music/The Isley Brothers - Busted (feat. Ronald Isley & JS) (Explicit).mp3,https://music.youtube.com/watch?v=9bzhIcoo2jk,328000,Music,Throwbacks,232,10101,2936,123,320,True,2003,1.0,3:58,3,1
 The Isley Brothers - Busted (feat. Ronald Isley & JS),Music/The Isley Brothers - Busted (feat. Ronald Isley & JS).mp3,https://music.youtube.com/watch?v=9bzhIcoo2jk,238132,Music,Throwbacks,232,10101,2936,123,320,True,2003,1.0,3:58,3,1
@@ -1833,6 +1918,7 @@ The Notorious B.I.G. - One More Chance  Stay with Me (2005 Remaster),Music/The N
 The O'Jays - Forever Mine,Music/The O'Jays - Forever Mine.mp3,https://music.youtube.com/watch?v=_EybSZNoUQM,366263,Music,Old School,1347,22338,5885,172,320,True,1979,1.0,6:06,7,0
 The O'Jays - One Night Affair,Music/The O'Jays - One Night Affair.mp3,https://music.youtube.com/watch?v=c-dMCewb1x0,138841,Music,Old School,31092,15000,2286,129,320,True,1970,1.0,2:18,7,0
 The O'Jays - Stairway To Heaven,Music/The O'Jays - Stairway To Heaven.mp3,https://music.youtube.com/watch?v=nC-K1M8Xni0,377130,Music,Throwbacks,5062,20178,4701,112,320,True,1995,1.0,6:17,,False
+The Pointer Sisters - I'm So Excited,Music/The Pointer Sisters - I'm So Excited.mp3,,230687,Music,Unassigned,93,25658,6674,185,320k,True,1982,1.0,3:50,,Unknown
 The Pointer Sisters - Jump,Music/The Pointer Sisters - Jump.mp3,,262609,Music,Unassigned,7105,10333,4654,136,252,True,1983,1.0,4:22,7,0
 The Pointer Sisters - Slow Hand,Music/The Pointer Sisters - Slow Hand.mp3,,232020,Music,Unassigned,1858,15766,7441,112,264,True,1981,1.0,3:52,7,0
 The Pussycat Dolls - Buttons,Music/The Pussycat Dolls - Buttons.mp3,https://music.youtube.com/watch?v=R67_mMSyGRg,225620,Music,Throwbacks,2508,43955,1984,103,320,True,2005,1.0,3:45,,Unknown
@@ -1936,6 +2022,7 @@ Trey Songz - Successful (with Drake) (feat. Drake),Music/Trey Songz - Successful
 Trey Songz - Successful (with Drake) (feat. Drake) (Clean),Music/Trey Songz - Successful (with Drake) (feat. Drake) (Clean).mp3,,266318,Music,Throwbacks,12167,19760,1937,108,320k,True,2009,1.0,4:26,3,False
 "Trey Songz - Touchin, Lovin (feat. Nicki Minaj)","Music/Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Explicit).mp3",https://music.youtube.com/watch?v=FsggY8OlTME,222041,Music,Throwbacks,19389,14582,3400,99,320,True,2014,1.0,3:42,,True
 "Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Clean)","Music/Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Clean).mp3",,222041,Music,New School,19435,14629,3354,99,320k,True,2014,1.0,3:42,1,False
+"Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Explicit)","Music/Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Explicit).mp3",,222041,Music,Unassigned,19389,14582,3400,99,320k,True,2014,1.0,3:42,,True
 Trey Songz - Unusual (feat. Drake),Music/Trey Songz - Unusual (feat. Drake).mp3,https://music.youtube.com/playlist?list=OLAK5uy_lCpM6hSUXSRxpc5AXd3fn0-Bj54RVvXM8,153000,Music,New School,15650,30883,173,161,320,True,2010,1.0,2:33,1,1
 Trey Songz - Wonder Woman,Music/Trey Songz - Wonder Woman.mp3,https://music.youtube.com/playlist?list=OLAK5uy_n6isNLu8QjwSKeCOtdnLomQNfglE7p09s,315000,Music,Throwbacks,18437,16927,3656,123,320,True,2007,1.0,5:15,3,0
 Trey Songz - Wonder Woman (Radio Edit 1),Music/Trey Songz - Wonder Woman (Radio Edit 1) (Radio Edit).mp3,https://music.youtube.com/watch?v=c7-TcL1EZsc,240457,Music,Throwbacks,18715,31045,1984,123,320,True,2007,1.0,4:00,,Unknown
@@ -1947,6 +2034,7 @@ Tweet - My Place,Music/Tweet - My Place.mp3,https://music.youtube.com/playlist?l
 Tweet - Oops (Oh My) (feat. Missy Elliott),Music/Tweet - Oops (Oh My) (feat. Missy Elliott).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nDkid1ukk0NADt2ijJpzXOIfdj01zhXTc,237845,Music,Throwbacks,1138,46115,3586,161,320,True,2002,1.0,3:57,3,0
 Twista - Slow Jamz (feat. Kanye West & Jamie Foxx),Music/Twista - Slow Jamz (feat. Kanye West & Jamie Foxx).mp3,https://music.youtube.com/watch?v=3C3RgfBWp20,212193,Music,Throwbacks,9474,43119,6140,144,320,True,2004,1.0,3:32,,Unknown
 Twista - Slow Jamz (feat. Kanye West & Jamie Foxx),Music/Twista - Slow Jamz (feat. Kanye West & Jamie Foxx) (Explicit).mp3,https://music.youtube.com/watch?v=-QSgUfphaTI,212193,Music,Throwbacks,9474,43119,6140,144,320,True,2004,1.0,3:32,,True
+Twista - Slow Jamz (feat. Kanye West & Jamie Foxx) (Explicit),Music/Twista - Slow Jamz (feat. Kanye West & Jamie Foxx) (Explicit).mp3,,212193,Music,Unassigned,9474,43119,6140,144,320k,True,2004,1.0,3:32,,True
 "Ty Dolla $ign - Or Nah [Remix] (feat. The Weeknd, DJ Mustard & Wiz Khalifa)","Music/Ty Dolla $ign - Or Nah [Remix] (feat. The Weeknd, DJ Mustard & Wiz Khalifa).mp3",https://music.youtube.com/watch?v=zvQehbZ_2GY,242965,Music,Throwbacks,31579,15813,5281,123,320,True,2014,1.0,4:02,,False
 Ty Dolla $ign - Paranoid (feat. B.o.B),Music/Ty Dolla $ign - Paranoid (feat. B.o.B).mp3,https://music.youtube.com/watch?v=cC2ZgCEaLWs,216000,Music,Unassigned,116,18831,1125,99,320,True,2013,1.0,3:36,1,1
 Ty Dolla $ign - Paranoid (feat. B.o.B),Music/Ty Dolla $ign - Paranoid (feat. B.o.B).mp3,https://music.youtube.com/watch?v=cC2ZgCEaLWs,216581,Music,Unassigned,116,18831,1125,99,320,True,2013,1.0,3:36,1,1
@@ -1970,6 +2058,7 @@ Unknown Artist - RLFMPBUTTADROP,ondemand/celebrity_ids/RL/RLFMPBUTTADROP.mp3,,93
 Unknown Artist - RLFMPBUTTALOCKEDDROP,ondemand/celebrity_ids/RL/RLFMPBUTTALOCKEDDROP.mp3,,10553,Music,Unassigned,23,8266,1842,78,320k,Unknown,Unknown,1.0,0:10,,0
 Unknown Artist - RLFMPDROP,ondemand/celebrity_ids/RL/RLFMPDROP.mp3,,7079,Music,Unassigned,70,70,388,78,320k,Unknown,Unknown,1.0,0:07,,0
 Unknown Artist - RLNEXT,ondemand/celebrity_ids/RL/RLNEXT.mp3,,2325,Music,Unassigned,186,70,64,185,320k,Unknown,Unknown,1.0,0:02,,0
+Unknown Artist - Untitled,Music/Unknown Artist - Untitled.mp3,,336823,Music,Unassigned,55426,58538,5258,117,320k,True,2013,1.0,5:36,,Unknown
 Unknown Artist - Up Jumps Da' Boogie (feat. Missy Elliott & Aaliyah),Music/Unknown Artist - Up Jumps Da' Boogie (feat. Missy Elliott & Aaliyah).mp3,,300456,Music,New School,25867,26703,2292,99,320,,2025,1.0,,1,0
 Unknown Artist - WestsideToWorld,ondemand/sweepers/rotating/WestsideToWorld.mp3,,10848,Music,Unassigned,93,70,611,89,320k,Unknown,Unknown,1.0,0:10,,0
 Usher - Bad Girl,Music/Usher - Bad Girl.mp3,https://music.youtube.com/playlist?list=OLAK5uy_krV_OobFCY6iBLzgTNmP7l3PzH4WPT8UU,261000,Music,Unassigned,302,11169,10,89,320,True,2004,1.0,4:21,3,0
@@ -1983,6 +2072,7 @@ Usher - Confessions,Music/Usher - Confessions.mp3,https://music.youtube.com/play
 Usher - Confessions Part II,Music/Usher - Confessions Part II.mp3,https://music.youtube.com/playlist?list=OLAK5uy_krV_OobFCY6iBLzgTNmP7l3PzH4WPT8UU,211000,Music,Unassigned,302,13305,3284,92,320,True,2004,1.0,3:31,3,0
 USHER - Good Good,Music/USHER - Good Good (Explicit).mp3,https://music.youtube.com/watch?v=v6XchHfBdK4,247144,Music,Throwbacks,13769,50341,1891,144,320,True,2024,1.0,4:07,,True
 Usher - Good Good (Clean),Music/Usher - Good Good (Clean).mp3,,247536,Music,New School,13769,50341,2262,144,320k,True,2023,1.0,4:07,1,False
+USHER - Good Good (Explicit),Music/USHER - Good Good (Explicit).mp3,,247144,Music,Unassigned,13769,50341,1891,144,320k,True,2024,1.0,4:07,,True
 Usher - Good Kisser,Music/Usher - Good Kisser (Explicit).mp3,https://music.youtube.com/watch?v=jEZ54uWOn7Q,249000,Music,New School,2159,38127,2982,96,320,True,2014,1.0,4:09,1,1
 Usher - Good Kisser,Music/Usher - Good Kisser.mp3,https://music.youtube.com/watch?v=jEZ54uWOn7Q,249678,Music,New School,2159,38127,2982,96,320,True,2014,1.0,4:09,1,1
 Usher - Good Kisser (Clean),Music/Usher - Good Kisser (Clean).mp3,,249678,Music,New School,2159,38127,2982,96,320k,True,2014,1.0,4:09,1,False
@@ -2023,11 +2113,14 @@ Vivian Green - Emotional Rollercoaster,Music/Vivian Green - Emotional Rollercoas
 Vivian Green - Get Right Back To My Baby,Music/Vivian Green - Get Right Back To My Baby.mp3,https://music.youtube.com/playlist?list=OLAK5uy_kZZL2Z9EAufMiweIxBqicgJmVFmyJ9G2c,212454,Music,New School,3947,27307,8555,103,320,True,2015,1.0,3:32,1,0
 Wale - On Chill (feat. Jeremih),Music/Wale - On Chill (feat. Jeremih) (Explicit).mp3,https://music.youtube.com/watch?v=2LqOOrViD_U,214100,Music,Throwbacks,11610,47044,11992,172,320,True,2019,1.0,3:34,,True
 Wale - On Chill (feat. Jeremih) (Clean),Music/Wale - On Chill (feat. Jeremih) (Clean).mp3,,214100,Music,New School,11610,47044,11992,172,320k,True,2019,1.0,3:34,1,False
+Wale - On Chill (feat. Jeremih) (Explicit),Music/Wale - On Chill (feat. Jeremih) (Explicit).mp3,,214100,Music,Unassigned,11610,47044,11992,172,320k,True,2019,1.0,3:34,,True
 Walter Hawkins - Be Grateful,Shows/InspirationalChurch/Walter Hawkins - Be Grateful.mp3,https://music.youtube.com/watch?v=0tuDBS3XvUY,450482,Music,Throwbacks,93576,30325,4584,96,320,True,1993,1.0,7:30,5,Unknown
+Walter Jackson - It's All Over,Music/Walter Jackson - It's All Over.mp3,,176823,Music,Unassigned,255,13584,1589,152,320k,True,1996,1.0,2:56,,Unknown
 Warren G - Regulate (feat. Nate Dogg),Music/Warren G - Regulate (feat. Nate Dogg).mp3,https://music.youtube.com/playlist?list=OLAK5uy_noJ5r5-cIK7pmS9JJPYu5Xbato8Vdi6mI,248921,Music,Throwbacks,20410,43630,4306,96,320,True,1994,1.0,4:08,3,0
 Wayne Wonder - No Letting Go,Music/Wayne Wonder - No Letting Go.mp3,https://music.youtube.com/playlist?list=OLAK5uy_nVirrmthZd3CsPdKX8SwzoxjizcOhSYHU,202057,Music,Throwbacks,19621,32369,3911,99,320,True,2003,1.0,3:22,3,0
 West Angeles Cogic Mass Choir And Congregation - Lord Prepare Me To Be A Sanctuary,Shows/InspirationalChurch/West Angeles Cogic Mass Choir And Congregation - Lord Prepare Me To Be A Sanctuary.mp3,https://music.youtube.com/watch?v=a0WuwUJRQKs,336640,Music,Throwbacks,31811,15186,7975,161,320,True,2007,1.0,5:36,5,0
 WestsideToWorld,ondemand/sweepers/rotating/WestsideToWorld.mp3,,10848,Music,Unassigned,93,70,611,89,320k,Unknown,Unknown,1.0,0:10,,False
+Whitney Houston - All at Once,Music/Whitney Houston - All at Once.mp3,,266893,Music,Unassigned,30070,39985,8253,136,320k,True,1985,1.0,4:26,,Unknown
 Whitney Houston - All The Man That I Need,Music/Whitney Houston - All The Man That I Need.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lbctdBRZoyDcN_1Kmt_gQO9kuX8PTtnWg,251472,Music,New School,3930,2000,4103,152,320,Unknown,2015,1.0,4:11,1,0
 Whitney Houston - Didn’t We Almost Have It All,Music/Whitney Houston - Didn’t We Almost Have It All.mp3,https://music.youtube.com/watch?v=c0TghfreFok,305110,Music,Unassigned,31579,43421,6396,129,320,True,1987,1.0,5:05,,Unknown
 Whitney Houston - Exhale (Shoop Shoop),Music/Whitney Houston - Exhale (Shoop Shoop).mp3,https://music.youtube.com/playlist?list=OLAK5uy_nvRIXYzgJec6nicqa7CTKnfGqh7QNyrtc,201613,Music,Throwbacks,4017,16579,3656,136,265,True,2000,1.0,3:21,3,0
@@ -2058,96 +2151,3 @@ Zacardi Cortez - Work It Out For Me (Live),Shows/InspirationalChurch/Zacardi Cor
 Zapp & Roger - Computer Love,Music/Zapp & Roger - Computer Love.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lPhrxZeigyh9sClKZTLocHxs4VFMsO9wU,284000,Music,Throwbacks,28026,26935,10,144,320,Unknown,1993,1.0,4:44,3,0
 Zapp & Roger - I Want to Be Your Man,Music/Zapp & Roger - I Want to Be Your Man.mp3,https://music.youtube.com/playlist?list=OLAK5uy_lwfnjY5K5YsPm87nAg-f9Wj1z_he5GzYA,247000,Music,Throwbacks,1927,30534,6953,81,320,Unknown,1993,1.0,4:07,3,0
 Zhané - Hey Mr. D.J.,Music/Zhané - Hey Mr. D.J..mp3,https://music.youtube.com/playlist?list=OLAK5uy_kfFd2Gf9JyAuPewoLEom3HKINzL3a7E6c,252447,Music,Throwbacks,3831,21595,312,103,320,True,1994,1.0,4:12,3,0
-"Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Explicit)","Music/Trey Songz - Touchin, Lovin (feat. Nicki Minaj) (Explicit).mp3",,222041,Music,Unassigned,19389,14582,3400,99,320k,True,2014,1.0,3:42,,True
-John Legend feat. Ludacris - Tonight (Best You Ever Had) (Clean),Music/John Legend feat. Ludacris - Tonight (Best You Ever Had) (Clean).mp3,,239496,Music,Unassigned,26215,24126,7788,89,320k,Unknown,2012,1.0,3:59,,False
-Akon - Be With You,Music/Akon - Be With You.mp3,,231048,Music,Unassigned,279,16022,5640,172,320k,Unknown,2008,1.0,3:51,,Unknown
-Bryson Tiller - Exchange (Clean),Music/Bryson Tiller - Exchange (Clean).mp3,,194638,Music,Unassigned,13955,25588,2471,161,320k,True,2015,1.0,3:14,,False
-Muni Long - Hrs & Hrs (Clean),Music/Muni Long - Hrs & Hrs (Clean).mp3,,204356,Music,Unassigned,6432,11053,312,144,320k,True,2022,1.0,3:24,,False
-112 - You Already Know (Clean),Music/112 - You Already Know (Clean).mp3,,209760,Music,Unassigned,23,17299,70,172,320k,Unknown,2025,1.0,3:29,,False
-Omarion - Post to Be (feat. Chris Brown & Jhene Aiko) (Clean),Music/Omarion - Post to Be (feat. Chris Brown & Jhene Aiko) (Clean).mp3,,226638,Music,Unassigned,19876,34342,4840,96,320k,True,2014,1.0,3:46,,False
-Mario - Crying Out for Me (Radio Edit),Music/Mario - Crying Out for Me (Radio Edit).mp3,,288444,Music,Unassigned,16672,19296,5420,65,320k,True,2007,1.0,4:48,,Unknown
-Simply Red - If You Don’t Know Me by Now,Music/Simply Red - If You Don’t Know Me by Now.mp3,,206080,Music,Unassigned,464,10008,6047,96,320k,True,1989,1.0,3:26,,Unknown
-"Outkast - So Fresh, So Clean","Music/Outkast - So Fresh, So Clean.mp3",,240065,Music,Unassigned,2624,11099,7533,112,320k,Unknown,2000,1.0,4:00,,False
-Stephanie Mills - I Feel Good All Over,Music/Stephanie Mills - I Feel Good All Over.mp3,,302263,Music,Unassigned,42864,30209,5444,123,320k,True,1987,1.0,5:02,,Unknown
-Ashanti - Unfoolish (Clean),Music/Ashanti - Unfoolish (Clean).mp3,,194247,Music,Unassigned,3460,27492,1009,89,320k,True,2002,1.0,3:14,,False
-Walter Jackson - It's All Over,Music/Walter Jackson - It's All Over.mp3,,176823,Music,Unassigned,255,13584,1589,152,320k,True,1996,1.0,2:56,,Unknown
-Jhené Aiko - The Worst (Explicit),Music/Jhené Aiko - The Worst (Explicit).mp3,,254537,Music,Unassigned,2763,12399,5188,92,320k,True,2024,1.0,4:14,,True
-DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Explicit),Music/DJ Khaled - Wild Thoughts (feat. Rihanna & Bryson Tiller) (Explicit).mp3,,204722,Music,Unassigned,70,22732,3284,99,320k,True,2017,1.0,3:24,,True
-Mario - Crying Out for Me (radio edit) (1),Music/Mario - Crying Out for Me (radio edit) (1).mp3,,288444,Music,Unassigned,16672,19296,5420,65,320k,True,2007,1.0,4:48,,Unknown
-"James Brown & The Famous Flames - Please, Please, Please (single version)","Music/James Brown & The Famous Flames - Please, Please, Please (single version).mp3",,163762,Music,Unassigned,743,54567,1636,74,320k,True,2007,1.0,2:43,,Unknown
-Mario - Just a Friend 2002 (Radio Edit),Music/Mario - Just a Friend 2002 (Radio Edit).mp3,,214256,Music,Unassigned,8731,12725,2216,129,320k,True,2002,1.0,3:34,,Unknown
-Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (Radio Edit) (1),Music/Alicia Keys feat. Tony! Toni! Toné! & Jermaine Paul - Diary (Radio Edit) (1).mp3,,284212,Music,Unassigned,19040,40797,2379,129,320k,True,2003,1.0,4:44,,Unknown
-Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins) (Clean),Music/Lil Jon & The Eastside Boyz - Get Low (feat. Ying Yang Twins) (Clean).mp3,,324650,Music,Unassigned,1068,13491,219,99,320k,True,2002,1.0,5:24,,False
-Ashanti - Foolish (Clean),Music/Ashanti - Foolish (Clean).mp3,,227448,Music,Unassigned,23,10031,4445,89,320k,True,2002,1.0,3:47,,False
-Al B. Sure! - If I'm Not Your Lover,Music/Al B. Sure! - If I'm Not Your Lover.mp3,,245133,Music,Unassigned,372,28653,8694,103,320k,True,1988,1.0,4:05,,Unknown
-Busta Rhymes - Put Your Hands Where My Eyes Could See (Clean),Music/Busta Rhymes - Put Your Hands Where My Eyes Could See (Clean).mp3,,198072,Music,Unassigned,186,10426,8348,99,320k,Unknown,1997,1.0,3:18,,False
-DBLiveMixOpening,intro/DBLiveMixOpening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,Unknown
-Michael Jackson - You Rock My World (radio edit) (1),Music/Michael Jackson - You Rock My World (radio edit) (1).mp3,,265979,Music,Unassigned,3437,29304,428,96,320k,True,2003,1.0,4:25,,Unknown
-Anita Baker - Giving You the Best That I Got,Music/Anita Baker - Giving You the Best That I Got.mp3,,260545,Music,Unassigned,3529,25751,15428,103,320k,True,1988,1.0,4:20,,Unknown
-Bryson Tiller - Exchange (Explicit),Music/Bryson Tiller - Exchange (Explicit).mp3,,194664,Music,Unassigned,14002,25635,2471,161,320k,True,2015,1.0,3:14,,True
-Sade - Cherish the Day,Music/Sade - Cherish the Day.mp3,,332199,Music,Unassigned,2647,58561,7719,108,320k,True,1992,1.0,5:32,,Unknown
-Chaka Khan - I Feel for You,Music/Chaka Khan - I Feel for You.mp3,,343458,Music,Unassigned,8568,30674,3609,123,320k,True,1984,1.0,5:43,,Unknown
-Janet Jackson - Rhythm Nation,Music/Janet Jackson - Rhythm Nation.mp3,,330971,Music,Unassigned,19992,13351,33,108,320k,True,1989,1.0,5:30,,Unknown
-Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]) (Radio Edit),Music/Monica - All Eyez on Me (Radio Edit & Album Version [Urban Mix]) (Radio Edit).mp3,,238811,Music,Unassigned,18321,20480,3888,108,320k,True,2002,1.0,3:58,,Unknown
-Billy Ocean - Suddenly,Music/Billy Ocean - Suddenly.mp3,,234762,Music,Unassigned,16347,47090,8625,129,320k,True,1984,1.0,3:54,,Unknown
-DeBarge - Stay With Me,Music/DeBarge - Stay With Me.mp3,,226920,Music,Unassigned,17508,14095,16730,89,320k,Unknown,1983,1.0,3:46,,Unknown
-Cam'Ron - Oh Boy (feat. Juelz Santana) (Clean),Music/Cam'Ron - Oh Boy (feat. Juelz Santana) (Clean).mp3,,207517,Music,Unassigned,2926,54706,3191,83,320k,True,2002,1.0,3:27,,False
-Steve Arrington - Feel So Real,Music/Steve Arrington - Feel So Real.mp3,,306181,Music,Unassigned,13886,24985,10,112,320k,True,1985,1.0,5:06,,Unknown
-Wale - On Chill (feat. Jeremih) (Explicit),Music/Wale - On Chill (feat. Jeremih) (Explicit).mp3,,214100,Music,Unassigned,11610,47044,11992,172,320k,True,2019,1.0,3:34,,True
-Sean Paul - Gimme the Light (Explicit),Music/Sean Paul - Gimme the Light (Explicit).mp3,,228049,Music,Unassigned,14443,42214,428,144,320k,True,2003,1.0,3:48,,True
-SiR - John Redcorn (Clean),Music/SiR - John Redcorn (Clean).mp3,,188003,Music,Unassigned,13468,19249,2588,144,320k,True,2019,1.0,3:08,,False
-maxwell - The Suite Theme (Remastered 2021),ondemand/beds/maxwell - The Suite Theme (Remastered 2021).mp3,,359680,Music,Unassigned,19273,49714,4979,152,320k,True,1996,1.0,5:59,,False
-Barrett Strong - Money (That’s What I Want),Music/Barrett Strong - Money (That’s What I Want).mp3,,159530,Music,Unassigned,16231,49203,4979,129,320k,True,2020,1.0,2:39,,Unknown
-City High - What Would You Do (Clean),Music/City High - What Would You Do (Clean).mp3,,212245,Music,Unassigned,7454,37013,10,96,320k,True,1999,1.0,3:32,,False
-Bow Wow feat. T‐Pain & Johntá Austin - Outta My System (album version),Music/Bow Wow feat. T‐Pain & Johntá Austin - Outta My System (album version).mp3,,238315,Music,Unassigned,2972,54381,6721,83,320k,True,2006,1.0,3:58,,Unknown
-En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster) (Radio Edit),Music/En Vogue - Don't Go [2020 Remaster] (Radio Edit; 2020 Remaster) (Radio Edit).mp3,,234553,Music,Unassigned,2206,38917,8369,152,320k,Unknown,1990,1.0,3:54,,Unknown
-Arin Ray - Communication (feat. DRAM) (Explicit),Music/Arin Ray - Communication (feat. DRAM) (Explicit).mp3,,216686,Music,Unassigned,418,10983,1728,108,320k,True,2018,1.0,3:36,,True
-Mario - Music for Love (1),Music/Mario - Music for Love (1).mp3,,229800,Music,Unassigned,17485,39822,1742,117,320k,Unknown,2007,1.0,3:49,,Unknown
-Calvin Richardson - More Than a Woman (Clean),Music/Calvin Richardson - More Than a Woman (Clean).mp3,,321720,Music,Unassigned,325,35782,8512,129,320k,Unknown,2003,1.0,5:21,,False
-Dru Hill - Beauty (Clean),Music/Dru Hill - Beauty (Clean).mp3,,270707,Music,Unassigned,24149,21084,10343,117,320k,True,2006,1.0,4:30,,False
-Sade - Smooth Operator,Music/Sade - Smooth Operator.mp3,,258743,Music,Unassigned,25751,21177,7626,117,320k,True,1994,1.0,4:18,,Unknown
-City High - What Would You Do_ (radio edit) (1),Music/City High - What Would You Do_ (radio edit) (1).mp3,,175464,Music,Unassigned,7546,49551,2077,96,320k,True,2015,1.0,2:55,,Unknown
-DB Live Show Open Opening,ondemand/sweepers/DB Live Show Open Opening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,False
-Jamie Foxx - DJ Play A Love Song (feat. Twista) (1),Music/Jamie Foxx - DJ Play A Love Song (feat. Twista) (1).mp3,,258847,Music,Unassigned,697,16068,6117,117,320k,True,2005,1.0,4:18,,Unknown
-Erykah Badu - Tyrone (Live) (Clean),Music/Erykah Badu - Tyrone (Live) (Clean).mp3,,221910,Music,Unassigned,859,16927,10,129,320k,True,1997,1.0,3:41,,False
-D'Angelo - Send It On (Clean),Music/D'Angelo - Send It On (Clean).mp3,,356545,Music,Unassigned,650,38777,2843,129,320k,True,2000,1.0,5:56,,False
-Royal Philharmonic Orchestra - Dancing In The Street,Music/Royal Philharmonic Orchestra - Dancing In The Street.mp3,,161332,Music,Unassigned,9520,14025,5095,63,320k,True,2021,1.0,2:41,,Unknown
-Danny Boy - This Song (Radio),Music/Danny Boy - This Song (Radio).mp3,,203389,Music,Unassigned,16695,39288,1334,103,320k,True,2022,1.0,3:23,,Unknown
-Twista - Slow Jamz (feat. Kanye West & Jamie Foxx) (Explicit),Music/Twista - Slow Jamz (feat. Kanye West & Jamie Foxx) (Explicit).mp3,,212193,Music,Unassigned,9474,43119,6140,144,320k,True,2004,1.0,3:32,,True
-Guy - Piece Of My Love (Clean),Music/Guy - Piece Of My Love (Clean).mp3,,317858,Music,Unassigned,2972,10681,12456,152,320k,True,2002,1.0,5:17,,False
-Ne-Yo - U 2 Luv (Clean),Music/Ne-Yo - U 2 Luv (Clean).mp3,,208274,Music,Unassigned,1463,53824,5629,89,320k,True,2022,1.0,3:28,,False
-Whitney Houston - All at Once,Music/Whitney Houston - All at Once.mp3,,266893,Music,Unassigned,30070,39985,8253,136,320k,True,1985,1.0,4:26,,Unknown
-J. Cozier - She's All I Got (Radio Edit),Music/J. Cozier - She's All I Got (Radio Edit).mp3,,211200,Music,Unassigned,12260,45279,1427,99,320k,True,2001,1.0,3:31,,Unknown
-Case - Happily Ever After (Clean),Music/Case - Happily Ever After (Clean).mp3,,257045,Music,Unassigned,16347,39102,4561,60,320k,True,2000,1.0,4:17,,False
-Bow Wow - Let Me Hold You (feat. Omarion) (Clean),Music/Bow Wow - Let Me Hold You (feat. Omarion) (Clean).mp3,,251448,Music,Unassigned,4598,47206,8220,152,320k,Unknown,2005,1.0,4:11,,False
-The Pointer Sisters - I'm So Excited,Music/The Pointer Sisters - I'm So Excited.mp3,,230687,Music,Unassigned,93,25658,6674,185,320k,True,1982,1.0,3:50,,Unknown
-112 - You Already Know (Explicit),Music/112 - You Already Know (Explicit).mp3,,198024,Music,Unassigned,4667,12190,5689,172,320k,Unknown,2009,1.0,3:18,,True
-Keith Sweat - Make It Last Forever,Music/Keith Sweat - Make It Last Forever.mp3,,296464,Music,Unassigned,1974,11215,8439,83,320k,True,1987,1.0,4:56,,Unknown
-USHER - Good Good (Explicit),Music/USHER - Good Good (Explicit).mp3,,247144,Music,Unassigned,13769,50341,1891,144,320k,True,2024,1.0,4:07,,True
-Ne-Yo - U 2 Luv (Explicit),Music/Ne-Yo - U 2 Luv (Explicit).mp3,,208274,Music,Unassigned,1463,53824,5629,89,320k,True,2022,1.0,3:28,,True
-Al B. Sure! - Nite and Day,Music/Al B. Sure! - Nite and Day.mp3,,238054,Music,Unassigned,418,15650,7139,92,320k,True,1988,1.0,3:58,,Unknown
-Unknown Artist - Untitled,Music/Unknown Artist - Untitled.mp3,,336823,Music,Unassigned,55426,58538,5258,117,320k,True,2013,1.0,5:36,,Unknown
-Jermaine Jackson - Let's Get Serious,Music/Jermaine Jackson - Let's Get Serious.mp3,,477309,Music,Unassigned,8522,48228,4050,108,320k,True,1979,1.0,7:57,,Unknown
-Gators Live Show Opening,ondemand/sweepers/Gators Live Show Opening.mp3,,23796,Music,Unassigned,1834,10403,2388,136,320k,Unknown,Unknown,1.0,0:23,,False
-The Intruders - Together,Music/The Intruders - Together.mp3,,178860,Music,Unassigned,14327,30232,3470,92,320k,True,2007,1.0,2:58,,Unknown
-Marvin Gaye - Sexual Healing,Music/Marvin Gaye - Sexual Healing.mp3,,238655,Music,Unassigned,2229,16184,3702,96,320k,True,1982,1.0,3:58,,Unknown
-Sisqo - Thong Song (Clean),Music/Sisqo - Thong Song (Clean).mp3,,253780,Music,Unassigned,16649,23545,11156,123,320k,True,1999,1.0,4:13,,False
-Jazmine Sullivan - Pick Up Your Feelings (Clean),Music/Jazmine Sullivan - Pick Up Your Feelings (Clean).mp3,,229460,Music,Unassigned,12516,35828,4050,172,320k,True,2021,1.0,3:49,,False
-Alicia Keys - A Woman's Worth (Clean),Music/Alicia Keys - A Woman's Worth (Clean).mp3,,278688,Music,Unassigned,9125,53894,6100,76,320k,Unknown,2001,1.0,4:38,,False
-112 - Anywhere (Clean),Music/112 - Anywhere (Clean).mp3,,244454,Music,Unassigned,93,27725,5049,83,320k,True,1998,1.0,4:04,,False
-James Brown - Say It Loud,Music/James Brown - Say It Loud.mp3,,182309,Music,Unassigned,2601,28700,8346,136,320k,True,2012,1.0,3:02,,Unknown
-Michael Jackson - Beat It,Music/Michael Jackson - Beat It.mp3,,258432,Music,Unassigned,348,17995,8971,136,320k,Unknown,1982,1.0,4:18,,Unknown
-Frank Ocean feat. André 3000 - Pink Matter (Explicit),Music/Frank Ocean feat. André 3000 - Pink Matter (Explicit).mp3,,268878,Music,Unassigned,32949,37175,776,117,320k,True,2012,1.0,4:28,,True
-James Brown - Try Me,Music/James Brown - Try Me.mp3,,134269,Music,Unassigned,534,46533,33,76,320k,True,1963,1.0,2:14,,Unknown
-Blackstreet - Before I Let You Go (Clean),Music/Blackstreet - Before I Let You Go (Clean).mp3,,299833,Music,Unassigned,3831,44002,4422,70,320k,True,1994,1.0,4:59,,False
-Bobby Brown - On Our Own,Music/Bobby Brown - On Our Own.mp3,,294452,Music,Unassigned,1509,43305,8857,103,320k,True,1989,1.0,4:54,,Unknown
-Teddy Pendergrass - Love T.K.O.,Music/Teddy Pendergrass - Love T.K.O..mp3,,299180,Music,Unassigned,302,26053,6860,74,320k,True,1980,1.0,4:59,,Unknown
-Ginuwine - In Those Jeans (Explicit),Music/Ginuwine - In Those Jeans (Explicit).mp3,,243357,Music,Unassigned,7732,21711,5002,129,320k,True,2003,1.0,4:03,,True
-Michel’le - Something in My Heart,Music/Michel’le - Something in My Heart.mp3,,353071,Music,Unassigned,2949,52686,9275,129,320k,True,1989,1.0,5:53,,Unknown
-Montell Jordan - This Is How We Do It (Clean),Music/Montell Jordan - This Is How We Do It (Clean).mp3,,215568,Music,Unassigned,14884,54915,5561,103,320k,Unknown,1995,1.0,3:35,,False
-Janet Jackson - All For You (Clean),Music/Janet Jackson - All For You (Clean).mp3,,265509,Music,Unassigned,19342,16347,6419,112,320k,True,2023,1.0,4:25,,False
-Erykah Badu - Tyrone (Live) (Explicit),Music/Erykah Badu - Tyrone (Live) (Explicit).mp3,,221910,Music,Unassigned,859,16927,10,129,320k,True,1997,1.0,3:41,,True
-Atlantic Starr - Secret Lovers,Music/Atlantic Starr - Secret Lovers.mp3,,330736,Music,Unassigned,26355,15441,6535,81,320k,True,1985,1.0,5:30,,Unknown
-Mario - I Choose You,Music/Mario - I Choose You.mp3,,263079,Music,Unassigned,26006,30627,4793,123,320k,True,2009,1.0,4:23,,Unknown
-Jazmine Sullivan - Let It Burn (Clean),Music/Jazmine Sullivan - Let It Burn (Clean).mp3,,223138,Music,Unassigned,4830,12353,4074,78,320k,True,2015,1.0,3:43,,False
-Marvin Gaye - Got To Give It Up,Music/Marvin Gaye - Got To Give It Up.mp3,,712725,Music,Unassigned,12678,28026,5002,123,320k,True,1977,1.0,11:52,,Unknown
