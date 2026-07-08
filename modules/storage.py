@@ -80,7 +80,19 @@ class VaultManager:
             title_clean = title_clean.replace(r, "")
         title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
         
-        base_key = f"{artist_clean}_{title_clean}"
+        # Check original title for modifiers to avoid key collisions on variants
+        variant_suffix = ""
+        title_lower_orig = title.lower()
+        if "unplugged" in title_lower_orig:
+            variant_suffix = "_unplugged"
+        elif "live" in title_lower_orig:
+            variant_suffix = "_live"
+        elif "acoustic" in title_lower_orig:
+            variant_suffix = "_acoustic"
+        elif "remix" in title_lower_orig:
+            variant_suffix = "_remix"
+            
+        base_key = f"{artist_clean}_{title_clean}{variant_suffix}"
         if is_radio:
             return f"{base_key}_radioedit"
         elif is_explicit:
