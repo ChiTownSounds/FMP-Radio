@@ -1650,7 +1650,8 @@ def add():
         if "list=" in u or "playlist" in u.lower():
             process_playlist_addition(u, target, auto_linked)
         elif not u.startswith("http://") and not u.startswith("https://") and not u.startswith("ytsearch"):
-            state.url_queue.put({'url': f"ytsearch1:{u}", 'type': 'ingest', 'target': target})
+            item_data['url'] = f"ytsearch1:{u}"
+            state.url_queue.put(item_data)
         else: 
             item_id = state.url_queue.put(item_data)
             if 'title' not in item_data:
