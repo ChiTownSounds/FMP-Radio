@@ -886,6 +886,22 @@ def vault_worker():
             state.log(f"Complete: {clean_name}")
             state.increment_completed()
             
+            # Trigger immediate background rclone sync to Google Drive on Linux
+            import platform
+            if platform.system() != "Windows":
+                try:
+                    subprocess.Popen(
+                        ["rclone", "copy", "/home/ubuntu/music/", "gdrive:FMP MUSIC/BASE/MUSIC", 
+                         "--ignore-existing", "--transfers=4", "--checkers=8", 
+                         "--exclude", "/staging/**", "--exclude", "/Shows_to_delete/**"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        start_new_session=True
+                    )
+                    state.log("[SYNC] Triggered instant Google Drive background sync.")
+                except Exception as sync_err:
+                    logging.error(f"Failed to trigger instant rclone sync: {sync_err}")
+
             # Check for explicit/clean counterpart to auto-download
             if not task.get('auto_linked') and not task.get('meta', {}).get('auto_linked'):
                 artist = task['meta'].get('artist')
