@@ -830,6 +830,14 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                                 with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                                     reader = csv.DictReader(f)
                                     candidate_track_key = vm._normalize_track_key(f"{song_artist} - {song_title}", explicit_val=song_explicit)
+                                    
+                                    def extract_vid(url_str):
+                                        if not url_str:
+                                            return ""
+                                        vid_match = re.search(r'(?:v=|\/)([\w-]{11})(?:&|\?|$)', url_str)
+                                        return vid_match.group(1) if vid_match else ""
+                                        
+                                    candidate_vid = video_id
                                     for row in reader:
                                         existing_name = row.get('Track Name')
                                         if existing_name:
@@ -837,6 +845,14 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                                             existing_track_key = vm._normalize_track_key(existing_name, explicit_val=ex_expl)
                                             if existing_track_key == candidate_track_key:
                                                 duplicate = True
+                                                break
+                                                
+                                        # Also match by duplicate video ID in Source_URL
+                                        existing_url = row.get('Source_URL')
+                                        if existing_url and candidate_vid:
+                                            if extract_vid(existing_url) == candidate_vid:
+                                                duplicate = True
+                                                state.log(f"[Counterpart Search] Video ID {candidate_vid} already in library as '{existing_name}'. Skipping counterpart.")
                                                 break
                                                 
                         if duplicate:
