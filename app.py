@@ -1193,6 +1193,9 @@ def get_rclone_path():
 @app.route('/')
 def index(): return render_template('index.html')
 
+@app.route('/library-eraser')
+def library_eraser(): return render_template('library_eraser.html')
+
 @app.route('/api/shows')
 def get_shows():
     try:

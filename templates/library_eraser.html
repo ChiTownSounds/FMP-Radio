@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMP Ultimate: Library Eraser</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #08080a;
+            --card-bg: rgba(18, 18, 22, 0.85);
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-color: #f1f1f5;
+            --text-muted: #8e8e9f;
+            
+            /* Neon Accent Colors */
+            --accent-red: #ff3e5e;
+            --accent-green: #00ff88;
+            --accent-blue: #00bfff;
+            --accent-gold: #ffaa00;
+            --shadow-red: rgba(255, 62, 94, 0.35);
+            --shadow-green: rgba(0, 255, 136, 0.25);
+            --shadow-blue: rgba(0, 191, 255, 0.25);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 20px 20px 120px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(255, 62, 94, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(0, 191, 255, 0.05) 0px, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        header h1 {
+            font-weight: 100;
+            font-size: 32px;
+            letter-spacing: 8px;
+            margin: 0 0 10px 0;
+            color: #fff;
+            text-transform: uppercase;
+        }
+
+        header h1 span {
+            font-weight: 800;
+            color: var(--accent-red);
+            text-shadow: 0 0 20px var(--shadow-red);
+        }
+
+        .back-link {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            color: #fff;
+            text-shadow: 0 0 10px var(--shadow-blue);
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-group {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        input[type="text"], select {
+            background: #000;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.15);
+        }
+
+        .action-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            outline: none;
+        }
+
+        .btn-red {
+            background: var(--accent-red);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 62, 94, 0.2);
+        }
+
+        .btn-red:hover {
+            background: #ff5270;
+            box-shadow: 0 6px 20px var(--shadow-red);
+            transform: translateY(-1px);
+        }
+
+        .btn-red:disabled {
+            background: #5c202d;
+            color: var(--text-muted);
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .stats-badge {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: inline-flex;
+            gap: 15px;
+        }
+
+        .stats-badge span {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* Spreadsheet Grid View */
+        .sheet-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+            max-height: 60vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: rgba(14, 14, 18, 0.95);
+            padding: 12px 15px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--border-color);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #000;
+            outline: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        input[type="checkbox"]:checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: "✓";
+            color: #000;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .badge-clean { background: rgba(0, 255, 136, 0.15); color: var(--accent-green); }
+        .badge-explicit { background: rgba(255, 62, 94, 0.15); color: var(--accent-red); }
+        .badge-radio { background: rgba(0, 191, 255, 0.15); color: var(--accent-blue); }
+
+        .path-cell {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Play Button */
+        .btn-play {
+            background: rgba(0, 191, 255, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(0, 191, 255, 0.2);
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-play:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        /* Progress Panel */
+        .progress-panel {
+            background: rgba(18, 18, 22, 0.95);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            display: none;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #000;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+            transition: width 0.3s ease;
+        }
+
+        .progress-log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background: #000;
+            padding: 10px;
+            border-radius: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-log div.log-success { color: var(--accent-green); }
+        .progress-log div.log-error { color: var(--accent-red); }
+
+        /* Unified Player Bar */
+        .player-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 14, 0.95);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 30%;
+        }
+
+        .player-art-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .player-details {
+            overflow: hidden;
+        }
+
+        .player-title-text {
+            font-weight: 600;
+            font-size: 14px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-artist-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 40%;
+            justify-content: center;
+        }
+
+        .player-control-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .player-control-btn:hover {
+            color: var(--accent-blue);
+            transform: scale(1.1);
+        }
+
+        .player-timeline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #222;
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            box-shadow: 0 0 10px var(--shadow-blue);
+        }
+
+        .player-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 30%;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="/" class="back-link">← Control Room</a>
+        <h1>FMP <span>Library Eraser</span></h1>
+    </header>
+
+    <!-- Progress panel during bulk deletion -->
+    <div id="progress-panel" class="progress-panel">
+        <div class="progress-header">
+            <span id="progress-status">Initializing Purge...</span>
+            <span id="progress-fraction">0 / 0</span>
+        </div>
+        <div class="progress-bar-container">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+        <div id="progress-log" class="progress-log"></div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+        <div class="search-group">
+            <input type="text" id="sheet-search" style="flex: 2;" placeholder="Search Title or Artist in real-time..." oninput="filterTable()">
+            <select id="version-filter" style="flex: 1;" onchange="filterTable()">
+                <option value="">All Versions</option>
+                <option value="Clean">Clean</option>
+                <option value="Explicit">Explicit</option>
+                <option value="Radio Edit">Radio Edit</option>
+            </select>
+        </div>
+
+        <div class="action-group">
+            <div class="stats-badge">
+                <div>Selected: <span id="selected-count">0</span></div>
+                <div>Total: <span id="total-count">0</span></div>
+            </div>
+            <button class="btn btn-red" id="btn-purge" disabled onclick="purgeSelected()">Eliminate Selected</button>
+        </div>
+    </div>
+
+    <!-- Spreadsheet Grid Sheet -->
+    <div class="sheet-container">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="40"><input type="checkbox" id="select-all" onclick="toggleSelectAll(this)"></th>
+                        <th width="50">Preview</th>
+                        <th width="200">Track Name</th>
+                        <th width="100">Version</th>
+                        <th width="150">Artist</th>
+                        <th width="60">Year</th>
+                        <th width="80">Length</th>
+                        <th width="60">Bitrate</th>
+                        <th>File Path</th>
+                    </tr>
+                </thead>
+                <tbody id="sheet-body">
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">Loading Master Library Database...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Unified Player Bar -->
+<div id="unified-player" class="player-bar" style="display: none;">
+    <div class="player-info">
+        <img id="player-art" class="player-art-img" src="" alt="Cover Art">
+        <div class="player-details">
+            <div id="player-title" class="player-title-text">Track Title</div>
+            <div id="player-artist" class="player-artist-text">Artist Name</div>
+        </div>
+    </div>
+    <div class="player-controls">
+        <div class="player-timeline">
+            <span id="player-current-time">00:00</span>
+            <input type="range" id="player-progress" min="0" max="100" value="0" oninput="seekingProgress = true;" onchange="seekPlayer(this.value)">
+            <span id="player-duration">00:00</span>
+        </div>
+    </div>
+    <div class="player-options">
+        <button id="player-play-btn" class="player-control-btn" onclick="togglePlayerPlay()">⏸</button>
+        <span style="font-size:11px; color:var(--text-muted); margin-left: 15px;">Volume</span>
+        <input type="range" id="player-volume" style="width: 80px;" min="0" max="100" value="80" oninput="setPlayerVolume(this.value)">
+    </div>
+</div>
+<audio id="audio-element" style="display: none;"></audio>
+
+<script>
+    let libraryTracks = [];
+    let selectedTracks = new Set();
+    let currentPlayingPath = "";
+    const audio = document.getElementById('audio-element');
+    let seekingProgress = false;
+
+    // Load entire library on startup
+    window.addEventListener('DOMContentLoaded', loadLibrary);
+
+    async function loadLibrary() {
+        try {
+            const res = await fetch('/search_scrub', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query: ''})
+            });
+            libraryTracks = await res.json();
+            
+            // Deduplicate if identical name + display_version + file path
+            const seen = new Set();
+            libraryTracks = libraryTracks.filter(item => {
+                const key = `${item.name}|${item.display_version}|${item['File Path']}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            document.getElementById('total-count').textContent = libraryTracks.length;
+            renderTable(libraryTracks);
+        } catch (e) {
+            console.error("Failed to load library:", e);
+            document.getElementById('sheet-body').innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 30px; color: var(--accent-red);">Failed to connect to FMP Ultimate Database. Ensure Flask is active.</td>
+                </tr>`;
+        }
+    }
+
+    function renderTable(tracks) {
+        const body = document.getElementById('sheet-body');
+        if (!tracks.length) {
+            body.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">No matching songs found in your library.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = '';
+        tracks.forEach((track, index) => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-index', index);
+            tr.setAttribute('data-version', track.display_version);
+            tr.setAttribute('data-title', track.name.toLowerCase());
+            tr.setAttribute('data-artist', (track.Artist || '').toLowerCase());
+            
+            const isChecked = selectedTracks.has(track['File Path']) ? 'checked' : '';
+            
+            let vClass = 'badge-clean';
+            if (track.display_version === 'Explicit') vClass = 'badge-explicit';
+            if (track.display_version === 'Radio Edit') vClass = 'badge-radio';
+
+            const artist = track.Artist || 'Unknown Artist';
+            const year = track.Year || '--';
+            const length = track.Length || '--:--';
+            const bitrate = track.Bitrate || '320';
+            const path = track['File Path'] || '';
+
+            const escapedTrackName = track.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const escapedFilePath = path.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+            tr.innerHTML = `
+                <td><input type="checkbox" class="track-cb" data-path="${escapedFilePath}" data-name="${escapedTrackName}" ${isChecked} onchange="handleRowSelect(this)"></td>
+                <td><button class="btn-play" onclick="playPreview('${escapedTrackName}', '${escapedFilePath}', '${artist}')">▶ PLAY</button></td>
+                <td style="font-weight: 600; color: #fff;">${track.name}</td>
+                <td><span class="badge ${vClass}">${track.display_version}</span></td>
+                <td>${artist}</td>
+                <td>${year}</td>
+                <td>${length}</td>
+                <td>${bitrate}k</td>
+                <td class="path-cell" title="${path}">${path}</td>
+            `;
+            body.appendChild(tr);
+        });
+        updateSelectedUI();
+    }
+
+    function filterTable() {
+        const query = document.getElementById('sheet-search').value.toLowerCase().trim();
+        const vFilter = document.getElementById('version-filter').value;
+        const rows = document.querySelectorAll('#sheet-body tr');
+
+        rows.forEach(row => {
+            const title = row.getAttribute('data-title');
+            const artist = row.getAttribute('data-artist');
+            const version = row.getAttribute('data-version');
+
+            if (!title) return; // skip header or empty rows
+
+            const matchesQuery = !query || title.includes(query) || artist.includes(query);
+            const matchesVersion = !vFilter || version === vFilter;
+
+            if (matchesQuery && matchesVersion) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function handleRowSelect(cb) {
+        const path = cb.getAttribute('data-path');
+        const name = cb.getAttribute('data-name');
+        
+        if (cb.checked) {
+            selectedTracks.add(JSON.stringify({name: name, path: path}));
+        } else {
+            // Find and remove
+            for (let item of selectedTracks) {
+                const parsed = JSON.parse(item);
+                if (parsed.path === path) {
+                    selectedTracks.delete(item);
+                    break;
+                }
+            }
+        }
+        updateSelectedUI();
+    }
+
+    function toggleSelectAll(masterCb) {
+        const visibleCbs = document.querySelectorAll('#sheet-body tr:not([style*="display: none"]) .track-cb');
+        visibleCbs.forEach(cb => {
+            cb.checked = masterCb.checked;
+            const path = cb.getAttribute('data-path');
+            const name = cb.getAttribute('data-name');
+            const itemStr = JSON.stringify({name: name, path: path});
+            
+            if (masterCb.checked) {
+                // Add if not present
+                let has = false;
+                for (let s of selectedTracks) {
+                    if (JSON.parse(s).path === path) { has = true; break; }
+                }
+                if (!has) selectedTracks.add(itemStr);
+            } else {
+                // Remove
+                for (let s of selectedTracks) {
+                    if (JSON.parse(s).path === path) { selectedTracks.delete(s); break; }
+                }
+            }
+        });
+        updateSelectedUI();
+    }
+
+    function updateSelectedUI() {
+        const count = selectedTracks.size;
+        document.getElementById('selected-count').textContent = count;
+        
+        const btn = document.getElementById('btn-purge');
+        btn.disabled = count === 0;
+        
+        // Sync master select checkbox state
+        const masterCb = document.getElementById('select-all');
+        const visibleCbs = document.querySelectorAll('#sheet-body tr:not([style*="display: none"]) .track-cb');
+        if (visibleCbs.length > 0) {
+            const allChecked = Array.from(visibleCbs).every(cb => cb.checked);
+            masterCb.checked = allChecked;
+        } else {
+            masterCb.checked = false;
+        }
+    }
+
+    // Sequential bulk deletion function
+    async function purgeSelected() {
+        const count = selectedTracks.size;
+        if (!confirm(`WARNING: You have selected ${count} song(s) for complete elimination.\n\nThis will permanently delete files from your Local Drive, the remote VM playout database, and Citrus3 FTP.\n\nAre you sure you want to proceed?`)) {
+            return;
+        }
+
+        // Show progress panel
+        const progressPanel = document.getElementById('progress-panel');
+        const progressStatus = document.getElementById('progress-status');
+        const progressFraction = document.getElementById('progress-fraction');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const progressLog = document.getElementById('progress-log');
+        
+        progressPanel.style.display = 'block';
+        progressLog.innerHTML = 'Starting complete library purge loop...<br>';
+        progressStatus.textContent = "Eliminating tracks...";
+        progressBarFill.style.width = '0%';
+        
+        // Disable controls
+        document.getElementById('btn-purge').disabled = true;
+        document.getElementById('sheet-search').disabled = true;
+        document.getElementById('version-filter').disabled = true;
+        
+        const trackArray = Array.from(selectedTracks).map(item => JSON.parse(item));
+        let successCount = 0;
+        
+        for (let idx = 0; idx < trackArray.length; idx++) {
+            const track = trackArray[idx];
+            const currentNum = idx + 1;
+            
+            progressFraction.textContent = `${currentNum} / ${count}`;
+            progressBarFill.style.width = `${(currentNum / count) * 100}%`;
+            progressStatus.textContent = `Purging: "${track.name}"...`;
+            
+            const logRow = document.createElement('div');
+            logRow.innerHTML = `[${currentNum}/${count}] Scrubbing "${track.name}"...`;
+            progressLog.appendChild(logRow);
+            progressLog.scrollTop = progressLog.scrollHeight;
+            
+            try {
+                const res = await fetch('/execute_scrub', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({track_name: track.name, file_path: track.path})
+                });
+                
+                if (res.ok) {
+                    logRow.className = 'log-success';
+                    logRow.innerHTML += ' SUCCESS!';
+                    successCount++;
+                } else {
+                    logRow.className = 'log-error';
+                    logRow.innerHTML += ' FAILED!';
+                }
+            } catch (e) {
+                logRow.className = 'log-error';
+                logRow.innerHTML += ` ERROR: ${e}`;
+            }
+        }
+        
+        progressStatus.textContent = "Purge Loop Completed!";
+        progressLog.innerHTML += `<br><b>Purge complete! successfully eliminated ${successCount} of ${count} tracks from all local & remote environments.</b><br>`;
+        
+        // Re-enable and reset
+        selectedTracks.clear();
+        document.getElementById('sheet-search').disabled = false;
+        document.getElementById('version-filter').disabled = false;
+        document.getElementById('select-all').checked = false;
+        
+        // Reload library database
+        await loadLibrary();
+    }
+
+    // Audio Preview Controls
+    async function playPreview(name, filePath, artist) {
+        const player = document.getElementById('unified-player');
+        const playBtn = document.getElementById('player-play-btn');
+        
+        if (currentPlayingPath === filePath) {
+            togglePlayerPlay();
+            return;
+        }
+
+        try {
+            currentPlayingPath = filePath;
+            player.style.display = 'flex';
+            
+            document.getElementById('player-title').textContent = name;
+            document.getElementById('player-artist').textContent = artist;
+            document.getElementById('player-art').src = `/api/artwork?track_name=${encodeURIComponent(name)}&file_path=${encodeURIComponent(filePath)}`;
+            
+            audio.src = `/api/stream_local?file_path=${encodeURIComponent(filePath)}`;
+            audio.play();
+            playBtn.textContent = '⏸';
+        } catch (e) {
+            console.error("Playback failed:", e);
+        }
+    }
+
+    function togglePlayerPlay() {
+        const playBtn = document.getElementById('player-play-btn');
+        if (audio.paused) {
+            audio.play();
+            playBtn.textContent = '⏸';
+        } else {
+            audio.pause();
+            playBtn.textContent = '▶';
+        }
+    }
+
+    // Audio progress bar updates
+    audio.addEventListener('timeupdate', () => {
+        if (seekingProgress) return;
+        const progress = document.getElementById('player-progress');
+        const currentTime = document.getElementById('player-current-time');
+        const duration = document.getElementById('player-duration');
+        
+        if (audio.duration) {
+            progress.value = (audio.currentTime / audio.duration) * 100;
+            currentTime.textContent = formatTime(audio.currentTime);
+            duration.textContent = formatTime(audio.duration);
+        }
+    });
+
+    audio.addEventListener('durationchange', () => {
+        document.getElementById('player-duration').textContent = formatTime(audio.duration);
+    });
+
+    function seekPlayer(value) {
+        seekingProgress = false;
+        if (audio.duration) {
+            audio.currentTime = (value / 100) * audio.duration;
+        }
+    }
+
+    function setPlayerVolume(value) {
+        audio.volume = value / 100;
+    }
+
+    function formatTime(secs) {
+        if (isNaN(secs)) return "00:00";
+        const m = Math.floor(secs / 60).toString().padStart(2, '0');
+        const s = Math.floor(secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+</script>
+</body>
+</html>
