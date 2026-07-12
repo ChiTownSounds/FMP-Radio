@@ -108,7 +108,7 @@ IHEART_CHURCH_FOLDER = "Shows/InspirationalChurch"
 IHEART_CHURCH_DAYS = [6]  # Sunday (6 in datetime.date.weekday())
 IHEART_CHURCH_START_HOUR = 6  # 6:00 AM
 IHEART_CHURCH_END_HOUR = 12  # 12:00 PM
-IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual", "church"]
+IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual", "church", "amen"]
 
 # --- NON-SONG EXCLUSION LOGIC ---
 def is_non_song(track_name, file_path):
