@@ -112,12 +112,6 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
         return False
     
     # Check keywords in title, artist, or album
-    from config import IHEART_CHURCH_KEYWORDS
-    search_string = f"{artist} {title} {album}".lower()
-    for kw in IHEART_CHURCH_KEYWORDS:
-        if kw in search_string:
-            return True
-            
     # Check against known Gospel artists
     artist_lower = artist.lower()
     g_artists = [
