@@ -1248,6 +1248,9 @@ def get_rclone_path():
 # --- WEB ROUTES ---
 @app.route('/')
 def index(): return render_template('index.html')
+@app.route('/api/status')
+def status(): return jsonify(state.get_snapshot())
+
 
 @app.route('/library-eraser')
 def library_eraser(): return render_template('library_eraser.html')
