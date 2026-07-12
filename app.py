@@ -129,7 +129,7 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
         "william murphy", "marvin winans", "clark sisters", "lisa knowles-smith",
         "josh copeland", "ted & sheri", "pj morton", "milton brunson", "douglas miller",
         "jekalyn carr", "bishop larry trotter", "mississippi mass choir", "chicago mass choir",
-        "williams brothers", "victorious army"
+        "williams brothers", "victorious army", "tri-city singers", "donald lawrence"
     ]
     for ga in g_artists:
         if ga in artist_lower:
