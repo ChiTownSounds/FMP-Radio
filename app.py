@@ -980,7 +980,8 @@ def iheart_poller_worker():
                         logging.info(f"[iHeart Sync] Now Playing on WVAZ V103: \"{title}\" by {artist}")
                         
                         # 1. Determine Target Routing (Sunday Church or Era-based)
-                        now = datetime.now()
+                        import zoneinfo
+                        now = datetime.now(zoneinfo.ZoneInfo('America/Chicago'))
                         is_sunday_church = False
                         
                         if now.weekday() in IHEART_CHURCH_DAYS:
