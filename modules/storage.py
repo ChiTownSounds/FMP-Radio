@@ -4,6 +4,7 @@ import csv
 import logging
 import threading
 import time
+import subprocess
 from typing import List, Tuple, Dict
 from thefuzz import process 
 from mutagen.mp3 import MP3
@@ -114,7 +115,6 @@ class VaultManager:
 
     def _git_auto_push(self, track_name: str):
         """Helper to push vaulted updates to GitHub in a background thread with retries."""
-        import subprocess
         import time
         import os
         
@@ -289,7 +289,6 @@ class VaultManager:
         delay = 2
         server_deleted = False
         rclone_path = self._get_rclone_path()
-        import subprocess
         
         is_path = '/' in target_identifier or '\\' in target_identifier or target_identifier.endswith('.mp3')
         file_path_on_server = None
@@ -828,7 +827,6 @@ class VaultManager:
                 if is_explicit_val or is_explicit_by_name:
                     logging.info(f"[*] Skipping Citrus3 FTP upload for explicit track: {clean_name}")
                 else:
-                    import subprocess
                     rclone_path = self._get_rclone_path()
                     try:
                         cmd = [rclone_path, "copyto", g_target_file, f"citrus3:{remote_target}/{clean_name}"]

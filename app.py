@@ -10,6 +10,11 @@ import itertools
 import collections
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
+import urllib.request
+import urllib.parse
+import json
+import re
+
 
 from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT
 
@@ -359,6 +364,7 @@ class SystemState:
         threading.Thread(target=spin, daemon=True).start()
 
 state = SystemState()
+acoustid_api_lock = threading.Lock()
 
 def is_video_title(title: str) -> bool:
     t = title.lower()
@@ -569,6 +575,145 @@ def downloader_worker():
                 handoff_success = False
                 continue
             # --------------------------------------------
+
+            # --- Phase 2.2: AcoustID Fingerprint Validation Gate ---
+            validation_success = True
+            api_key = os.getenv("ACOUSTID_API_KEY")
+            
+            expected_artist = task.get("artist") or meta.get("artist")
+            expected_title = task.get("title") or meta.get("title") or meta.get("track_title")
+            
+            # Normalize expected metadata
+            if not expected_title or str(expected_title).lower() in ["unknown", "unknown title", ""]:
+                filename_no_ext = os.path.splitext(os.path.basename(raw_path))[0]
+                if " - " in filename_no_ext:
+                    expected_artist, expected_title = filename_no_ext.split(" - ", 1)
+                else:
+                    expected_title = filename_no_ext
+
+            # Clean expected artist/title from trailing annotations
+            if expected_artist:
+                expected_artist = re.sub(r'\s*[([]\s*(?:clean|explicit|radio\s+edit|radio\s+version|album\s+version|main)\s*[)\]]', '', str(expected_artist), flags=re.I).strip()
+            if expected_title:
+                expected_title = re.sub(r'\s*[([]\s*(?:clean|explicit|radio\s+edit|radio\s+version|album\s+version|main)\s*[)\]]', '', str(expected_title), flags=re.I).strip()
+
+            if api_key and expected_title:
+                state.log(f"[AcoustID Validation] Validating '{os.path.basename(raw_path)}' (Expected: '{expected_artist} - {expected_title}')...")
+                
+                fpcalc_bin = "fpcalc"
+                if os.name == 'nt':
+                    fpcalc_bin = r"C:\FMP_Ultimate\fpcalc.exe"
+                else:
+                    fpcalc_bin = "/usr/bin/fpcalc"
+                
+                cmd_fp = [fpcalc_bin, "-json", raw_path]
+                try:
+                    res_fp = subprocess.run(cmd_fp, capture_output=True, text=True, check=True)
+                    data_fp = json.loads(res_fp.stdout)
+                    duration_fp = data_fp.get("duration")
+                    fingerprint_fp = data_fp.get("fingerprint")
+                    
+                    if duration_fp and fingerprint_fp:
+                        params = {
+                            "client": api_key,
+                            "duration": int(round(duration_fp)),
+                            "fingerprint": fingerprint_fp,
+                            "meta": "recordings",
+                            "format": "json"
+                        }
+                        url_lookup = "https://api.acoustid.org/v2/lookup"
+                        req_data = urllib.parse.urlencode(params).encode('utf-8')
+                        req_ac = urllib.request.Request(url_lookup, data=req_data, headers={'User-Agent': 'FMP-Ultimate-Validator/1.0'})
+                        
+                        with acoustid_api_lock:
+                            time.sleep(0.4)
+                            with urllib.request.urlopen(req_ac, timeout=15) as resp_ac:
+                                ac_data = json.loads(resp_ac.read().decode('utf-8'))
+                            
+                        if ac_data and ac_data.get("status") == "ok":
+                            results_ac = ac_data.get("results", [])
+                            if results_ac:
+                                from thefuzz import fuzz
+                                is_match = False
+                                best_match_details = "None"
+                                
+                                for res_item in results_ac:
+                                    score = res_item.get("score", 0)
+                                    if score < 0.5:
+                                        continue
+                                    
+                                    recordings_ac = res_item.get("recordings", [])
+                                    for rec_ac in recordings_ac:
+                                        t_title = rec_ac.get("title", "")
+                                        artists_ac = rec_ac.get("artists", [])
+                                        artist_names_ac = [a.get("name", "") for a in artists_ac]
+                                        
+                                        artist_matched = False
+                                        if not expected_artist or str(expected_artist).lower() in ["unknown", "unknown artist", ""]:
+                                            artist_matched = True
+                                        else:
+                                            for art_name in artist_names_ac:
+                                                if fuzz.token_set_ratio(expected_artist.lower(), art_name.lower()) >= 95:
+                                                    artist_matched = True
+                                                    break
+                                            if not artist_matched and artist_names_ac:
+                                                combined_art = " & ".join(artist_names_ac)
+                                                if fuzz.token_set_ratio(expected_artist.lower(), combined_art.lower()) >= 95:
+                                                    artist_matched = True
+                                                    
+                                        title_matched = fuzz.token_set_ratio(expected_title.lower(), t_title.lower()) >= 95
+                                        
+                                        if artist_matched and title_matched:
+                                            is_match = True
+                                            best_match_details = f"'{', '.join(artist_names_ac)} - {t_title}' (Score: {score:.2f})"
+                                            break
+                                            
+                                        # Combined fallback check for multi-hyphen filenames (e.g. 'Channel - Artist - Title')
+                                        if artist_names_ac and t_title:
+                                            combined_expected = f"{expected_artist} - {expected_title}"
+                                            combined_ac = f"{' & '.join(artist_names_ac)} - {t_title}"
+                                            if fuzz.token_set_ratio(combined_expected.lower(), combined_ac.lower()) >= 95:
+                                                is_match = True
+                                                best_match_details = f"'{', '.join(artist_names_ac)} - {t_title}' (Score: {score:.2f} via combined fallback)"
+                                                break
+                                    if is_match:
+                                        break
+                                        
+                                if is_match:
+                                    state.log(f"[AcoustID Match Verified] Match: {best_match_details}")
+                                else:
+                                    best_guess = "Unknown / Other"
+                                    best_rec = results_ac[0].get("recordings", [])
+                                    if best_rec:
+                                        g_artists = [a.get("name", "") for a in best_rec[0].get("artists", [])]
+                                        g_title = best_rec[0].get("title", "")
+                                        best_guess = f"'{', '.join(g_artists)} - {g_title}' (Score: {results_ac[0].get('score', 0):.2f})"
+                                    
+                                    state.log(f"[AcoustID REJECTED] Mismatch! Expected: '{expected_artist} - {expected_title}', Download actually is: {best_guess}")
+                                    validation_success = False
+                            else:
+                                state.log(f"[AcoustID WARNING] No matches in catalog. Routing to Unsorted_Review folder.")
+                                target_override = "Unsorted_Review"
+                        else:
+                            state.log(f"[AcoustID WARNING] Lookup returned error status: {ac_data.get('status')}")
+                    else:
+                        state.log(f"[AcoustID WARNING] fpcalc returned empty duration or fingerprint.")
+                except Exception as ve:
+                    state.log(f"[AcoustID WARNING] Validation gate skipped due to error: {ve}")
+            else:
+                state.log(f"[AcoustID INFO] Validation gate skipped (no API key or missing expected title metadata).")
+                
+            if not validation_success:
+                if os.path.exists(raw_path):
+                    try:
+                        os.remove(raw_path)
+                    except:
+                        pass
+                if os.path.exists(staging_task_dir):
+                    shutil.rmtree(staging_task_dir, ignore_errors=True)
+                state.url_queue.task_done()
+                state.update_count()
+                continue
 
             state.log(f"Phase 2.5: Auto-Mastering (Fingerprinting)")
             mastered_path, updates = am.process_file(raw_path, original_bitrate=bitrate)
@@ -2168,6 +2313,143 @@ def complete_pull_job():
     else:
         state.log(f"[Pull Broker Error] Vaulting failed: {msg}")
         return jsonify({"status": "error", "message": msg}), 500
+
+@app.route('/api/sync/pull', methods=['POST'])
+def sync_pull_gdrive():
+    def run_pull():
+        try:
+            if os.name == 'nt':
+                state.log("[GDrive Sync] Running on Windows, local Google Drive client handles pulls automatically.")
+                return
+                
+            state.log("[GDrive Sync] Triggering background GDrive-to-VM pull sync...")
+            
+            cmd = [
+                "rclone", "copy", "gdrive:FMP MUSIC/BASE/MUSIC", "/home/ubuntu/music",
+                "--size-only",
+                "--transfers=4",
+                "--checkers=8",
+                "--exclude", "/staging/**",
+                "-v"
+            ]
+            
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
+            if res.returncode == 0:
+                state.log("[GDrive Sync] GDrive-to-VM pull sync completed successfully.")
+            else:
+                state.log(f"[GDrive Sync Error] Pull sync failed with code {res.returncode}: {res.stderr.strip()[:200]}")
+        except Exception as e:
+            state.log(f"[GDrive Sync Error] Failed to run sync command: {e}")
+            
+    threading.Thread(target=run_pull, daemon=True).start()
+    return jsonify({"status": "success", "message": "Google Drive pull sync started in the background."})
+
+@app.route('/api/public/shoutout', methods=['POST', 'OPTIONS'])
+def public_submit_shoutout():
+    """
+    Public shout-out submission API.
+    Securely forwards listener shout-outs to Discord (and optionally Sheets).
+    Protects Webhook and API credentials from browser inspection.
+    """
+    origin = request.headers.get('Origin', '*')
+    
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Methods'] = 'POST'
+        return response
+
+    data = {}
+    if request.is_json:
+        data = request.json or {}
+    else:
+        data = request.form or {}
+
+    name = data.get('name', '').strip()
+    message = data.get('message', '').strip()
+
+    if not name or not message:
+        response = jsonify({"error": "Name and message cannot be empty."})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response, 400
+
+    if len(name) > 50:
+        response = jsonify({"error": "Name must not exceed 50 characters."})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response, 400
+
+    if len(message) > 1000:
+        response = jsonify({"error": "Message must not exceed 1000 characters."})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response, 400
+
+    discord_url = os.environ.get('DISCORD_WEBHOOK_URL') or os.getenv('DISCORD_WEBHOOK_URL')
+    if not discord_url:
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(os.path.join(BASE_DIR, ".env"))
+            discord_url = os.getenv('DISCORD_WEBHOOK_URL')
+        except Exception:
+            pass
+
+    if not discord_url:
+        state.log("[Shout-out Error] DISCORD_WEBHOOK_URL is not set.")
+        response = jsonify({"error": "Serverless function missing credentials."})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response, 500
+
+    discord_payload = {
+        "username": "FMP Shout-Out",
+        "avatar_url": "https://i.imgur.com/SjeIgZV.png",
+        "embeds": [{
+            "color": 15381256,
+            "title": "📢 New Shout-Out!",
+            "fields": [
+                {"name": "From", "value": name, "inline": True},
+                {"name": "Message", "value": message, "inline": False}
+            ],
+            "footer": {"text": "Securely proxied via VM FMP Ultimate Gateway"},
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        }]
+    }
+
+    sheets_url = os.environ.get('SHEETS_ENDPOINT_URL') or os.getenv('SHEETS_ENDPOINT_URL')
+
+    success = False
+    try:
+        req_disc = urllib.request.Request(
+            discord_url,
+            data=json.dumps(discord_payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json', 'User-Agent': 'FMP-Ultimate-Shoutout/1.0'}
+        )
+        with urllib.request.urlopen(req_disc, timeout=10) as resp_disc:
+            if resp_disc.status in (200, 204):
+                success = True
+
+        if sheets_url:
+            try:
+                sheets_payload = {"name": name, "message": message}
+                req_sheets = urllib.request.Request(
+                    sheets_url,
+                    data=json.dumps(sheets_payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json', 'User-Agent': 'FMP-Ultimate-Shoutout/1.0'}
+                )
+                with urllib.request.urlopen(req_sheets, timeout=10) as resp_sheets:
+                    pass
+            except Exception as e_sheets:
+                state.log(f"[Shout-out Warning] Google Sheets submit failed: {e_sheets}")
+    except Exception as e_disc:
+        state.log(f"[Shout-out Error] Discord submit failed: {e_disc}")
+
+    if success:
+        response = jsonify({"status": "success"})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response
+    else:
+        response = jsonify({"error": "Failed to deliver shout-out to Discord."})
+        response.headers['Access-Control-Allow-Origin'] = origin
+        return response, 500
 
 if __name__ == '__main__':
     os.system('') 
