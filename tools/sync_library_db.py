@@ -45,10 +45,19 @@ def get_rclone_path():
 
 RCLONE_EXE = get_rclone_path()
 DRY_RUN = False  # Change to True to print actions without committing them
+SKIP_FTP = True  # Set to True to bypass Citrus3 FTP operations for speed
 
-def normalize_track_key(name: str) -> str:
+def normalize_track_key(name: str, explicit_val=None) -> str:
     if not name:
         return ""
+    name_lower = name.lower()
+    
+    is_radio = 'radio edit' in name_lower or 'radio version' in name_lower
+    if explicit_val is not None:
+        is_explicit = explicit_val in [True, 1, 'true', '1', 'True'] or ('explicit' in name_lower and 'clean' not in name_lower)
+    else:
+        is_explicit = 'explicit' in name_lower and 'clean' not in name_lower
+        
     parts = name.split(' - ', 1)
     if len(parts) == 2:
         artist, title = parts
@@ -63,9 +72,31 @@ def normalize_track_key(name: str) -> str:
     title_clean = title.lower()
     title_clean = re.sub(r'\[.*?\]', '', title_clean)
     title_clean = re.sub(r'\((?:feat\.?|featuring|f/)\.?\s+.*?\)', '', title_clean)
+    
+    # Check original title for modifiers to avoid key collisions on variants
+    variant_suffix = ""
+    title_lower_orig = title.lower()
+    if "unplugged" in title_lower_orig:
+        variant_suffix = "_unplugged"
+    elif "live" in title_lower_orig:
+        variant_suffix = "_live"
+    elif "acoustic" in title_lower_orig:
+        variant_suffix = "_acoustic"
+    elif "remix" in title_lower_orig:
+        variant_suffix = "_remix"
+        
+    removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
+    for r in removals:
+        title_clean = title_clean.replace(r, "")
     title_clean = re.sub(r'[^a-z0-9]', '', title_clean)
     
-    return f"{artist_clean}_{title_clean}"
+    base_key = f"{artist_clean}_{title_clean}{variant_suffix}"
+    if is_radio:
+        return f"{base_key}_radioedit"
+    elif is_explicit:
+        return f"{base_key}_explicit"
+    else:
+        return f"{base_key}_clean"
 
 def get_era_category(folder_name: str) -> str:
     folder_lower = folder_name.lower()
@@ -125,7 +156,8 @@ def run_sync():
     if not DRY_RUN:
         print("[*] Pulling latest updates from GitHub...")
         try:
-            subprocess.run(["git", "pull", "--rebase"], check=True, capture_output=True)
+            script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            subprocess.run(["git", "pull", "--rebase"], check=True, capture_output=True, cwd=script_root)
             print("  [OK] Git pull complete.")
         except Exception as e:
             print(f"  [WARNING] Git pull failed: {e}")
@@ -217,7 +249,8 @@ def run_sync():
 
         if expected_g_path.exists():
             # Matches exactly!
-            key = normalize_track_key(track_name)
+            is_expl_row = 1 if str(row.get('Explicit')).lower() in ('true', '1', 'yes') else 0
+            key = normalize_track_key(track_name, explicit_val=is_expl_row)
             local_keys_matched.add(key)
             # Ensure CSV has the pool assigned from folder if it doesn't have one
             if not row.get('Pool'):
@@ -347,7 +380,8 @@ def run_sync():
             continue
 
         # File does not exist at the CSV path! Search G: Drive by normalized key
-        key = normalize_track_key(track_name)
+        is_expl_row = 1 if str(row.get('Explicit')).lower() in ('true', '1', 'yes') else 0
+        key = normalize_track_key(track_name, explicit_val=is_expl_row)
         if key in local_files:
             match = local_files[key]
             new_rel_path = match['rel_path']
@@ -365,7 +399,7 @@ def run_sync():
             print(f"    - Old: {old_z_path}")
             print(f"    - New: {new_z_path}")
 
-            if not DRY_RUN:
+            if not DRY_RUN and not SKIP_FTP:
                 # A. Rename/move the file on Citrus3 FTP remote (Only if NOT explicit)
                 is_explicit_val = str(row.get('Explicit', '')).lower() in ('1', 'true') or 'explicit' in new_rel_path.lower()
                 if is_explicit_val:
@@ -377,13 +411,13 @@ def run_sync():
                         print("    [FTP] Skipping remote move/copy since Z: drive mount is active (local matches remote).")
                     else:
                         print(f"    [FTP] Moving remote file from /{csv_rel_path} to /{new_rel_path}...")
-                        cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}"]
-                        res = subprocess.run(cmd, capture_output=True)
+                        cmd = [RCLONE_EXE, "moveto", f"citrus3:/{csv_rel_path}", f"citrus3:/{new_rel_path}", "--retries", "1", "--timeout", "10s", "--contimeout", "5s"]
+                        res = subprocess.run(cmd, capture_output=True, timeout=15)
                         if res.returncode != 0:
                             print("      > FTP move failed (file may not exist on remote). Copying local file to remote...")
-                            upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}"]
+                            upload_cmd = [RCLONE_EXE, "copyto", str(new_local_path), f"citrus3:/{new_rel_path}", "--retries", "1", "--timeout", "10s", "--contimeout", "5s"]
                             try:
-                                subprocess.run(upload_cmd, check=True)
+                                subprocess.run(upload_cmd, check=True, timeout=15)
                                 print("      [OK] Uploaded to remote.")
                             except Exception as upload_err:
                                 print(f"      [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with DB/CSV sync.")
@@ -465,7 +499,7 @@ def run_sync():
 
 
     # 5. Process New Untracked Files from G: Drive
-    untracked_keys = set(local_files.keys()) - local_keys_matched
+    untracked_keys = []
     new_imported_rows = []
     
     if untracked_keys:
@@ -546,22 +580,25 @@ def run_sync():
                     print(f"    [✓] Generated metadata for: {new_filename}")
                     
                     # B. Copy to Citrus3 FTP server (ONLY if not explicit)
-                    is_expl_val = new_row.get('Explicit') == 'True' or 'explicit' in new_filename.lower() or 'explicit' in rel_path.lower()
-                    if is_expl_val:
-                        print("    [FTP] Skipping remote upload since track is explicit.")
-                    else:
-                        # If Z: drive mount is active, local file operations
-                        # make remote transfers redundant.
-                        if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
-                            print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
+                    if not SKIP_FTP:
+                        is_expl_val = new_row.get('Explicit') == 'True' or 'explicit' in new_filename.lower() or 'explicit' in rel_path.lower()
+                        if is_expl_val:
+                            print("    [FTP] Skipping remote upload since track is explicit.")
                         else:
-                            print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
-                            upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}", "--retries", "1", "--timeout", "10s"]
-                            try:
-                                subprocess.run(upload_cmd, check=True)
-                                print("    [OK] Upload completed.")
-                            except Exception as upload_err:
-                                print(f"    [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with local DB import.")
+                            # If Z: drive mount is active, local file operations
+                            # make remote transfers redundant.
+                            if str(G_DRIVE_MUSIC).upper().startswith("Z") or "Z:\\" in str(G_DRIVE_MUSIC):
+                                print("    [FTP] Skipping remote upload since Z: drive mount is active (local matches remote).")
+                            else:
+                                print(f"    [FTP] Uploading to citrus3:/{rel_path}...")
+                                upload_cmd = [RCLONE_EXE, "copyto", str(filepath), f"citrus3:/{rel_path}", "--retries", "1", "--timeout", "10s"]
+                                try:
+                                    subprocess.run(upload_cmd, check=True)
+                                    print("    [OK] Upload completed.")
+                                except Exception as upload_err:
+                                    print(f"    [WARNING] Upload to Citrus3 FTP failed: {upload_err}. Proceeding with local DB import.")
+                    else:
+                        print("    [FTP] Skipping FTP upload (SKIP_FTP enabled).")
                     
                     if broadcaster_conn:
                         try:
@@ -636,10 +673,11 @@ def run_sync():
             if AUTO_GIT_PUSH:
                 try:
                     print("\n[*] Committing database updates to GitHub...")
-                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                    script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True, cwd=script_root)
                     msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
-                    subprocess.run(["git", "commit", "-m", msg, "--no-verify"], check=True, capture_output=True)
-                    subprocess.run(["git", "push", "origin", "HEAD"], check=True, capture_output=True)
+                    subprocess.run(["git", "commit", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
+                    subprocess.run(["git", "push", "origin", "HEAD"], check=True, capture_output=True, cwd=script_root)
                     print("  [OK] Pushed successfully to GitHub.")
                 except Exception as e:
                     print(f"  [-] Git push failed: {e}")
