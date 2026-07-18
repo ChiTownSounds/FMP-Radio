@@ -270,8 +270,28 @@ class SystemState:
             try:
                 with open(queue_file, "r", encoding="utf-8") as f:
                     items = json.load(f)
-                    for item in items:
-                        self.url_queue.items.append(item)
+                
+                updated = False
+                for item in items:
+                    artist = item.get('artist', '')
+                    title = item.get('title', '')
+                    target = item.get('target', '')
+                    if artist and title:
+                        is_insp = is_inspirational_track(artist, title)
+                        if is_insp:
+                            if target != "Shows/InspirationalChurch":
+                                item['target'] = "Shows/InspirationalChurch"
+                                updated = True
+                        else:
+                            if target == "Shows/InspirationalChurch":
+                                item['target'] = ""
+                                updated = True
+                    self.url_queue.items.append(item)
+                
+                if updated:
+                    with open(queue_file, "w", encoding="utf-8") as f:
+                        json.dump(items, f, indent=4)
+                
                 if self.url_queue.items:
                     self.url_queue.counter = max(item.get('id', 0) for item in self.url_queue.items)
                 self.log(f"[SYSTEM] Restored {len(self.url_queue.items)} items from saved queue.")
