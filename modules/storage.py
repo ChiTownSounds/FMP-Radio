@@ -820,6 +820,8 @@ class VaultManager:
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 
+                rclone_path = self._get_rclone_path()
+
                 # 9. Remote FTP Upload (Citrus3) first (Only if NOT explicit)
                 is_explicit_val = str(new_row.get('Explicit', 'False')).strip().lower() in ['true', '1']
                 is_explicit_by_name = 'explicit' in clean_name.lower() or 'explicit' in relative_file_path.lower()
@@ -827,7 +829,6 @@ class VaultManager:
                 if is_explicit_val or is_explicit_by_name:
                     logging.info(f"[*] Skipping Citrus3 FTP upload for explicit track: {clean_name}")
                 else:
-                    rclone_path = self._get_rclone_path()
                     try:
                         cmd = [rclone_path, "copyto", g_target_file, f"citrus3:{remote_target}/{clean_name}"]
                         subprocess.run(cmd, check=True, capture_output=True)
