@@ -116,9 +116,11 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
     if not artist or not title:
         return False
     
-    # Check keywords in title, artist, or album
-    # Check against known Gospel artists
     artist_lower = artist.lower()
+    title_lower = title.lower()
+    album_lower = album.lower() if album else ""
+    
+    # 1. Check against known Gospel artists
     g_artists = [
         "smokie norful", "marvin sapp", "kirk franklin", "helen baylor", "fred hammond",
         "donnie mcclurkin", "yolanda adams", "cece winans", "tamela mann", "tasha cobbs",
@@ -129,10 +131,20 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
         "josh copeland", "ted & sheri", "pj morton", "milton brunson", "douglas miller",
         "jekalyn carr", "bishop larry trotter", "mississippi mass choir", "chicago mass choir",
         "williams brothers", "victorious army", "tri-city singers", "donald lawrence",
-        "andraé crouch", "andrae crouch"
+        "andraé crouch", "andrae crouch", "edwin hawkins", "walter hawkins", "tramaine hawkins",
+        "georgia mass choir", "rance allen", "cantons", "jackson southernaires", "sensational nightingales",
+        "mighty clouds of joy", "lee williams", "spiritual qc", "canton spirituals"
     ]
     for ga in g_artists:
         if ga in artist_lower:
+            return True
+            
+    # 2. Check keywords in title, artist, or album
+    keywords = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual", "church", "amen"]
+    for kw in keywords:
+        if kw in title_lower or kw in album_lower:
+            return True
+        if kw in artist_lower and any(w in artist_lower for w in ["choir", "singers", "gospel", "mass", "fellowship"]):
             return True
             
     return False
@@ -203,7 +215,7 @@ class SystemState:
                             item['target'] = "Shows/InspirationalChurch"
                             updated = True
                     else:
-                        if before_9am and target == "Shows/InspirationalChurch":
+                        if target == "Shows/InspirationalChurch":
                             item['target'] = ""
                             updated = True
                 if updated:
@@ -1129,14 +1141,12 @@ def iheart_poller_worker():
                         now = datetime.now(zoneinfo.ZoneInfo('America/Chicago'))
                         is_sunday_church = False
                         
-                        if now.weekday() in IHEART_CHURCH_DAYS:
+                        if is_inspirational_track(artist, title, album):
+                            is_sunday_church = True
+                            logging.info(f"[iHeart Sync] Inspirational track matched -> Routing to Gospel/Church.")
+                        elif now.weekday() in IHEART_CHURCH_DAYS:
                             if IHEART_CHURCH_START_HOUR <= now.hour < IHEART_CHURCH_END_HOUR:
                                 is_sunday_church = True
-                                
-                        if not is_sunday_church:
-                            if is_inspirational_track(artist, title, album):
-                                is_sunday_church = True
-                                logging.info(f"[iHeart Sync] Inspirational track matched -> Routing to Gospel/Church.")
                                     
                         if is_sunday_church:
                             target_override = IHEART_CHURCH_FOLDER
