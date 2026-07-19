@@ -342,9 +342,39 @@ class AutoMaster:
             outro_duration = embedded_outro
             cue_out_ms = total_duration_ms - outro_duration if total_duration_ms > outro_duration else total_duration_ms
 
+        # Determine clean/final artist and title to return to the pipeline
+        final_artist = true_artist or artist
+        base_title = true_title or title
+
+        def clean_metadata_text(text: str) -> str:
+            if not text:
+                return ""
+            t = text
+            suffixes_to_strip = [
+                r'\s*[\(\[]\s*official\s+video\s*[\)\]]',
+                r'\s*[\(\[]\s*music\s+video\s*[\)\]]',
+                r'\s*[\(\[]\s*official\s+music\s+video\s*[\)\]]',
+                r'\s*[\(\[]\s*video\s+clip\s*[\)\]]',
+                r'\s*[\(\[]\s*videoclip\s*[\)\]]',
+                r'\s*[\(\[]\s*lyric\s+video\s*[\)\]]',
+                r'\s*[\(\[]\s*lyrics\s+video\s*[\)\]]',
+                r'\s*[\(\[]\s*official\s+audio\s*[\)\]]',
+                r'\s*[\(\[]\s*official\s*[\)\]]',
+                r'\s*[\(\[]\s*audio\s*[\)\]]',
+                r'\s*[\(\[]\s*video\s*[\)\]]',
+                r'\s*[\(\[]\s*lyrics\s*[\)\]]'
+            ]
+            for pattern in suffixes_to_strip:
+                t = re.sub(pattern, '', t, flags=re.IGNORECASE)
+            t = re.sub(r'\s+', ' ', t).strip()
+            return t
+
+        final_title = clean_metadata_text(base_title)
+        final_artist = clean_metadata_text(final_artist)
+
         # Embed the final precision cue points & BPM back into the MP3 tags
         try:
-            from mutagen.id3 import TXXX, TBPM
+            from mutagen.id3 import TXXX, TBPM, TIT2, TPE1
             audio = MP3(file_path)
             if audio.tags is None:
                 audio.add_tags()
@@ -352,14 +382,11 @@ class AutoMaster:
             audio.tags.add(TXXX(encoding=3, desc='PUNCH_MS', text=[str(punch_ms)]))
             audio.tags.add(TXXX(encoding=3, desc='OUTRO_DURATION', text=[str(outro_duration)]))
             audio.tags.add(TBPM(encoding=3, text=[str(bpm_int)]))
+            audio.tags.add(TIT2(encoding=3, text=[final_title]))
+            audio.tags.add(TPE1(encoding=3, text=[final_artist]))
             audio.save()
         except Exception as e:
-            logging.error(f"Failed to write cue points to MP3 tags: {e}")
-
-        # Determine clean/final artist and title to return to the pipeline
-        final_artist = true_artist or artist
-        base_title = true_title or title
-        final_title = base_title
+            logging.error(f"Failed to write cue points and metadata to MP3 tags: {e}")
 
         metadata_updates = {
             'artist': final_artist,

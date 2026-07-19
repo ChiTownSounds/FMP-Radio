@@ -46,6 +46,62 @@ logging.getLogger().addHandler(file_handler)
 
 app = Flask(__name__)
 
+def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
+    if vm is None:
+        from modules.storage import VaultManager
+        vm = VaultManager()
+    
+    # First try direct normalized key match (fast path)
+    norm_key = vm._normalize_track_key(f"{check_artist} - {check_title}")
+    if vm._normalize_track_key(existing_name) == norm_key:
+        return True, "Already in library (normalized match)"
+        
+    # Fallback to smart parsing
+    parts = existing_name.split(' - ', 1)
+    if len(parts) == 2:
+        ex_artist, ex_title = parts
+    else:
+        ex_artist, ex_title = "", existing_name
+        
+    def norm_title(t):
+        t = t.lower()
+        import unicodedata
+        t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
+        t = re.sub(r'\[.*?\]', '', t)
+        t = re.sub(r'\(.*?\)', '', t)
+        removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
+        for r in removals:
+            t = t.replace(r, "")
+        return re.sub(r'[^a-z0-9]', '', t)
+        
+    if norm_title(ex_title) != norm_title(check_title):
+        return False, ""
+        
+    # Titles match! Now extract and clean co-artists
+    def get_primary_artists(a):
+        a_clean = a.lower()
+        import unicodedata
+        a_clean = unicodedata.normalize('NFKD', a_clean).encode('ascii', 'ignore').decode('ascii')
+        a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and|&)\s+', a_clean)[0]
+        parts = re.split(r'[,/;]', a_clean)
+        return [re.sub(r'[^a-z0-9]', '', x).strip() for x in parts if re.sub(r'[^a-z0-9]', '', x).strip()]
+        
+    ex_artists = get_primary_artists(ex_artist)
+    check_artists = get_primary_artists(check_artist)
+    
+    if set(ex_artists) & set(check_artists):
+        return True, "Already in library (smart artist match)"
+        
+    ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower())
+    import unicodedata
+    ex_artist_clean = unicodedata.normalize('NFKD', ex_artist_clean).encode('ascii', 'ignore').decode('ascii')
+    check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower())
+    check_artist_clean = unicodedata.normalize('NFKD', check_artist_clean).encode('ascii', 'ignore').decode('ascii')
+    if ex_artist_clean in check_artist_clean or check_artist_clean in ex_artist_clean:
+        return True, "Already in library (substring artist match)"
+        
+    return False, ""
+
 class UrlQueue:
     def __init__(self):
         self.lock = threading.Lock()
@@ -367,7 +423,8 @@ class SystemState:
                 "vault_total": self.vault_total,
                 "folder_breakdown": self.folder_breakdown,
                 "download_queue": self.url_queue.get_all(),
-                "pending_iheart_queue": list(self.pending_iheart_queue)
+                "pending_iheart_queue": list(self.pending_iheart_queue),
+                "workstation": getattr(self, 'workstation_status', {})
             }
 
     def start_spinner(self):
@@ -436,6 +493,35 @@ def downloader_worker():
         url = task.get('url')
         task_type = task.get('type', 'ingest')
         target_override = task.get('target')
+        
+        # Check for duplicates before download if artist/title are known and not explicitly overwriting
+        expected_artist = task.get("artist")
+        expected_title = task.get("title")
+        if expected_artist and expected_title and not task.get('overwrite'):
+            from modules.storage import VaultManager
+            vm = VaultManager()
+            is_duplicate = False
+            from config import CSV_BLUEPRINT
+            if os.path.exists(CSV_BLUEPRINT):
+                with vm._csv_lock:
+                    try:
+                        import csv
+                        with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                            reader = csv.DictReader(f)
+                            for row in reader:
+                                existing_name = row.get('Track Name')
+                                if existing_name:
+                                    is_dup, reason = is_smart_duplicate(existing_name, expected_artist, expected_title, vm=vm)
+                                    if is_dup:
+                                        is_duplicate = True
+                                        break
+                    except Exception as ex:
+                        logging.error(f"Error checking duplicate in downloader_worker: {ex}")
+            if is_duplicate:
+                state.log(f"[SKIPPED] Duplicate Track (checked before download): {expected_artist} - {expected_title}")
+                state.url_queue.task_done()
+                state.update_count()
+                continue
         
         if task_type == 'local':
             state.set_status("Running", os.path.basename(url))
@@ -561,13 +647,13 @@ def downloader_worker():
                         url = resolved_url
                     else:
                         state.log(f"[WARNING] No videoId found in ytmusicapi results for \"{query_clean}\". Falling back to ytsearch1.")
-                        url = f"ytsearch1:{query_clean}"
+                        url = f"ytsearch1:{query_clean} (Official Audio)"
                 else:
                     state.log(f"[WARNING] No results from ytmusicapi for \"{query_clean}\". Falling back to ytsearch1.")
-                    url = f"ytsearch1:{query_clean}"
+                    url = f"ytsearch1:{query_clean} (Official Audio)"
             except Exception as e:
                 state.log(f"[ERROR] ytmusicapi search failed: {e}. Falling back to ytsearch1.")
-                url = f"ytsearch1:{query_clean}"
+                url = f"ytsearch1:{query_clean} (Official Audio)"
         
         state.set_status("Running", url)
         task_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1178,58 +1264,6 @@ def iheart_poller_worker():
                         from modules.storage import VaultManager
                         vm = VaultManager()
                         
-                        def is_smart_duplicate(existing_name, check_artist, check_title):
-                            # First try direct normalized key match (fast path)
-                            norm_key = vm._normalize_track_key(f"{check_artist} - {check_title}")
-                            if vm._normalize_track_key(existing_name) == norm_key:
-                                return True, "Already in library (normalized match)"
-                                
-                            # Fallback to smart parsing
-                            parts = existing_name.split(' - ', 1)
-                            if len(parts) == 2:
-                                ex_artist, ex_title = parts
-                            else:
-                                ex_artist, ex_title = "", existing_name
-                                
-                            def norm_title(t):
-                                t = t.lower()
-                                import unicodedata
-                                t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
-                                t = re.sub(r'\[.*?\]', '', t)
-                                t = re.sub(r'\(.*?\)', '', t)
-                                removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
-                                for r in removals:
-                                    t = t.replace(r, "")
-                                return re.sub(r'[^a-z0-9]', '', t)
-                                
-                            if norm_title(ex_title) != norm_title(check_title):
-                                return False, ""
-                                
-                            # Titles match! Now extract and clean co-artists
-                            def get_primary_artists(a):
-                                a_clean = a.lower()
-                                import unicodedata
-                                a_clean = unicodedata.normalize('NFKD', a_clean).encode('ascii', 'ignore').decode('ascii')
-                                a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and|&)\s+', a_clean)[0]
-                                parts = re.split(r'[,/;]', a_clean)
-                                return [re.sub(r'[^a-z0-9]', '', x).strip() for x in parts if re.sub(r'[^a-z0-9]', '', x).strip()]
-                                
-                            ex_artists = get_primary_artists(ex_artist)
-                            check_artists = get_primary_artists(check_artist)
-                            
-                            if set(ex_artists) & set(check_artists):
-                                return True, "Already in library (smart artist match)"
-                                
-                            ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower())
-                            import unicodedata
-                            ex_artist_clean = unicodedata.normalize('NFKD', ex_artist_clean).encode('ascii', 'ignore').decode('ascii')
-                            check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower())
-                            check_artist_clean = unicodedata.normalize('NFKD', check_artist_clean).encode('ascii', 'ignore').decode('ascii')
-                            if ex_artist_clean in check_artist_clean or check_artist_clean in ex_artist_clean:
-                                return True, "Already in library (substring artist match)"
-                                
-                            return False, ""
-
                         is_duplicate = False
                         duplicate_reason = ""
                         
@@ -1237,12 +1271,13 @@ def iheart_poller_worker():
                         if os.path.exists(CSV_BLUEPRINT):
                             with vm._csv_lock:
                                 try:
+                                    import csv
                                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                                         reader = csv.DictReader(f)
                                         for row in reader:
                                             existing_name = row.get('Track Name')
                                             if existing_name:
-                                                is_dup, reason = is_smart_duplicate(existing_name, artist, title)
+                                                is_dup, reason = is_smart_duplicate(existing_name, artist, title, vm=vm)
                                                 if is_dup:
                                                     is_duplicate = True
                                                     duplicate_reason = reason
@@ -1421,6 +1456,14 @@ def get_rclone_path():
 def index(): return render_template('index.html')
 @app.route('/api/status')
 def status(): return jsonify(state.get_snapshot())
+
+@app.route('/api/workstation/status', methods=['POST'])
+def update_workstation_status():
+    payload = request.json
+    if not payload:
+        return jsonify({"status": "error", "message": "Missing payload"}), 400
+    state.workstation_status = payload
+    return jsonify({"status": "ok"})
 
 
 @app.route('/library-eraser')
