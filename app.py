@@ -801,15 +801,35 @@ def downloader_worker():
                                 if is_match:
                                     state.log(f"[AcoustID Match Verified] Match: {best_match_details}")
                                 else:
-                                    best_guess = "Unknown / Other"
-                                    best_rec = results_ac[0].get("recordings", [])
-                                    if best_rec:
-                                        g_artists = [a.get("name", "") for a in best_rec[0].get("artists", [])]
-                                        g_title = best_rec[0].get("title", "")
-                                        best_guess = f"'{', '.join(g_artists)} - {g_title}' (Score: {results_ac[0].get('score', 0):.2f})"
+                                    # Check if the AcoustID database actually contains any metadata for the high score match.
+                                    # If AcoustID has a fingerprint match but absolutely no metadata (title/artist tags) associated with it,
+                                    # we cannot verify the track name, so we bypass rejection to prevent deleting valid files.
+                                    has_any_metadata = False
+                                    for res_item in results_ac:
+                                        if res_item.get("score", 0) < 0.5:
+                                            continue
+                                        for rec_ac in res_item.get("recordings", []):
+                                            if rec_ac.get("title") or rec_ac.get("artists"):
+                                                has_any_metadata = True
+                                                break
+                                        if has_any_metadata:
+                                            break
                                     
-                                    state.log(f"[AcoustID REJECTED] Mismatch! Expected: '{expected_artist} - {expected_title}', Download actually is: {best_guess}")
-                                    validation_success = False
+                                    if not has_any_metadata:
+                                        state.log(f"[AcoustID WARNING] Match score {results_ac[0].get('score', 0):.2f} has no metadata in AcoustID. Bypassing validation gate.")
+                                        is_match = True
+                                        best_match_details = f"Unknown / No Metadata in AcoustID (Score: {results_ac[0].get('score', 0):.2f})"
+                                        state.log(f"[AcoustID Match Verified] Match: {best_match_details}")
+                                    else:
+                                        best_guess = "Unknown / Other"
+                                        best_rec = results_ac[0].get("recordings", [])
+                                        if best_rec:
+                                            g_artists = [a.get("name", "") for a in best_rec[0].get("artists", [])]
+                                            g_title = best_rec[0].get("title", "")
+                                            best_guess = f"'{', '.join(g_artists)} - {g_title}' (Score: {results_ac[0].get('score', 0):.2f})"
+                                        
+                                        state.log(f"[AcoustID REJECTED] Mismatch! Expected: '{expected_artist} - {expected_title}', Download actually is: {best_guess}")
+                                        validation_success = False
                             else:
                                 state.log(f"[AcoustID WARNING] No matches in catalog. Routing to Unsorted_Review folder.")
                                 target_override = "Unsorted_Review"
