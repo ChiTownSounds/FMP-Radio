@@ -38,8 +38,8 @@ def check_and_clean_csv():
             fieldnames = reader.fieldnames
             
             for idx, row in enumerate(reader, start=2):  # Line 1 is header
-                track_name = row.get("Track Name", "").strip()
-                file_path = row.get("File Path", "").strip()
+                track_name = (row.get("Track Name") or "").strip()
+                file_path = (row.get("File Path") or "").strip()
                 
                 if not file_path:
                     rows.append(row)
@@ -95,9 +95,9 @@ def check_and_clean_csv():
         sys.exit(1)
 
     # 3. Sort rows alphabetically by Track Name (case-insensitive)
-    original_order = [r.get("Track Name", "") for r in rows]
-    rows.sort(key=lambda r: r.get("Track Name", "").lower())
-    new_order = [r.get("Track Name", "") for r in rows]
+    original_order = [r.get("Track Name") or "" for r in rows]
+    rows.sort(key=lambda r: (r.get("Track Name") or "").lower())
+    new_order = [r.get("Track Name") or "" for r in rows]
     
     if original_order != new_order:
         print("[PRE-COMMIT GUARD] Database rows sorted alphabetically by Track Name.")
