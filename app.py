@@ -490,6 +490,7 @@ def downloader_worker():
                 state.set_status("Idle")
             continue
 
+        staging_task_dir = None
         url = task.get('url')
         task_type = task.get('type', 'ingest')
         target_override = task.get('target')
@@ -926,7 +927,7 @@ def downloader_worker():
             logging.exception(f"Downloader Worker CRASH for {url}: {e}")
         finally:
             if not handoff_success:
-                if os.path.exists(staging_task_dir):
+                if staging_task_dir and os.path.exists(staging_task_dir):
                     shutil.rmtree(staging_task_dir, ignore_errors=True)
             
             state.url_queue.task_done()
