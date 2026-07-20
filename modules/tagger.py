@@ -155,9 +155,9 @@ class AutoMaster:
         except Exception as e:
             logging.error(f"Unexpected error calling subprocess analysis: {e}")
 
-        # Fallback to local in-process analysis
-        logging.warning("Subprocess analysis failed or timed out. Falling back to in-process analysis...")
-        return self._analyze_audio_properties_local(file_path)
+        # Fallback to safe defaults to prevent thread deadlocks under multi-threaded JIT
+        logging.warning("Subprocess analysis failed or timed out. Returning default cue values to prevent deadlock.")
+        return {'bpm': 98, 'intro_duration': 0, 'outro_duration': 0, 'punch_ms': 2000, 'intro_sec': 0.0}
 
 
     def process_file(self, file_path: str, original_bitrate: str = "320k") -> Tuple[str, Dict]:
