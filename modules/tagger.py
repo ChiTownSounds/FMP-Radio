@@ -1,4 +1,5 @@
 import os
+os.environ['NUMBA_CACHE_DIR'] = r"C:\FMP_Broadcaster\cache\numba_cache"
 import re
 import json
 import logging
