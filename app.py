@@ -63,16 +63,27 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     else:
         ex_artist, ex_title = "", existing_name
         
+    ALIAS_MAP = {
+        "3pc": "threepiece",
+        "4evermore": "forevermore",
+        "forevermore": "forevermore",
+        "2pac": "tupac",
+        "tupacshakur": "tupac"
+    }
+
     def norm_title(t):
         t = t.lower()
         import unicodedata
         t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
-        t = re.sub(r'\[.*?\]', '', t)
-        t = re.sub(r'\(.*?\)', '', t)
-        removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix"]
+        t = t.replace('&', ' and ')
+        t = re.sub(r'\[.*?\]|\(.*?\)', '', t)
+        removals = ["radio edit", "single mix", "album version", "rerecorded", "clean", "explicit", "remix", "version", "feat", "ft"]
         for r in removals:
             t = t.replace(r, "")
-        return re.sub(r'[^a-z0-9]', '', t)
+        clean_t = re.sub(r'[^a-z0-9]', '', t)
+        for k, v in ALIAS_MAP.items():
+            clean_t = clean_t.replace(k, v)
+        return clean_t
         
     if norm_title(ex_title) != norm_title(check_title):
         return False, ""
@@ -82,9 +93,17 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
         a_clean = a.lower()
         import unicodedata
         a_clean = unicodedata.normalize('NFKD', a_clean).encode('ascii', 'ignore').decode('ascii')
-        a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and|&)\s+', a_clean)[0]
+        a_clean = a_clean.replace('&', ' and ')
+        a_clean = re.split(r'\s+(?:feat\.?|featuring|with|w/|f/|and)\s+', a_clean)[0]
         parts = re.split(r'[,/;]', a_clean)
-        return [re.sub(r'[^a-z0-9]', '', x).strip() for x in parts if re.sub(r'[^a-z0-9]', '', x).strip()]
+        res = []
+        for x in parts:
+            c = re.sub(r'[^a-z0-9]', '', x).strip()
+            for k, v in ALIAS_MAP.items():
+                c = c.replace(k, v)
+            if c:
+                res.append(c)
+        return res
         
     ex_artists = get_primary_artists(ex_artist)
     check_artists = get_primary_artists(check_artist)
@@ -92,11 +111,15 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     if set(ex_artists) & set(check_artists):
         return True, "Already in library (smart artist match)"
         
-    ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower())
+    ex_artist_clean = re.sub(r'[^a-z0-9]', '', ex_artist.lower().replace('&', 'and'))
     import unicodedata
     ex_artist_clean = unicodedata.normalize('NFKD', ex_artist_clean).encode('ascii', 'ignore').decode('ascii')
-    check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower())
+    check_artist_clean = re.sub(r'[^a-z0-9]', '', check_artist.lower().replace('&', 'and'))
     check_artist_clean = unicodedata.normalize('NFKD', check_artist_clean).encode('ascii', 'ignore').decode('ascii')
+    for k, v in ALIAS_MAP.items():
+        ex_artist_clean = ex_artist_clean.replace(k, v)
+        check_artist_clean = check_artist_clean.replace(k, v)
+
     if ex_artist_clean in check_artist_clean or check_artist_clean in ex_artist_clean:
         return True, "Already in library (substring artist match)"
         
@@ -224,8 +247,10 @@ class SystemState:
         self.folder_breakdown = {}
         self.pending_iheart_queue = []
         self.rejected_iheart = []
+        self.pending_deletions = []
         self.load_pending()
         self.load_rejected()
+        self.load_pending_deletions()
         self.load_saved_queue()
         self.start_spinner()
 
@@ -292,6 +317,45 @@ class SystemState:
                 json.dump(self.pending_iheart_queue, f, indent=4)
         except Exception as e:
             self.log(f"[ERROR] Failed to save pending discoveries: {e}")
+
+    def load_pending_deletions(self):
+        import json
+        configs_dir = os.path.join(BASE_DIR, "configs")
+        os.makedirs(configs_dir, exist_ok=True)
+        pending_file = os.path.join(configs_dir, "pending_deletions.json")
+        if os.path.exists(pending_file):
+            try:
+                with open(pending_file, "r", encoding="utf-8") as f:
+                    self.pending_deletions = json.load(f)
+            except Exception as e:
+                self.log(f"[ERROR] Failed to load pending deletions: {e}")
+                self.pending_deletions = []
+        else:
+            self.pending_deletions = []
+
+    def save_pending_deletions(self):
+        import json
+        configs_dir = os.path.join(BASE_DIR, "configs")
+        os.makedirs(configs_dir, exist_ok=True)
+        pending_file = os.path.join(configs_dir, "pending_deletions.json")
+        try:
+            with open(pending_file, "w", encoding="utf-8") as f:
+                json.dump(self.pending_deletions, f, indent=4)
+        except Exception as e:
+            self.log(f"[ERROR] Failed to save pending deletions: {e}")
+
+    def enqueue_deletion(self, path):
+        with self.lock:
+            if path not in self.pending_deletions:
+                self.pending_deletions.append(path)
+                self.save_pending_deletions()
+
+    def poll_deletions(self):
+        with self.lock:
+            items = list(self.pending_deletions)
+            self.pending_deletions.clear()
+            self.save_pending_deletions()
+            return items
 
     def load_rejected(self):
         import json
@@ -471,6 +535,41 @@ def is_karaoke_or_tribute(title: str, artist: str = "") -> bool:
     exclude_keywords = ["karaoke", "tribute", "instrumental", "backing track", "originally performed", "originally by", "cover version", "piano cover", "acoustic cover"]
     return any(k in t or k in a for k in exclude_keywords)
 
+SEARCH_STOP_WORDS = {'a', 'an', 'the', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'it', 'my', 'your', 'me', 'you', 'we', 'us', 'clean', 'explicit', 'remix', 'radio', 'edit', 'version', 'feat', 'ft', 'official', 'audio', 'video'}
+
+def is_valid_search_match(candidate_title: str, candidate_artist: str, query_str: str) -> bool:
+    if is_karaoke_or_tribute(candidate_title, candidate_artist):
+        return False
+        
+    cand_title_lower = candidate_title.lower()
+    cand_artist_lower = candidate_artist.lower()
+    
+    parts = [p.strip() for p in query_str.split('-') if p.strip()]
+    if len(parts) >= 2:
+        q_artist, q_title = parts[0].lower(), parts[1].lower()
+        q_title_words = set(re.findall(r'\w+', q_title)) - SEARCH_STOP_WORDS
+        if not q_title_words:
+            q_title_words = set(re.findall(r'\w+', q_title))
+            
+        title_overlap = q_title_words.intersection(set(re.findall(r'\w+', cand_title_lower)))
+        if not title_overlap:
+            return False
+            
+        q_artist_words = set(re.findall(r'\w+', q_artist)) - SEARCH_STOP_WORDS
+        if q_artist_words:
+            cand_all_words = set(re.findall(r'\w+', cand_artist_lower + " " + cand_title_lower))
+            artist_overlap = q_artist_words.intersection(cand_all_words)
+            if not artist_overlap:
+                return False
+    else:
+        query_words = set(re.findall(r'\w+', query_str.lower())) - SEARCH_STOP_WORDS
+        cand_all_words = set(re.findall(r'\w+', cand_artist_lower + " " + cand_title_lower))
+        if query_words and not query_words.intersection(cand_all_words):
+            return False
+            
+    return True
+
+
 def extract_playlist_urls(playlist_url: str) -> list:
     cmd = YT_DLP_CMD + ["--flat-playlist", "--print", "url", playlist_url]
     try:
@@ -623,34 +722,42 @@ def downloader_worker():
             try:
                 from ytmusicapi import YTMusic
                 ytm = YTMusic()
+                best_match = None
+                
+                # Step 1: Try songs filter with strict title/artist match validation
                 results = ytm.search(query_clean, filter="songs")
                 if results and isinstance(results, list):
-                    # Iterate to find the first result that is NOT a video title
-                    best_match = None
                     for res in results:
-                        title_candidate = res.get('title', '')
+                        title_cand = res.get('title', '')
                         artists_list = res.get('artists', [])
-                        artist_candidate = ", ".join(x.get('name', '') for x in artists_list) if isinstance(artists_list, list) else ""
-                        if not is_video_title(title_candidate) and not is_karaoke_or_tribute(title_candidate, artist_candidate):
+                        artist_cand = ", ".join(x.get('name', '') for x in artists_list) if isinstance(artists_list, list) else ""
+                        if is_valid_search_match(title_cand, artist_cand, query_clean) and res.get('videoId'):
                             best_match = res
                             break
-                    # Fallback to the top result if all contain video/karaoke keywords
-                    if not best_match:
-                        best_match = results[0]
-                        
+                            
+                # Step 2: If no song match found, try unfiltered search (video/songs) with validation
+                if not best_match:
+                    unfiltered = ytm.search(query_clean)
+                    if unfiltered and isinstance(unfiltered, list):
+                        for res in unfiltered:
+                            title_cand = res.get('title', '')
+                            artists_list = res.get('artists', [])
+                            artist_cand = ", ".join(x.get('name', '') for x in artists_list) if isinstance(artists_list, list) else ""
+                            if is_valid_search_match(title_cand, artist_cand, query_clean) and res.get('videoId'):
+                                best_match = res
+                                break
+                                
+                if best_match and best_match.get('videoId'):
                     video_id = best_match.get('videoId')
-                    if video_id:
-                        resolved_url = f"https://music.youtube.com/watch?v={video_id}"
-                        title = best_match.get('title', 'Unknown')
-                        artists = ", ".join([a.get('name', 'Unknown') for a in best_match.get('artists', [])])
-                        duration = best_match.get('duration', '--:--')
-                        state.log(f"[YTM-DLP] Resolved to: \"{title}\" by {artists} ({duration}) -> {resolved_url}")
-                        url = resolved_url
-                    else:
-                        state.log(f"[WARNING] No videoId found in ytmusicapi results for \"{query_clean}\". Falling back to ytsearch1.")
-                        url = f"ytsearch1:{query_clean} (Official Audio)"
+                    resolved_url = f"https://music.youtube.com/watch?v={video_id}"
+                    title = best_match.get('title', 'Unknown')
+                    artists_list = best_match.get('artists', [])
+                    artists = ", ".join([a.get('name', 'Unknown') for a in artists_list]) if isinstance(artists_list, list) else "Unknown"
+                    duration = best_match.get('duration', '--:--')
+                    state.log(f"[YTM-DLP] Resolved to: \"{title}\" by {artists} ({duration}) -> {resolved_url}")
+                    url = resolved_url
                 else:
-                    state.log(f"[WARNING] No results from ytmusicapi for \"{query_clean}\". Falling back to ytsearch1.")
+                    state.log(f"[WARNING] No valid title/artist match in ytmusicapi results for \"{query_clean}\". Falling back to ytsearch1.")
                     url = f"ytsearch1:{query_clean} (Official Audio)"
             except Exception as e:
                 state.log(f"[ERROR] ytmusicapi search failed: {e}. Falling back to ytsearch1.")
@@ -2002,7 +2109,73 @@ def pending_approve_all():
         return jsonify({"status": "ok", "message": f"Successfully enqueued {approved_count} tracks."})
     return jsonify({"status": "ok", "message": "No discoveries to approve."})
 
-@app.route('/api/pending/approve', methods=['POST'])
+@app.route('/api/stream_health', methods=['GET'])
+def api_stream_health():
+    import requests
+    citrus_url = "https://hello.citrus3.com:8256/stream"
+    citrus_json_url = "https://hello.citrus3.com:8256/status-json.xsl"
+    takeover_url = "http://hello.citrus3.com:7048/fmpultimate"
+
+    main_online = False
+    main_code = 0
+    try:
+        r = requests.get(citrus_url, stream=True, timeout=3)
+        main_code = r.status_code
+        main_online = (r.status_code == 200)
+    except Exception:
+        main_online = False
+
+    takeover_online = False
+    try:
+        r2 = requests.get(takeover_url, stream=True, timeout=2)
+        takeover_online = (r2.status_code == 200)
+    except Exception:
+        takeover_online = False
+
+    listeners = 0
+    now_playing = "Unknown"
+    bitrate = "128"
+
+    try:
+        r_stats = requests.get(citrus_json_url, timeout=3)
+        if r_stats.status_code == 200:
+            data = r_stats.json()
+            sources = data.get('icestats', {}).get('source', [])
+            if isinstance(sources, dict):
+                sources = [sources]
+            for s in sources:
+                if '8256/stream' in s.get('listenurl', '') or 'stream' in s.get('listenurl', ''):
+                    listeners = s.get('listeners', 0)
+                    now_playing = s.get('title', 'Unknown')
+                    bitrate = str(s.get('bitrate', 128))
+                    break
+    except Exception:
+        pass
+
+    return jsonify({
+        "status": "ok",
+        "streams": [
+            {
+                "name": "Citrus3 Main / Live365 Stream",
+                "url": citrus_url,
+                "online": main_online,
+                "status_code": main_code,
+                "listeners": listeners,
+                "now_playing": now_playing,
+                "bitrate": bitrate
+            },
+            {
+                "name": "AutoDJ Takeover Mount (Port 7048)",
+                "url": takeover_url,
+                "online": takeover_online,
+                "status_code": 200 if takeover_online else 0,
+                "listeners": 0,
+                "now_playing": "Liquidsoap Live Stream" if takeover_online else "Takeover Idle (Fallback Active)",
+                "bitrate": bitrate
+            }
+        ]
+    })
+
 def pending_approve():
     url = request.json.get('url')
     target = request.json.get('target', '')
@@ -2346,6 +2519,19 @@ def extract_metadata_from_file(file_path):
 def get_pull_jobs():
     with state.url_queue.lock:
         items = list(state.url_queue.items)
+    return jsonify(items)
+
+@app.route('/api/deletions/enqueue', methods=['POST'])
+def enqueue_deletion_api():
+    payload = request.json
+    if not payload or not payload.get("file_path"):
+        return jsonify({"status": "error", "message": "Missing file_path"}), 400
+    state.enqueue_deletion(payload["file_path"])
+    return jsonify({"status": "success"})
+
+@app.route('/api/deletions/poll', methods=['GET'])
+def poll_deletions_api():
+    items = state.poll_deletions()
     return jsonify(items)
 
 @app.route('/api/pull_jobs/complete', methods=['POST'])
