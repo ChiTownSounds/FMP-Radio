@@ -691,7 +691,7 @@ def downloader_worker():
                 
                 meta['energy_category'] = clean_cat
 
-                state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'target': target_override})
+                state.vault_queue.put({'path': mastered_path, 'meta': meta, 'task_id': task_id, 'job_id': task.get('job_id'), 'target': target_override})
                 handoff_success = True
                 
             except Exception as e:
@@ -1043,6 +1043,7 @@ def downloader_worker():
                 'path': mastered_path,
                 'meta': meta,
                 'task_id': task_id,
+                'job_id': task.get('job_id'),
                 'target': target_override,
                 'auto_linked': task.get('auto_linked', False),
                 'overwrite': task.get('overwrite', False)
@@ -1277,52 +1278,75 @@ def vault_worker():
         except queue.Empty:
             continue
         
-        vm = VaultManager()
-        clean_name = os.path.basename(task['path'])
-        dest = task.get('target') or "Eras"
-        state.log(f"Phase 3: Vaulting [{clean_name}] to -> {dest}")
-        
-        status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'), overwrite=task.get('overwrite', False))
-        
-        if status:
-            state.log(f"Complete: {clean_name}")
-            state.increment_completed()
+        try:
+            vm = VaultManager()
+            clean_name = os.path.basename(task['path'])
+            dest = task.get('target') or "Eras"
+            state.log(f"Phase 3: Vaulting [{clean_name}] to -> {dest}")
             
-            # Trigger immediate background rclone sync to Google Drive on Linux
-            import platform
-            if platform.system() != "Windows":
-                try:
-                    subprocess.Popen(
-                        ["rclone", "copy", "/home/ubuntu/music/", "gdrive:FMP MUSIC/BASE/MUSIC", 
-                         "--ignore-existing", "--transfers=4", "--checkers=8", 
-                         "--exclude", "/staging/**", "--exclude", "/Shows_to_delete/**"],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        start_new_session=True
+            status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'), overwrite=task.get('overwrite', False))
+            
+            if status:
+                state.log(f"Complete: {clean_name}")
+                state.increment_completed()
+                
+                job_id = task.get('job_id')
+                if job_id:
+                    t = threading.Thread(
+                        target=wait_and_scp,
+                        args=(task['path'], clean_name, job_id, task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
+                        daemon=True
                     )
-                    state.log("[SYNC] Triggered instant Google Drive background sync.")
-                except Exception as sync_err:
-                    logging.error(f"Failed to trigger instant rclone sync: {sync_err}")
+                    t.start()
+                else:
+                    # LOCAL-ONLY Additions directly from ultimate.fmpmediagroup.com
+                    # They MUST reach the VM as well. We pass 'local_upload' to bypass the 400 error on the VM.
+                    t = threading.Thread(
+                        target=wait_and_scp,
+                        args=(task['path'], clean_name, "local_upload", task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
+                        daemon=True
+                    )
+                    t.start()
+                    
+                # Trigger immediate background rclone sync to Google Drive on Linux
+                import platform
+                if platform.system() != "Windows":
+                    try:
+                        subprocess.Popen(
+                            ["rclone", "copy", "/home/ubuntu/music/", "gdrive:FMP MUSIC/BASE/MUSIC", 
+                             "--ignore-existing", "--transfers=4", "--checkers=8", 
+                             "--exclude", "/staging/**", "--exclude", "/Shows_to_delete/**"],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            start_new_session=True
+                        )
+                        state.log("[SYNC] Triggered instant Google Drive background sync.")
+                    except Exception as sync_err:
+                        logging.error(f"Failed to trigger instant rclone sync: {sync_err}")
 
-            # Check for explicit/clean counterpart to auto-download
-            if not task.get('auto_linked') and not task.get('meta', {}).get('auto_linked'):
-                artist = task['meta'].get('artist')
-                title = task['meta'].get('title')
-                is_explicit = str(task['meta'].get('explicit', 'False')).strip().lower() in ['true', '1']
-                target_folder = task.get('target')
-                # Derive original duration from cue points (cue_out - cue_in), fallback to 0
-                cue_in = task['meta'].get('cue_in', 0) or 0
-                cue_out = task['meta'].get('cue_out', 0) or 0
-                original_duration_seconds = int((cue_out - cue_in) / 1000) if cue_out > cue_in else 0
-                if artist and title:
-                    trigger_single_song_counterpart_search(artist, title, is_explicit, target_folder, original_duration_seconds)
-        elif "Duplicate" in message:
-            state.log(f"[SKIPPED] Duplicate Track: {clean_name}")
-        else:
-            state.log(f"[VAULT ERROR] {clean_name}: {message}")
-            logging.error(f"Vaulting failure for {clean_name}: {message}")
-        state.vault_queue.task_done()
-        state.update_count()
+                # Check for explicit/clean counterpart to auto-download
+                if not task.get('auto_linked') and not task.get('meta', {}).get('auto_linked'):
+                    artist = task['meta'].get('artist')
+                    title = task['meta'].get('title')
+                    is_explicit = str(task['meta'].get('explicit', 'False')).strip().lower() in ['true', '1']
+                    target_folder = task.get('target')
+                    # Derive original duration from cue points (cue_out - cue_in), fallback to 0
+                    cue_in = task['meta'].get('cue_in', 0) or 0
+                    cue_out = task['meta'].get('cue_out', 0) or 0
+                    original_duration_seconds = int((cue_out - cue_in) / 1000) if cue_out > cue_in else 0
+                    if artist and title:
+                        trigger_single_song_counterpart_search(artist, title, is_explicit, target_folder, original_duration_seconds)
+            elif "Duplicate" in message:
+                state.log(f"[SKIPPED] Duplicate Track: {clean_name}")
+            else:
+                state.log(f"[VAULT ERROR] {clean_name}: {message}")
+                logging.error(f"Vaulting failure for {clean_name}: {message}")
+        except Exception as e:
+            state.log(f"[VAULT EXCEPTION] {e}")
+            logging.error(f"Vaulting exception: {e}")
+        finally:
+            state.vault_queue.task_done()
+            state.update_count()
 
 def iheart_poller_worker():
     import urllib.request
@@ -1518,7 +1542,262 @@ def git_sync_worker():
                 break
             time.sleep(10)
 
+
+def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url):
+    import subprocess
+    import urllib.request
+    import base64
+    import json
+    import ssl
+    import time
+
+    state.log(f"[Broker] Transporting '{filename}' to Oracle VM...")
+
+    # Wait for file to stabilize if it was just written
+    last_size = -1
+    for _ in range(45):
+        try:
+            curr_size = os.path.getsize(filepath)
+        except Exception:
+            curr_size = -2
+        if curr_size == last_size and curr_size > 0:
+            break
+        last_size = curr_size
+        time.sleep(2)
+
+    remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
+    remote_user = "ubuntu"
+    remote_dest_path = f"/home/ubuntu/FMP-Radio/staging/{filename}"
+    ssh_key_path = "C:/Users/chito/.ssh/id_ed25519"
+    
+    mkdir_cmd = [
+        "ssh", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=10", "-i", ssh_key_path,
+        f"{remote_user}@{remote_host}",
+        "mkdir -p /home/ubuntu/FMP-Radio/staging"
+    ]
+    try:
+        subprocess.run(mkdir_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=15)
+    except Exception as e:
+        state.log(f"[Broker Error] Remote staging folder creation failed: {e}")
+
+    scp_cmd = [
+        "scp", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=10", "-i", ssh_key_path,
+        filepath,
+        f"{remote_user}@{remote_host}:{remote_dest_path}"
+    ]
+    try:
+        subprocess.run(scp_cmd, check=True, timeout=90)
+        state.log(f"[Broker] SUCCESS: Copied '{filename}' to remote VM staging!")
+    except Exception as e:
+        state.log(f"[Broker Error] SCP transfer failed: {e}")
+        return
+
+    state.log(f"[Broker] Notifying VM to complete job ID {job_id}...")
+    complete_url = f"https://{remote_host}/api/pull_jobs/complete"
+    payload = {
+        "item_id": job_id,
+        "staging_path": remote_dest_path,
+        "target": target,
+        "overwrite": overwrite,
+        "source_url": source_url
+    }
+    
+    try:
+        auth_str = "fmpadmin:773312"
+        auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+        
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+        
+        req = urllib.request.Request(
+            complete_url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Basic {auth_b64}',
+                'Host': 'ultimate.fmpmediagroup.com'
+            },
+            method='POST'
+        )
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=300) as res:
+            response_data = json.loads(res.read().decode('utf-8'))
+            if response_data.get('status') == 'ok':
+                state.log(f"[Broker] SUCCESS: Remote VM vaulted {filename}.")
+            else:
+                state.log(f"[Broker Error] Remote VM failed to vault: {response_data.get('message')}")
+    except Exception as e:
+        state.log(f"[Broker Error] Failed to send complete notification: {e}")
+
+def poll_jobs_worker():
+    import urllib.request
+    import json
+    import base64
+    import ssl
+    import time
+    
+    remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
+    poll_url = f"https://{remote_host}/api/pull_jobs"
+    
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    
+    state.log(f"[Broker] Outbound polling loop started against {poll_url}")
+    
+    while not state.stop_event.is_set():
+        try:
+            auth_str = "fmpadmin:773312"
+            auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+            
+            # Send local status heartbeat to remote VM
+            remote_status_url = f"https://{remote_host}/api/workstation/status"
+            req_status = urllib.request.Request(
+                remote_status_url,
+                data=json.dumps(state.get_snapshot()).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Basic {auth_b64}',
+                    'Host': 'ultimate.fmpmediagroup.com'
+                },
+                method='POST'
+            )
+            try:
+                with urllib.request.urlopen(req_status, context=ssl_ctx, timeout=5) as remote_res:
+                    pass
+            except Exception as e:
+                pass
+
+            # Poll for jobs
+            req = urllib.request.Request(
+                poll_url,
+                headers={
+                    'Authorization': f'Basic {auth_b64}',
+                    'Host': 'ultimate.fmpmediagroup.com'
+                },
+                method='GET'
+            )
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=10) as res:
+                jobs = json.loads(res.read().decode('utf-8'))
+                
+                for job in jobs:
+                    job_id = job.get('id')
+                    
+                    already_in_queue = False
+                    for existing_item in state.url_queue.get_all():
+                        if existing_item.get('job_id') == job_id or existing_item.get('url') == job.get('url'):
+                            already_in_queue = True
+                            break
+                    
+                    if not already_in_queue:
+                        state.log(f"[Broker] Found new pending job: ID {job_id} - '{job.get('artist')} - {job.get('title')}'")
+                        
+                        local_payload = {
+                            "job_id": job_id,
+                            "url": job['url'],
+                            "target": job.get('target', ''),
+                            "title": job.get('title'),
+                            "artist": job.get('artist'),
+                            "auto_linked": job.get('auto_linked', False),
+                            "explicit": job.get('explicit'),
+                            "is_radio": job.get('is_radio'),
+                            "overwrite": job.get('overwrite', False),
+                            "type": "ingest"
+                        }
+                        
+                        state.url_queue.put(local_payload)
+                            
+        except Exception as e:
+            pass
+            
+        for _ in range(10):
+            if state.stop_event.is_set(): break
+            time.sleep(1)
+
+def poll_deletions_worker():
+    import urllib.request
+    import json
+    import base64
+    import ssl
+    import csv
+    import time
+    
+    remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
+    poll_url = f"https://{remote_host}/api/deletions/poll"
+    
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    
+    auth_str = "fmpadmin:773312"
+    auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+    
+    local_music_dir = os.getenv("WINDOWS_AUDIO_PATH", "G:/My Drive/FMP MUSIC/BASE/MUSIC")
+    from config import CSV_BLUEPRINT
+    
+    while not state.stop_event.is_set():
+        try:
+            req = urllib.request.Request(poll_url, method='GET')
+            req.add_header("Authorization", f"Basic {auth_b64}")
+            req.add_header("Host", "ultimate.fmpmediagroup.com")
+            
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as res:
+                deletions = json.loads(res.read().decode('utf-8'))
+                
+            if deletions:
+                state.log(f"[Broker] Polled {len(deletions)} pending deletions from remote VM.")
+                csv_cleaned = False
+                
+                for file_path in deletions:
+                    phys_path = os.path.join(local_music_dir, file_path.replace("Music/", "").replace("Music\\", ""))
+                    if os.path.exists(phys_path):
+                        try:
+                            os.remove(phys_path)
+                            state.log(f"[Broker] Deleted local physical file: {phys_path}")
+                        except Exception as e:
+                            pass
+                        
+                    if os.path.exists(CSV_BLUEPRINT):
+                        try:
+                            with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+                                reader = csv.DictReader(f)
+                                fieldnames = reader.fieldnames
+                                rows = []
+                                for r in reader:
+                                    val_str = str(list(r.values()))
+                                    if file_path not in val_str:
+                                        rows.append(r)
+                            
+                            with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:
+                                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                                writer.writeheader()
+                                writer.writerows(rows)
+                                
+                            state.log(f"[Broker] Purged {file_path} from local CSV.")
+                            csv_cleaned = True
+                        except Exception:
+                            pass
+                            
+                if csv_cleaned:
+                    try:
+                        import subprocess
+                        subprocess.run("git add configs/fmp_data_7718.csv", cwd=r"C:\FMP_Ultimate", shell=True, check=True)
+                        subprocess.run('git commit --no-verify -m "Broker auto-sync: Purge deleted tracks"', cwd=r"C:\FMP_Ultimate", shell=True, check=True)
+                        subprocess.run("git push origin dev", cwd=r"C:\FMP_Ultimate", shell=True, check=True)
+                    except Exception:
+                        pass
+                        
+        except Exception:
+            pass
+            
+        for _ in range(30):
+            if state.stop_event.is_set(): break
+            time.sleep(1)
+
 def start_engines():
+
     state.stop_event.clear()
     
     if not state.boot_cleared:
@@ -1555,6 +1834,15 @@ def start_engines():
             state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
             state.vault_thread.start()
         
+    # Start the new polling and syncing threads
+    if not hasattr(state, 'poll_jobs_thread') or not state.poll_jobs_thread or not state.poll_jobs_thread.is_alive():
+        state.poll_jobs_thread = threading.Thread(target=poll_jobs_worker, daemon=True)
+        state.poll_jobs_thread.start()
+        
+    if not hasattr(state, 'poll_deletions_thread') or not state.poll_deletions_thread or not state.poll_deletions_thread.is_alive():
+        state.poll_deletions_thread = threading.Thread(target=poll_deletions_worker, daemon=True)
+        state.poll_deletions_thread.start()
+
     # Start the periodic git sync puller
     if not hasattr(state, 'gitsync_thread') or not state.gitsync_thread or not state.gitsync_thread.is_alive():
         state.gitsync_thread = threading.Thread(target=git_sync_worker, daemon=True)
