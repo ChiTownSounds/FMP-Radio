@@ -5,6 +5,7 @@ import logging
 import threading
 import time
 import subprocess
+import re
 from typing import List, Tuple, Dict
 from thefuzz import process 
 from mutagen.mp3 import MP3
@@ -367,7 +368,7 @@ class VaultManager:
                     delay *= 2
 
         # If direct delete was attempted or fallback was run, and both encountered real errors
-        if not server_deleted and last_error and "not found" not in last_error.lower():
+        if not server_deleted and last_error and "not found" not in last_error.lower() and "doesn't exist" not in last_error.lower():
             return False, f"FTP server deletion failed: {last_error}"
 
         found_in_csv = False
