@@ -2505,6 +2505,7 @@ def api_stream_health():
         ]
     })
 
+@app.route('/api/pending/approve', methods=['POST'])
 def pending_approve():
     url = request.json.get('url')
     target = request.json.get('target', '')
