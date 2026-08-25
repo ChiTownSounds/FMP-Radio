@@ -1940,7 +1940,8 @@ def get_shows():
 
 @app.route('/api/new_show', methods=['POST'])
 def new_show():
-    show_name = request.json.get('show_name')
+    data = request.get_json(silent=True) or {}
+    show_name = data.get('show_name')
     if show_name:
         safe_name = "".join(c for c in show_name if c.isalnum() or c in (' ', '_', '-')).strip()
         try:
@@ -2290,16 +2291,67 @@ def process_playlist_addition(u, target, auto_linked):
             state.update_count()
         threading.Thread(target=enqueue_counterpart, daemon=True).start()
 
+@app.route('/api/rename_show', methods=['POST'])
+def rename_show():
+    data = request.get_json(silent=True) or {}
+    old_name = data.get('old_name', '').strip()
+    new_name = data.get('new_name', '').strip()
+    
+    if not old_name or not new_name:
+        return jsonify({"status": "error", "message": "Show names cannot be empty"}), 400
+        
+    safe_old = "".join(c for c in old_name if c.isalnum() or c in (' ', '_', '-')).strip()
+    safe_new = "".join(c for c in new_name if c.isalnum() or c in (' ', '_', '-')).strip()
+    
+    if not safe_old or not safe_new:
+        return jsonify({"status": "error", "message": "Invalid show names"}), 400
+
+    if safe_old == safe_new:
+        return jsonify({"status": "error", "message": "Old name and new name are identical"}), 400
+
+    # Local G: drive folder rename
+    from config import MUSIC_DIR
+    g_drive_base = MUSIC_DIR
+    old_local_dir = os.path.join(g_drive_base, "Shows", safe_old)
+    new_local_dir = os.path.join(g_drive_base, "Shows", safe_new)
+    
+    if os.path.exists(g_drive_base):
+        if os.path.exists(old_local_dir):
+            try:
+                os.makedirs(os.path.dirname(new_local_dir), exist_ok=True)
+                os.rename(old_local_dir, new_local_dir)
+                state.log(f"[RENAME] Local directory renamed: Shows/{safe_old} -> Shows/{safe_new}")
+            except Exception as e:
+                state.log(f"[ERROR] Failed to rename local folder: {e}")
+                return jsonify({"status": "error", "message": f"Local rename failed: {str(e)}"}), 500
+        else:
+            state.log(f"[RENAME] Local folder Shows/{safe_old} not found. Skipping local rename.")
+    else:
+        state.log(f"[WARNING] G: drive base path not found. Skipping local rename.")
+
+    # Start background thread to rename remote and update CSV + Git
+    threading.Thread(
+        target=background_rename_task,
+        args=(safe_old, safe_new),
+        daemon=True
+    ).start()
+    
+    return jsonify({
+        "status": "ok",
+        "message": f"Rename from '{safe_old}' to '{safe_new}' initiated successfully."
+    })
+
 @app.route('/add', methods=['POST'])
 def add():
-    raw_urls = request.json.get('urls', '').split('\n')
-    target = request.json.get('target', '')
-    title = request.json.get('title')
-    artist = request.json.get('artist')
-    auto_linked = request.json.get('auto_linked', False)
-    explicit = request.json.get('explicit')
-    is_radio = request.json.get('is_radio')
-    overwrite = request.json.get('overwrite', False)
+    data = request.get_json(silent=True) or {}
+    raw_urls = data.get('urls', '').split('\n')
+    target = data.get('target', '')
+    title = data.get('title')
+    artist = data.get('artist')
+    auto_linked = data.get('auto_linked', False)
+    explicit = data.get('explicit')
+    is_radio = data.get('is_radio')
+    overwrite = data.get('overwrite', False)
     
     for u in raw_urls:
         u = u.strip()
@@ -2370,7 +2422,8 @@ def stop():
 
 @app.route('/api/queue/remove', methods=['POST'])
 def queue_remove():
-    item_id = request.json.get('id')
+    data = request.get_json(silent=True) or {}
+    item_id = data.get('id')
     if item_id is not None:
         removed = state.url_queue.remove(int(item_id))
         state.update_count()
@@ -2507,8 +2560,9 @@ def api_stream_health():
 
 @app.route('/api/pending/approve', methods=['POST'])
 def pending_approve():
-    url = request.json.get('url')
-    target = request.json.get('target', '')
+    data = request.get_json(silent=True) or {}
+    url = data.get('url')
+    target = data.get('target', '')
     found = False
     item_to_forward = None
     with state.lock:
@@ -2548,9 +2602,35 @@ def pending_approve():
             return jsonify({"status": "ok"})
     return jsonify({"status": "error", "message": "Track not found in pending list"})
 
+@app.route('/api/pending/approve_selected', methods=['POST'])
+def pending_approve_selected():
+    data = request.get_json(silent=True) or {}
+    selected_urls = set(data.get('urls', []))
+    override_target = data.get('target', '')
+    approved_count = 0
+    with state.lock:
+        remaining = []
+        for item in state.pending_iheart_queue:
+            u = item.get('url')
+            if u in selected_urls:
+                target = override_target if override_target else item.get('target', '')
+                state.url_queue.put({'url': u, 'type': 'ingest', 'target': target})
+                approved_count += 1
+            else:
+                remaining.append(item)
+        state.pending_iheart_queue = remaining
+        state.save_pending()
+    if approved_count > 0:
+        state.update_count()
+        start_engines()
+        state.log(f"[iHeart Sync] Approved {approved_count} selected discoveries -> Sent to download queue.")
+        return jsonify({"status": "ok", "message": f"Successfully enqueued {approved_count} tracks."})
+    return jsonify({"status": "ok", "message": "No matching discoveries found."})
+
 @app.route('/api/pending/reject', methods=['POST'])
 def pending_reject():
-    url = request.json.get('url')
+    data = request.get_json(silent=True) or {}
+    url = data.get('url')
     found = False
     with state.lock:
         for i, item in enumerate(state.pending_iheart_queue):
@@ -2567,6 +2647,27 @@ def pending_reject():
         return jsonify({"status": "ok"})
     return jsonify({"status": "error", "message": "Track not found in pending list"})
 
+@app.route('/api/pending/reject_selected', methods=['POST'])
+def pending_reject_selected():
+    data = request.get_json(silent=True) or {}
+    selected_urls = set(data.get('urls', []))
+    rejected_count = 0
+    with state.lock:
+        remaining = []
+        for item in state.pending_iheart_queue:
+            u = item.get('url')
+            if u in selected_urls:
+                if u not in state.rejected_iheart:
+                    state.rejected_iheart.append(u)
+                rejected_count += 1
+            else:
+                remaining.append(item)
+        state.pending_iheart_queue = remaining
+        state.save_rejected()
+        state.save_pending()
+    state.log(f"[iHeart Sync] Rejected {rejected_count} selected discoveries.")
+    return jsonify({"status": "ok", "message": f"Rejected {rejected_count} tracks."})
+
 @app.route('/api/pending/clear', methods=['POST'])
 def pending_clear():
     with state.lock:
@@ -2578,7 +2679,8 @@ def pending_clear():
 
 @app.route('/api/search_yt', methods=['POST'])
 def search_yt():
-    query = request.json.get('query', '')
+    data = request.get_json(silent=True) or {}
+    query = data.get('query', '')
     if not query:
         return jsonify([])
     try:
@@ -2591,20 +2693,20 @@ def search_yt():
                 if not line: continue
                 try:
                     import json
-                    data = json.loads(line)
-                    title = data.get('title', 'Unknown Title')
-                    desc = data.get('description', '') or ''
+                    d = json.loads(line)
+                    title = d.get('title', 'Unknown Title')
+                    desc = d.get('description', '') or ''
                     is_explicit = 'explicit' in title.lower() or 'explicit' in desc.lower()
                     
-                    thumbnail_url = data.get('thumbnail', '')
-                    if not thumbnail_url and data.get('thumbnails'):
-                        thumbnail_url = data.get('thumbnails')[-1].get('url', '')
+                    thumbnail_url = d.get('thumbnail', '')
+                    if not thumbnail_url and d.get('thumbnails'):
+                        thumbnail_url = d.get('thumbnails')[-1].get('url', '')
                         
                     results.append({
                         'title': title,
-                        'uploader': data.get('uploader', 'Unknown Artist'),
-                        'duration_string': data.get('duration_string', '--:--'),
-                        'url': data.get('webpage_url', ''),
+                        'uploader': d.get('uploader', 'Unknown Artist'),
+                        'duration_string': d.get('duration_string', '--:--'),
+                        'url': d.get('webpage_url', ''),
                         'explicit': is_explicit,
                         'thumbnail': thumbnail_url
                     })
@@ -2652,7 +2754,8 @@ def search_yt():
 def resolve_audio():
     url = ""
     if request.method == 'POST':
-        url = request.json.get('url', '')
+        data = request.get_json(silent=True) or {}
+        url = data.get('url', '')
     else:
         url = request.args.get('url', '')
         
@@ -2672,10 +2775,35 @@ def resolve_audio():
         app.logger.error(f"Failed to resolve audio URL: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/audition', methods=['GET'])
+def audition_track():
+    url = request.args.get('url', '')
+    artist = request.args.get('artist', '')
+    title = request.args.get('title', '')
+    if not url and (artist or title):
+        # Resolve via ytmusicapi
+        try:
+            from ytmusicapi import YTMusic
+            ytm = YTMusic()
+            res = ytm.search(f"{artist} - {title}".strip(), filter="songs")
+            if res and res[0].get('videoId'):
+                url = f"https://music.youtube.com/watch?v={res[0]['videoId']}"
+        except Exception:
+            pass
+    if not url:
+        return jsonify({"error": "No URL or track info provided"}), 400
+    try:
+        cmd = YT_DLP_CMD + ["-g", "-f", "bestaudio", url]
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', check=True)
+        return jsonify({"url": result.stdout.strip()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/search_scrub', methods=['POST'])
 def search(): 
     try:
-        return jsonify(VaultManager().find_candidates(request.json.get('query', '')))
+        data = request.get_json(silent=True) or {}
+        return jsonify(VaultManager().find_candidates(data.get('query', '')))
     except Exception as e:
         print(f"\n[CRITICAL SEARCH ERROR] >>> {e} <<<\n")
         logging.error(f"Dashboard search crash: {e}")
@@ -2683,11 +2811,13 @@ def search():
 
 @app.route('/execute_scrub', methods=['POST'])
 def execute():
-    name = request.json.get('track_name', '')
-    file_path = request.json.get('file_path', '')
+    data = request.get_json(silent=True) or {}
+    name = data.get('track_name', '')
+    file_path = data.get('file_path', '')
     target = file_path if file_path else name
     s, m = VaultManager().scrub_track(target)
     state.log(f"[ERASED] {name} ({file_path.replace('\\\\', '/').split('/')[-1] if file_path else ''})" if s else f"[FAILED] {m}")
+    return jsonify({"status": "ok" if s else "error", "message": m})
     if not s: logging.error(f"Scrub failed for {target}: {m}")
     return jsonify({"status": "ok"})
 
@@ -2853,7 +2983,7 @@ def get_pull_jobs():
 
 @app.route('/api/deletions/enqueue', methods=['POST'])
 def enqueue_deletion_api():
-    payload = request.json
+    payload = request.get_json(silent=True) or {}
     if not payload or not payload.get("file_path"):
         return jsonify({"status": "error", "message": "Missing file_path"}), 400
     state.enqueue_deletion(payload["file_path"])
@@ -2866,7 +2996,7 @@ def poll_deletions_api():
 
 @app.route('/api/pull_jobs/complete', methods=['POST'])
 def complete_pull_job():
-    payload = request.json
+    payload = request.get_json(silent=True) or {}
     if not payload:
         return jsonify({"status": "error", "message": "Missing JSON payload"}), 400
         
