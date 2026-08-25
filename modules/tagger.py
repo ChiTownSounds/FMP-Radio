@@ -70,65 +70,99 @@ class AutoMaster:
 
     def _analyze_audio_properties_local(self, file_path: str) -> Dict:
         """
-        Analyzes audio properties using librosa directly.
+        Analyzes audio properties using librosa with windowed loading for performance.
+        Uses two targeted loads instead of loading the full track into RAM:
+          - Load 1: First 90s for BPM, harmonic vocal onset (Intro), and Punch point
+          - Load 2: Last 60s for Outro energy decay
+        Short tracks (<=90s total) use a single load for all analysis.
         """
         analysis = {'bpm': 98, 'intro_duration': 0, 'outro_duration': 0, 'punch_ms': 2000, 'intro_sec': 0.0}
-        
+
         try:
-            # Load audio downsampled to 22050Hz for performance
-            y, sr = librosa.load(file_path, sr=22050)
-            duration = librosa.get_duration(y=y, sr=sr)
-            
-            # 1. BPM / Tempo Tracking
-            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-            analysis['bpm'] = int(round(tempo[0] if hasattr(tempo, '__len__') else tempo))
-            
+            # Get total duration via mutagen (fast metadata read, no audio decode)
+            from mutagen.mp3 import MP3 as MuMP3
+            try:
+                total_dur = MuMP3(file_path).info.length
+            except Exception:
+                # Fallback: load a brief slice just to get duration
+                y_probe, sr_probe = librosa.load(file_path, sr=22050, duration=5.0)
+                # Can't get full duration from a 5s probe, fall back to full load
+                total_dur = None
+
+            # --- Load 1: First 90s (BPM, Intro, Punch) ---
+            intro_window = min(90.0, total_dur) if total_dur else 90.0
+            y_intro, sr = librosa.load(file_path, sr=22050, duration=intro_window)
+            duration_intro = librosa.get_duration(y=y_intro, sr=sr)
+
+            # 1. BPM / Tempo Tracking (from intro window — representative for most tracks)
+            tempo, _ = librosa.beat.beat_track(y=y_intro, sr=sr)
+            calculated_bpm = int(round(tempo[0] if hasattr(tempo, '__len__') else tempo))
+            analysis['bpm'] = calculated_bpm if calculated_bpm > 0 else 98
+
             # 2. Intro Duration (Harmonic vocal onset detection)
-            harmonic = librosa.effects.harmonic(y)
+            harmonic = librosa.effects.harmonic(y_intro)
             rms_harmonic = librosa.feature.rms(y=harmonic)[0]
-            times = librosa.frames_to_time(range(len(rms_harmonic)), sr=sr)
-            
+            times_intro = librosa.frames_to_time(range(len(rms_harmonic)), sr=sr)
+
             harmonic_threshold = rms_harmonic.mean() * 1.5
             intro_sec = 0.0
             for idx, val in enumerate(rms_harmonic):
                 if val > harmonic_threshold:
-                    intro_sec = times[idx]
+                    intro_sec = times_intro[idx]
                     break
+            # Fallback: if no vocal onset detected, default to track start
             analysis['intro_duration'] = int(round(intro_sec * 1000))
             analysis['intro_sec'] = intro_sec
-            
-            # 3. Outro Duration (Analyze trailing silence / energy decay from end backward)
-            rms_full = librosa.feature.rms(y=y)[0]
-            times_full = librosa.frames_to_time(range(len(rms_full)), sr=sr)
-            outro_threshold = rms_full.mean() * 0.15 # 15% of average energy
-            
-            outro_start_sec = duration
-            for idx in range(len(rms_full) - 1, -1, -1):
-                if rms_full[idx] > outro_threshold:
-                    outro_start_sec = times_full[idx]
-                    break
-            analysis['outro_duration'] = int(round((duration - outro_start_sec) * 1000))
-            
-            # 4. Punch Point (onset of the first major beat/chorus drop within 10s to 60s)
-            onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+
+            # 3. Punch Point (onset of the first major beat/chorus drop within 10s to 60s)
+            onset_env = librosa.onset.onset_strength(y=y_intro, sr=sr)
             onset_times = librosa.frames_to_time(range(len(onset_env)), sr=sr)
-            
-            if duration < 15.0:
-                onset_window = [i for i, t in enumerate(onset_times) if 0.0 <= t <= duration]
-            elif duration < 60.0:
-                onset_window = [i for i, t in enumerate(onset_times) if 5.0 <= t <= duration]
+
+            if duration_intro < 15.0:
+                onset_window = [i for i, t in enumerate(onset_times) if 0.0 <= t <= duration_intro]
+            elif duration_intro < 60.0:
+                onset_window = [i for i, t in enumerate(onset_times) if 5.0 <= t <= duration_intro]
             else:
                 onset_window = [i for i, t in enumerate(onset_times) if 10.0 <= t <= 60.0]
-                
+
             if onset_window:
                 max_onset_idx = max(onset_window, key=lambda i: onset_env[i])
                 analysis['punch_ms'] = int(round(onset_times[max_onset_idx] * 1000))
             else:
                 analysis['punch_ms'] = 2000
-                
+
+            # --- Load 2: Last 60s (Outro energy decay) ---
+            # Skip if the track is short enough that Load 1 already covers the full track
+            if total_dur and total_dur > intro_window:
+                outro_offset = max(0.0, total_dur - 60.0)
+                y_outro, sr_outro = librosa.load(file_path, sr=22050, offset=outro_offset, duration=60.0)
+                rms_outro = librosa.feature.rms(y=y_outro)[0]
+                # Frame times are relative to the loaded window; add outro_offset for absolute time
+                times_outro_rel = librosa.frames_to_time(range(len(rms_outro)), sr=sr_outro)
+                outro_threshold = rms_outro.mean() * 0.15  # 15% of average energy in outro window
+
+                outro_start_abs = total_dur  # default: track ends cleanly
+                for idx in range(len(rms_outro) - 1, -1, -1):
+                    if rms_outro[idx] > outro_threshold:
+                        # Absolute time = offset into full track + relative frame time
+                        outro_start_abs = outro_offset + times_outro_rel[idx]
+                        break
+                analysis['outro_duration'] = int(round((total_dur - outro_start_abs) * 1000))
+            else:
+                # Short track: use intro window RMS for outro (Load 1 covers the whole track)
+                rms_full = librosa.feature.rms(y=y_intro)[0]
+                times_full = librosa.frames_to_time(range(len(rms_full)), sr=sr)
+                outro_threshold = rms_full.mean() * 0.15
+                outro_start_sec = duration_intro
+                for idx in range(len(rms_full) - 1, -1, -1):
+                    if rms_full[idx] > outro_threshold:
+                        outro_start_sec = times_full[idx]
+                        break
+                analysis['outro_duration'] = int(round((duration_intro - outro_start_sec) * 1000))
+
         except Exception as e:
             logging.error(f"Local librosa analysis failed, falling back: {e}")
-            
+
         return analysis
 
     def _analyze_audio_properties(self, file_path: str) -> Dict:

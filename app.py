@@ -14,6 +14,7 @@ import urllib.request
 import urllib.parse
 import json
 import re
+import uuid
 
 
 from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT
@@ -234,7 +235,7 @@ class SystemState:
         self.vault_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
-        self.downloader_thread = None
+        self.downloader_threads = []
         self.vault_thread = None
         self.total_in_queue = 0
         self.completed_count = 0
@@ -580,6 +581,37 @@ def extract_playlist_urls(playlist_url: str) -> list:
         logging.error(f"Playlist extraction error for {playlist_url}: {e}")
         return []
 
+def _acknowledge_remote_job(job_id):
+    """
+    Fire-and-forget: immediately tell the remote VM to clear this job from its queue.
+    Called when a duplicate track is detected before download to prevent the broker
+    from re-serving the same job in a ghost polling loop.
+    """
+    import base64
+    import ssl as _ssl
+    remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
+    auth_b64 = base64.b64encode(b"fmpadmin:773312").decode()
+    ssl_ctx = _ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = _ssl.CERT_NONE
+    try:
+        req = urllib.request.Request(
+            f"https://{remote_host}/api/queue/remove",
+            data=json.dumps({"id": job_id}).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Basic {auth_b64}",
+                "Host": "ultimate.fmpmediagroup.com"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8):
+            pass
+        state.log(f"[Broker ACK] Cleared duplicate job {job_id} from remote VM queue.")
+    except Exception as e:
+        logging.warning(f"[Broker ACK] Failed to remove job {job_id} from remote queue: {e}")
+
+
 def downloader_worker():
     while not state.stop_event.is_set():
         try:
@@ -619,6 +651,10 @@ def downloader_worker():
                         logging.error(f"Error checking duplicate in downloader_worker: {ex}")
             if is_duplicate:
                 state.log(f"[SKIPPED] Duplicate Track (checked before download): {expected_artist} - {expected_title}")
+                # Immediately clear from remote VM queue if this job came from the broker
+                job_id = task.get('job_id')
+                if job_id:
+                    threading.Thread(target=_acknowledge_remote_job, args=(job_id,), daemon=True).start()
                 state.url_queue.task_done()
                 state.update_count()
                 continue
@@ -764,7 +800,7 @@ def downloader_worker():
                 url = f"ytsearch1:{query_clean} (Official Audio)"
         
         state.set_status("Running", url)
-        task_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        task_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
         staging_task_dir = os.path.join(STAGING_DIR, task_id)
         
         gk, tr, am = Gatekeeper(), Transporter(), AutoMaster()
@@ -1827,13 +1863,17 @@ def start_engines():
         state.boot_cleared = True
 
     if os.name == 'nt':
-        if not state.downloader_thread or not state.downloader_thread.is_alive():
-            state.downloader_thread = threading.Thread(target=downloader_worker, daemon=True)
-            state.downloader_thread.start()
+        from config import DOWNLOAD_CONCURRENCY
+        if not any(t.is_alive() for t in state.downloader_threads):
+            state.downloader_threads = []
+            for _ in range(DOWNLOAD_CONCURRENCY):
+                t = threading.Thread(target=downloader_worker, daemon=True)
+                t.start()
+                state.downloader_threads.append(t)
         if not state.vault_thread or not state.vault_thread.is_alive():
             state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
             state.vault_thread.start()
-        
+
     # Start the new polling and syncing threads
     if not hasattr(state, 'poll_jobs_thread') or not state.poll_jobs_thread or not state.poll_jobs_thread.is_alive():
         state.poll_jobs_thread = threading.Thread(target=poll_jobs_worker, daemon=True)
@@ -2287,9 +2327,10 @@ def add():
             state.url_queue.put(item_data)
         else: 
             item_id = state.url_queue.put(item_data)
-            if 'title' not in item_data:
+            # Skip background metadata resolution for direct video URLs (worker YTM-DLP handles these)
+            if 'title' not in item_data and 'watch?v=' not in u:
                 threading.Thread(target=resolve_yt_meta_bg, args=(item_id, u), daemon=True).start()
-                
+
     state.update_count()
     start_engines()
     return jsonify({"status": "ok"})

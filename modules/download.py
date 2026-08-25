@@ -249,7 +249,14 @@ class Transporter:
         start_time = time.time()
         timeout_limit = 600
         local_rel_path = ""
-        
+
+        # Two-phase timeout:
+        #   Phase 1 (Init): If percentComplete stays at 0 for >25s, the peer is
+        #                   queued but not sending — abort and fall through to SomeDL.
+        #   Phase 2 (Active): Once any progress is detected, allow the full 600s window.
+        init_deadline = time.time() + 25
+        active_started = False
+
         while time.time() - start_time < timeout_limit:
             time.sleep(5)
             status_res = requests.get(f"{self.slskd_url}/api/v0/transfers/downloads/{best_file['username']}", headers=headers, timeout=15)
@@ -269,6 +276,25 @@ class Transporter:
                 
             state = target_dl.get("state", "")
             percent = target_dl.get("percentComplete", 0)
+
+            # Once any bytes are flowing, mark transfer as active
+            if percent > 0:
+                active_started = True
+
+            # Phase 1 watchdog: kill stuck-queued transfer before wasting 10 minutes
+            if not active_started and time.time() > init_deadline:
+                self._log_to_system(
+                    f"[SOULSEEK] Init timeout: peer '{best_file['username']}' queued "
+                    f"but 0% progress after 25s. Aborting and falling through to SomeDL."
+                )
+                try:
+                    requests.delete(
+                        f"{self.slskd_url}/api/v0/transfers/downloads/{best_file['username']}",
+                        headers=headers, timeout=10
+                    )
+                except Exception:
+                    pass
+                return "", ""
             
             # Extract container's download path if available
             if "localPath" in target_dl:
