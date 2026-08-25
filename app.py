@@ -2078,7 +2078,7 @@ def background_rename_task(old_name, new_name):
 
 @app.route('/api/rename_show', methods=['POST'])
 def rename_show():
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     old_name = data.get('old_name', '').strip()
     new_name = data.get('new_name', '').strip()
     
@@ -2290,56 +2290,6 @@ def process_playlist_addition(u, target, auto_linked):
             process_playlist_addition(counterpart_url, target, auto_linked=True)
             state.update_count()
         threading.Thread(target=enqueue_counterpart, daemon=True).start()
-
-@app.route('/api/rename_show', methods=['POST'])
-def rename_show():
-    data = request.get_json(silent=True) or {}
-    old_name = data.get('old_name', '').strip()
-    new_name = data.get('new_name', '').strip()
-    
-    if not old_name or not new_name:
-        return jsonify({"status": "error", "message": "Show names cannot be empty"}), 400
-        
-    safe_old = "".join(c for c in old_name if c.isalnum() or c in (' ', '_', '-')).strip()
-    safe_new = "".join(c for c in new_name if c.isalnum() or c in (' ', '_', '-')).strip()
-    
-    if not safe_old or not safe_new:
-        return jsonify({"status": "error", "message": "Invalid show names"}), 400
-
-    if safe_old == safe_new:
-        return jsonify({"status": "error", "message": "Old name and new name are identical"}), 400
-
-    # Local G: drive folder rename
-    from config import MUSIC_DIR
-    g_drive_base = MUSIC_DIR
-    old_local_dir = os.path.join(g_drive_base, "Shows", safe_old)
-    new_local_dir = os.path.join(g_drive_base, "Shows", safe_new)
-    
-    if os.path.exists(g_drive_base):
-        if os.path.exists(old_local_dir):
-            try:
-                os.makedirs(os.path.dirname(new_local_dir), exist_ok=True)
-                os.rename(old_local_dir, new_local_dir)
-                state.log(f"[RENAME] Local directory renamed: Shows/{safe_old} -> Shows/{safe_new}")
-            except Exception as e:
-                state.log(f"[ERROR] Failed to rename local folder: {e}")
-                return jsonify({"status": "error", "message": f"Local rename failed: {str(e)}"}), 500
-        else:
-            state.log(f"[RENAME] Local folder Shows/{safe_old} not found. Skipping local rename.")
-    else:
-        state.log(f"[WARNING] G: drive base path not found. Skipping local rename.")
-
-    # Start background thread to rename remote and update CSV + Git
-    threading.Thread(
-        target=background_rename_task,
-        args=(safe_old, safe_new),
-        daemon=True
-    ).start()
-    
-    return jsonify({
-        "status": "ok",
-        "message": f"Rename from '{safe_old}' to '{safe_new}' initiated successfully."
-    })
 
 @app.route('/add', methods=['POST'])
 def add():
