@@ -640,9 +640,18 @@ def _acknowledge_remote_job(job_id):
             },
             method="POST"
         )
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8):
-            pass
-        state.log(f"[Broker ACK] Cleared duplicate job {job_id} from remote VM queue.")
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as res:
+            # A non-exception response isn't necessarily success - this route
+            # returns HTTP 200 with {"status": "error"} in its body when the
+            # item wasn't found, which urlopen doesn't treat as a failure.
+            # Previously this logged "Cleared" unconditionally on any 200,
+            # masking the queue-removal bug above (which meant this call
+            # always silently failed to actually clear the job).
+            res_data = json.loads(res.read().decode('utf-8'))
+        if res_data.get("status") == "ok":
+            state.log(f"[Broker ACK] Cleared duplicate job {job_id} from remote VM queue.")
+        else:
+            logging.warning(f"[Broker ACK] Remote VM reported job {job_id} not found in queue: {res_data.get('message')}")
     except Exception as e:
         logging.warning(f"[Broker ACK] Failed to remove job {job_id} from remote queue: {e}")
 
@@ -2465,6 +2474,16 @@ def queue_remove():
     item_id = data.get('id')
     if item_id is not None:
         removed = state.url_queue.remove(int(item_id))
+        if not removed:
+            # scrape_queue is a separate UrlQueue instance (the broker
+            # delegation queue /api/pull_jobs serves from) - a caller
+            # acknowledging/clearing a delegated job only knows the job_id,
+            # not which queue it actually lives in. Previously this route
+            # only ever checked url_queue, so clearing a scrape_queue item
+            # (e.g. a duplicate caught by the Windows worker before it
+            # would re-download) always silently failed, leaving the same
+            # job to be re-served to Windows on every subsequent poll.
+            removed = state.scrape_queue.remove(int(item_id))
         state.update_count()
         if removed:
             state.log(f"[QUEUE] Removed item ID {item_id} from active download queue.")
