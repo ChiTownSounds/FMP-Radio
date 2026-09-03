@@ -62,7 +62,15 @@ class AutoMaster:
             fpcalc_path = _shutil.which("fpcalc") or "fpcalc"
         try:
             cmd = [fpcalc_path, "-json", file_path]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=30)
+            # encoding+errors explicit (matches every other subprocess call in
+            # this codebase, e.g. modules/download.py's SomeDL/yt-dlp calls) -
+            # without it, Windows' text=True falls back to the system codepage
+            # (cp1252), and fpcalc's stderr can contain bytes that codec can't
+            # decode. That decode happens inside subprocess.py's internal
+            # _readerthread, so it doesn't even raise into this try/except -
+            # it crashes a background thread and gets silently swallowed,
+            # leaving result.stdout empty and the fingerprint silently unset.
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', check=True, timeout=30)
             data = json.loads(result.stdout)
             return data.get("fingerprint") or ""
         except Exception as e:

@@ -73,6 +73,10 @@
     {
       "name": "Explicit",
       "type": "string"
+    },
+    {
+      "name": "Fingerprint",
+      "type": "string"
     }
   ],
   "missingValues": [
