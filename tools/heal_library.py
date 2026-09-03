@@ -3,6 +3,7 @@ import csv
 import sys
 import io
 import shutil
+import subprocess
 import platform
 from pathlib import Path
 from mutagen.mp3 import MP3
