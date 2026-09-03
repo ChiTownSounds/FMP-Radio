@@ -247,6 +247,14 @@ class SystemState:
         # (real cookies + residential IP) via /api/pull_jobs. Separate save file
         # so it doesn't collide with url_queue's own persistence.
         self.scrape_queue = UrlQueue(save_filename="saved_scrape_queue.json")
+        # Job ids already accepted from the broker's scrape_queue, so
+        # poll_jobs_worker never re-queues one while it's actively being
+        # processed. Checking url_queue.get_all() alone isn't enough - an
+        # item is popped off that queue the instant downloader_worker starts
+        # working on it, so it looks "not in queue" for the whole duration of
+        # a download even though it's still in progress. Grows for the life
+        # of the process; never needs pruning since job ids are unique.
+        self.claimed_broker_job_ids = set()
         self.vault_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
@@ -1788,15 +1796,26 @@ def poll_jobs_worker():
                 for job in jobs:
                     job_id = job.get('id')
                     
-                    already_in_queue = False
-                    for existing_item in state.url_queue.get_all():
-                        if existing_item.get('job_id') == job_id or existing_item.get('url') == job.get('url'):
-                            already_in_queue = True
-                            break
-                    
+                    # Checking url_queue alone isn't enough - an item is
+                    # popped off it the instant downloader_worker starts
+                    # processing it, so a job that's actively downloading
+                    # (which can easily take longer than this loop's ~10s
+                    # poll interval) looks "not in queue" and gets re-added
+                    # and reprocessed in parallel with itself, every cycle,
+                    # for as long as it takes to finish. claimed_broker_job_ids
+                    # tracks every job id ever accepted, for the life of the
+                    # process, so once claimed it's never re-added regardless
+                    # of whether it's queued, in progress, or done.
+                    already_in_queue = job_id in state.claimed_broker_job_ids
+                    if not already_in_queue:
+                        for existing_item in state.url_queue.get_all():
+                            if existing_item.get('job_id') == job_id or existing_item.get('url') == job.get('url'):
+                                already_in_queue = True
+                                break
+
                     if not already_in_queue:
                         state.log(f"[Broker] Found new pending job: ID {job_id} - '{job.get('artist')} - {job.get('title')}'")
-                        
+
                         local_payload = {
                             "job_id": job_id,
                             "url": job['url'],
@@ -1809,7 +1828,8 @@ def poll_jobs_worker():
                             "overwrite": job.get('overwrite', False),
                             "type": "ingest"
                         }
-                        
+
+                        state.claimed_broker_job_ids.add(job_id)
                         state.url_queue.put(local_payload)
                             
         except Exception as e:
