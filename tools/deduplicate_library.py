@@ -158,7 +158,7 @@ def main():
     key_has_present = {}
     for idx, row in enumerate(rows):
         track_name = row.get('Track Name', '').strip()
-        if not track_name or "danny boy" in track_name.lower():
+        if not track_name:
             continue
         key = normalize_track_key(track_name)
         gpath = get_absolute_gpath(row.get('File Path', ''))
@@ -167,9 +167,9 @@ def main():
 
     for idx, row in enumerate(rows):
         track_name = row.get('Track Name', '').strip()
-        if not track_name or "danny boy" in track_name.lower():
+        if not track_name:
             continue
-            
+
         gpath = get_absolute_gpath(row.get('File Path', ''))
         key = normalize_track_key(track_name)
         
@@ -252,9 +252,9 @@ def main():
             continue
             
         track_name = row.get('Track Name', '').strip()
-        if not track_name or "danny boy" in track_name.lower():
+        if not track_name:
             continue
-            
+
         key = normalize_track_key(track_name)
         if key:
             key_groups[key].append((idx, row))

@@ -75,41 +75,53 @@ def main():
         artist_clean = re.split(r'\s+(feat\.?|featuring|with|w/|f/|and|&)\s+', artist.lower())[0]
         artist_clean = re.sub(r'[^a-z0-9]', '', artist_clean)
         
-        # We exclude Danny Boy from deduplication
-        if "danny boy" in track_name.lower():
-            continue
-
         if os.path.exists(gpath):
             if artist_clean not in present_by_artist:
                 present_by_artist[artist_clean] = []
             present_by_artist[artist_clean].append((idx, row))
         else:
-            # Skip Ne-Yo sex with my ex which is intentionally missing but not a duplicate
-            if "ne-yo - sex with my ex" not in track_name.lower():
-                missing_items.append((idx, row, artist_clean))
+            missing_items.append((idx, row, artist_clean))
 
     # 3. Match missing items with present duplicates from the same artist
+    # titles_are_similar() is a word-overlap heuristic with a short stop-word
+    # list (no "so", "it", "up", etc.) - too weak to auto-remove rows on its
+    # own. An artist with many short, common-word titles (e.g. "So High" vs
+    # "So In Love" both containing "so") is a near-guaranteed false-positive
+    # case. Report these for review instead of queuing them for removal;
+    # only exact-title matches (a much stronger signal) are auto-queued.
     indices_to_remove = set()
+    needs_review = []
     print("\n[*] Scanning missing entries for present duplicates...")
     for idx, row, artist_clean in missing_items:
         track_name = row.get('Track Name', '')
         title = track_name.split(' - ', 1)[-1] if ' - ' in track_name else track_name
-        
+
         # Check if we have present files for this artist
         p_list = present_by_artist.get(artist_clean, [])
         for p_idx, p_row in p_list:
             p_track = p_row.get('Track Name', '')
             p_title = p_track.split(' - ', 1)[-1] if ' - ' in p_track else p_track
-            
-            if titles_are_similar(title, p_title):
-                print(f"  [DUPLICATE DETECTED] Removing missing db row:")
+
+            if title.strip().lower() == p_title.strip().lower():
+                print(f"  [DUPLICATE DETECTED] Removing missing db row (exact title match):")
                 print(f"    - Missing: '{track_name}'")
                 print(f"    - Kept Present: '{p_track}'")
                 indices_to_remove.add(idx)
                 break
+            elif titles_are_similar(title, p_title):
+                print(f"  [REVIEW NEEDED] Possible duplicate, title-word-overlap only, not auto-removed:")
+                print(f"    - Missing: '{track_name}'")
+                print(f"    - Similar Present: '{p_track}'")
+                needs_review.append((track_name, p_track))
+                break
+
+    if needs_review:
+        print(f"\n[*] {len(needs_review)} possible duplicate(s) need manual review (title-word-overlap only, not auto-removed):")
+        for missing, kept in needs_review:
+            print(f"    - '{missing}' vs '{kept}'")
 
     if not indices_to_remove:
-        print("[OK] No missing duplicate rows found to clean up in the database!")
+        print("[OK] No exact-title duplicate rows found to clean up in the database!")
         return
 
     if DRY_RUN:

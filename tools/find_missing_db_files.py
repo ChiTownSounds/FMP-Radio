@@ -36,9 +36,7 @@ def main():
             
         gpath = get_absolute_gpath(file_path)
         if not os.path.exists(gpath):
-            # Exclude Ne-Yo - Sex With My Ex (known missing) and Danny Boy tracks (skipped by constraint)
-            if "ne-yo - sex with my ex" not in track_name.lower() and "danny boy" not in track_name.lower():
-                missing_tracks.append((idx, row))
+            missing_tracks.append((idx, row))
 
     print(f"Found {len(missing_tracks)} missing files in database:")
     for idx, row in missing_tracks:
