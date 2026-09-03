@@ -518,6 +518,40 @@ class VaultManager:
                     cmd_delete = [rclone_path, "deletefile", gdrive_target]
                     subprocess.run(cmd_delete, check=False, capture_output=True)
                     logging.info(f"Deleted from remote Google Drive: {gdrive_target}")
+                else:
+                    # On Windows the local G: drive delete above propagates UP to
+                    # Google Drive on its own (G: drive IS the Google Drive desktop
+                    # sync mount) - but nothing syncs that deletion back DOWN to the
+                    # VM's separate local disk copy at /home/ubuntu/music. The
+                    # every-3-minute cron sync there is `rclone copy`, additive-only
+                    # - it pulls new/changed files but never removes local files
+                    # that vanished from the source, so an erased track's bytes
+                    # would otherwise sit orphaned on the VM's disk forever (and
+                    # could get silently re-imported by a future untracked-file
+                    # sweep). Explicitly delete the VM-side file over SSH instead.
+                    try:
+                        from config import REMOTE_VM_IP as _REMOTE_VM_IP
+                    except ImportError:
+                        _REMOTE_VM_IP = "ultimate.fmpmediagroup.com"
+                    _ssh_key = "C:\\Users\\chito\\.ssh\\id_ed25519"
+                    if not os.path.exists(_ssh_key):
+                        _ssh_key = os.path.expanduser("~/.ssh/id_ed25519")
+                    if os.path.exists(_ssh_key) and _REMOTE_VM_IP:
+                        remote_path = f"/home/ubuntu/music/{clean_rel_path_g}"
+                        # Path piped via stdin to a remote python3 one-liner, same
+                        # pattern as the SQL delete above - no shell (local or
+                        # remote) ever parses the path text, so it stays safe
+                        # regardless of what characters are in the track's filename.
+                        remote_rm_cmd = [
+                            "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-i", _ssh_key,
+                            f"ubuntu@{_REMOTE_VM_IP}",
+                            "python3 -c \"import sys, os; p = sys.stdin.read(); os.path.exists(p) and os.remove(p)\""
+                        ]
+                        res_rm = subprocess.run(remote_rm_cmd, input=remote_path, capture_output=True, text=True, timeout=10)
+                        if res_rm.returncode == 0:
+                            logging.info(f"Deleted from remote VM disk: {remote_path}")
+                        else:
+                            logging.error(f"Failed to delete remote VM file {remote_path}: {res_rm.stderr}")
         except Exception as e:
             logging.error(f"Failed to delete from G: drive mirror: {e}")
 
