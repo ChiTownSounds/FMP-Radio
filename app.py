@@ -1404,11 +1404,36 @@ def vault_worker():
             continue
         
         try:
-            vm = VaultManager()
             clean_name = os.path.basename(task['path'])
             dest = task.get('target') or "Eras"
+            job_id = task.get('job_id')
+
+            # Broker-delegated jobs (Windows downloaded this because the VM's
+            # own Soulseek attempt missed) used to also call store_track()
+            # here, vaulting a full local copy on Windows in addition to the
+            # copy the VM vaults after transport below - two independent
+            # catalog rows (and two independent git commits) for the exact
+            # same track, every single time a job got delegated. Confirmed
+            # live 2026-09-03: this is what was producing a real merge
+            # conflict on almost every delegated download. Windows's job for
+            # a delegated download is download + master + transport only -
+            # the VM is the one and only machine that vaults it.
+            import platform
+            if job_id and platform.system() == "Windows":
+                state.log(f"Phase 3: Transporting [{clean_name}] to VM for vaulting (delegated job)")
+                t = threading.Thread(
+                    target=wait_and_scp,
+                    args=(task['path'], clean_name, job_id, task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
+                    kwargs={'cleanup_dir': os.path.dirname(task['path'])},
+                    daemon=True
+                )
+                t.start()
+                state.increment_completed()
+                continue
+
+            vm = VaultManager()
             state.log(f"Phase 3: Vaulting [{clean_name}] to -> {dest}")
-            
+
             status, message = vm.store_track(task['path'], task['meta'], task['task_id'], task.get('target'), overwrite=task.get('overwrite', False))
             
             if status:
@@ -1671,7 +1696,7 @@ def git_sync_worker():
             time.sleep(10)
 
 
-def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url):
+def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url, cleanup_dir=None):
     import subprocess
     import urllib.request
     import base64
@@ -1756,6 +1781,12 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url):
             response_data = json.loads(res.read().decode('utf-8'))
             if response_data.get('status') == 'ok':
                 state.log(f"[Broker] SUCCESS: Remote VM vaulted {filename}.")
+                # Only cleaned up on confirmed remote success - if the VM
+                # failed to vault, this local staging copy stays put since
+                # it's the only copy left (the caller skipped its own local
+                # vault for delegated jobs, see vault_worker).
+                if cleanup_dir:
+                    shutil.rmtree(cleanup_dir, ignore_errors=True)
             else:
                 state.log(f"[Broker Error] Remote VM failed to vault: {response_data.get('message')}")
     except Exception as e:
