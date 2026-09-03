@@ -93,6 +93,7 @@ else:
 
 # --- API KEYS ---
 ACOUSTID_API_KEY = os.getenv("ACOUSTID_API_KEY")
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
 MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmail.com")
 
 # --- SYNC CONFIGS ---

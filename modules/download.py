@@ -26,26 +26,38 @@ class Transporter:
         except ImportError:
             logging.error(f"[SYSTEM-LOG-FAILED] {message}")
 
-    def download_track(self, url: str, task_id: str = "temp") -> Tuple[str, str]:
-        """Downloads audio using Soulseek (slskd) if configured, with fallbacks to SomeDL/yt-dlp."""
+    def download_track(self, url: str, task_id: str = "temp", artist: str = None, title: str = None) -> Tuple[str, str]:
+        """Downloads audio using Soulseek (slskd) if configured, with fallbacks to SomeDL/yt-dlp.
+
+        On non-Windows hosts (the VM), a Soulseek miss does NOT fall through to a local
+        YouTube scrape (VM IP/cookies are unreliable for that) - it returns the ("", "DELEGATE")
+        sentinel so the caller can hand the job to the Windows scrape worker instead.
+        """
         # Check if Soulseek is configured and query is a search query
         is_slsk_ready = (
-            self.slsk_user and 
+            self.slsk_user and
             self.slsk_user != "YOUR_SOULSEEK_USERNAME" and
-            self.slskd_api_key and 
+            self.slskd_api_key and
             self.slskd_api_key != "YOUR_SECURE_SLSKD_API_KEY"
         )
-        
+
         is_search = url.startswith("ytmsearch1:") or url.startswith("ytsearch1:")
-        
-        if is_slsk_ready and is_search:
+
+        # Build a Soulseek query from an explicit search string, or from resolved
+        # artist/title metadata even when the input is a real URL (paste/pick-a-result).
+        query = None
+        if is_search:
             query = url.split(":", 1)[1]
+        elif artist and title:
+            query = f"{artist} {title}"
+
+        if is_slsk_ready and query:
             # Strip standard YouTube clean suffixes from query to avoid breaking search
             query_clean = re.sub(r'\s*\(Clean\)\s*', '', query, flags=re.IGNORECASE)
             query_clean = re.sub(r'\s*\[Clean\]\s*', '', query_clean, flags=re.IGNORECASE)
             # Remove underscores and replacement characters (user rule)
             query_clean = query_clean.replace('_', ' ').replace('\uFFFD', ' ')
-            
+
             self._log_to_system(f"[SOULSEEK] Searching Soulseek for: \"{query_clean}\"")
             try:
                 raw_path, bitrate = self._download_via_slskd(query_clean, task_id)
@@ -56,6 +68,10 @@ class Transporter:
                     self._log_to_system(f"[WARNING] Soulseek found no suitable matches for \"{query_clean}\". Falling back to web scrapers.")
             except Exception as e:
                 self._log_to_system(f"[ERROR] Soulseek download failed: {e}. Falling back to web scrapers.")
+
+        if platform.system() != "Windows":
+            self._log_to_system("[SOULSEEK MISS] Handing off to Windows scrape worker (no local YouTube scrape on the VM).")
+            return "", "DELEGATE"
 
         # --- FALLBACK DOWN-LEVEL WEB INGESTION (OLD LOGIC) ---
         # Normalize music.youtube.com watch URLs to www.youtube.com to bypass SomeDL parser bugs
@@ -231,9 +247,12 @@ class Transporter:
         self._log_to_system(f"[SOULSEEK] Selected best match from peer '{best_file['username']}': {os.path.basename(best_file['filename'])} ({best_file['bitrate']})")
         
         # 3. Enqueue download from selected peer
-        download_payload = {
-            "files": [best_file["filename"]]
-        }
+        # slskd's queue API expects a bare JSON array of {filename, size} objects,
+        # not an object wrapping a "files" list.
+        download_payload = [{
+            "filename": best_file["filename"],
+            "size": best_file["size"],
+        }]
         dl_res = requests.post(
             f"{self.slskd_url}/api/v0/transfers/downloads/{best_file['username']}", 
             json=download_payload, 
@@ -263,13 +282,17 @@ class Transporter:
             if status_res.status_code != 200:
                 continue
                 
-            downloads = status_res.json()
+            # slskd returns a single object: {"username":..., "directories":[{"files":[...]}]}
+            status_payload = status_res.json() or {}
             target_dl = None
-            for dl in downloads:
-                if dl.get("filename") == best_file["filename"]:
-                    target_dl = dl
+            for directory in (status_payload.get("directories") or []):
+                for f in (directory.get("files") or []):
+                    if f.get("filename") == best_file["filename"]:
+                        target_dl = f
+                        break
+                if target_dl:
                     break
-                    
+
             if not target_dl:
                 # If cleared or missing, it might have finished and auto-cleared. Check below.
                 break

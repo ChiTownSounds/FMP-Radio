@@ -15,9 +15,10 @@ import urllib.parse
 import json
 import re
 import uuid
+import hmac
+from werkzeug.utils import secure_filename
 
-
-from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT
+from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT, MUSIC_DIR, INTERNAL_API_KEY
 
 # --- CORE MODULE IMPORTS ---
 from modules.ingest import Gatekeeper
@@ -46,6 +47,15 @@ file_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_handler)
 
 app = Flask(__name__)
+
+def _require_internal_key():
+    """Returns None if the request carries a valid internal key, else a Flask error response."""
+    if not INTERNAL_API_KEY:
+        return jsonify({"error": "Server misconfigured: INTERNAL_API_KEY not set"}), 500
+    supplied = request.headers.get("X-Internal-Key", "") or request.args.get("key", "")
+    if not hmac.compare_digest(supplied, INTERNAL_API_KEY):
+        return jsonify({"error": "Unauthorized"}), 401
+    return None
 
 def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     if vm is None:
@@ -127,16 +137,17 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     return False, ""
 
 class UrlQueue:
-    def __init__(self):
+    def __init__(self, save_filename="saved_queue.json"):
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.items = []
         self.counter = 0
+        self._save_filename = save_filename
 
     def _save_to_disk(self):
         import json
         try:
-            queue_file = os.path.join(BASE_DIR, "configs", "saved_queue.json")
+            queue_file = os.path.join(BASE_DIR, "configs", self._save_filename)
             with open(queue_file, "w", encoding="utf-8") as f:
                 json.dump(self.items, f, indent=4)
         except Exception as e:
@@ -232,6 +243,10 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
 class SystemState:
     def __init__(self):
         self.url_queue = UrlQueue()
+        # Holds jobs that missed on Soulseek and need the Windows scrape worker
+        # (real cookies + residential IP) via /api/pull_jobs. Separate save file
+        # so it doesn't collide with url_queue's own persistence.
+        self.scrape_queue = UrlQueue(save_filename="saved_scrape_queue.json")
         self.vault_queue = queue.Queue()
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
@@ -253,6 +268,7 @@ class SystemState:
         self.load_rejected()
         self.load_pending_deletions()
         self.load_saved_queue()
+        self.load_saved_scrape_queue()
         self.start_spinner()
 
     def load_pending(self):
@@ -419,6 +435,19 @@ class SystemState:
             except Exception as e:
                 self.log(f"[ERROR] Failed to restore saved queue: {e}")
 
+    def load_saved_scrape_queue(self):
+        import json
+        queue_file = os.path.join(BASE_DIR, "configs", "saved_scrape_queue.json")
+        if os.path.exists(queue_file):
+            try:
+                with open(queue_file, "r", encoding="utf-8") as f:
+                    items = json.load(f)
+                self.scrape_queue.items.extend(items)
+                if self.scrape_queue.items:
+                    self.scrape_queue.counter = max(item.get('id', 0) for item in self.scrape_queue.items)
+                self.log(f"[SYSTEM] Restored {len(self.scrape_queue.items)} items from saved scrape queue.")
+            except Exception as e:
+                self.log(f"[ERROR] Failed to restore saved scrape queue: {e}")
 
     def update_count(self):
         with self.lock:
@@ -750,7 +779,6 @@ def downloader_worker():
             elif query_str.startswith("ytsearch:"):
                 query_str = query_str[len("ytsearch:"):]
             
-            import re
             query_clean = re.sub(r'\[.*?\]', '', query_str).strip()
             query_clean = re.sub(r'\s+', ' ', query_clean)
             
@@ -820,12 +848,33 @@ def downloader_worker():
                 meta = {'release_year': 'Unknown', 'lyrics': 'Not Found', 'url': url}
 
             state.log(f"Phase 2: Downloading via SomeDL")
-            raw_path, bitrate = tr.download_track(url, task_id=task_id)
-            
+            raw_path, bitrate = tr.download_track(
+                url, task_id=task_id,
+                artist=task.get('artist') or meta.get('artist'),
+                title=task.get('title') or meta.get('title'),
+            )
+
+            # Soulseek missed and we're on the VM - hand off to the Windows scrape
+            # worker instead of logging this as a dead link.
+            if bitrate == "DELEGATE":
+                state.log(f"[SCRAPE QUEUE] No Soulseek match, queued for Windows worker: {url}")
+                state.scrape_queue.put({
+                    'url': url,
+                    'target': task.get('target', ''),
+                    'title': task.get('title') or meta.get('title'),
+                    'artist': task.get('artist') or meta.get('artist'),
+                    'auto_linked': task.get('auto_linked', False),
+                    'explicit': task.get('explicit'),
+                    'is_radio': task.get('is_radio'),
+                    'overwrite': task.get('overwrite', False),
+                })
+                handoff_success = False
+                continue
+
             original_is_video = False
             if raw_path:
                 original_is_video = is_video_title(os.path.basename(raw_path))
-            
+
             # --- THE GRACEFUL SKIP & DEAD LINK LOGGER ---
             # If the download failed entirely or generated a dummy file
             if not raw_path or "blind_pass_through" in raw_path:
@@ -1862,20 +1911,27 @@ def start_engines():
         
         state.boot_cleared = True
 
-    if os.name == 'nt':
-        from config import DOWNLOAD_CONCURRENCY
-        if not any(t.is_alive() for t in state.downloader_threads):
-            state.downloader_threads = []
-            for _ in range(DOWNLOAD_CONCURRENCY):
-                t = threading.Thread(target=downloader_worker, daemon=True)
-                t.start()
-                state.downloader_threads.append(t)
-        if not state.vault_thread or not state.vault_thread.is_alive():
-            state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
-            state.vault_thread.start()
+    # Runs on both platforms now: the VM needs its own engine loop to attempt
+    # Soulseek (download_track's non-Windows branch delegates to scrape_queue on
+    # a miss instead of scraping YouTube locally - see Transporter.download_track).
+    from config import DOWNLOAD_CONCURRENCY
+    if not any(t.is_alive() for t in state.downloader_threads):
+        state.downloader_threads = []
+        for _ in range(DOWNLOAD_CONCURRENCY):
+            t = threading.Thread(target=downloader_worker, daemon=True)
+            t.start()
+            state.downloader_threads.append(t)
+    if not state.vault_thread or not state.vault_thread.is_alive():
+        state.vault_thread = threading.Thread(target=vault_worker, daemon=True)
+        state.vault_thread.start()
 
     # Start the new polling and syncing threads
-    if not hasattr(state, 'poll_jobs_thread') or not state.poll_jobs_thread or not state.poll_jobs_thread.is_alive():
+    # Windows-only: this is the scrape worker pulling jobs FROM the VM. Starting
+    # it on the VM itself would have it poll its own public endpoint for the same
+    # scrape_queue jobs its own engine just delegated - an infinite self-loop
+    # (re-queue -> retry Soulseek -> miss -> re-delegate -> re-discover -> ...).
+    import platform
+    if platform.system() == "Windows" and (not hasattr(state, 'poll_jobs_thread') or not state.poll_jobs_thread or not state.poll_jobs_thread.is_alive()):
         state.poll_jobs_thread = threading.Thread(target=poll_jobs_worker, daemon=True)
         state.poll_jobs_thread.start()
         
@@ -2339,6 +2395,10 @@ def add():
 
 @app.route('/upload_local', methods=['POST'])
 def upload_local():
+    auth_err = _require_internal_key()
+    if auth_err:
+        return auth_err
+        
     target = request.form.get('target', '')
     if 'file' not in request.files: return jsonify({"status": "error"})
     
@@ -2349,7 +2409,10 @@ def upload_local():
     staging_path = os.path.join(STAGING_DIR, task_id)
     os.makedirs(staging_path, exist_ok=True)
     
-    raw_path = os.path.join(staging_path, file.filename)
+    safe_filename = secure_filename(file.filename)
+    if not safe_filename:
+        safe_filename = f"upload_{datetime.now():%Y%m%d_%H%M%S}.mp3"
+    raw_path = os.path.join(staging_path, safe_filename)
     file.save(raw_path)
     
     # Enqueue in state.url_queue for thread-safe sequential processing
@@ -2773,6 +2836,10 @@ def execute():
 
 @app.route('/api/stream_local')
 def stream_local():
+    auth_err = _require_internal_key()
+    if auth_err:
+        return auth_err
+        
     file_path = request.args.get('file_path', '')
     track_name = request.args.get('track_name', '')
     
@@ -2800,11 +2867,20 @@ def stream_local():
     if not physical_path or not os.path.exists(physical_path):
         return jsonify({"error": f"Physical file not found on disk: {file_path}"}), 404
         
+    music_root = os.path.abspath(MUSIC_DIR)
+    resolved = os.path.abspath(physical_path)
+    if os.path.commonpath([music_root, resolved]) != music_root:
+        return jsonify({"error": "Invalid path"}), 403
+        
     from flask import send_file
     return send_file(physical_path, mimetype="audio/mpeg")
 
 @app.route('/api/artwork')
 def get_artwork():
+    auth_err = _require_internal_key()
+    if auth_err:
+        return auth_err
+        
     track_name = request.args.get('track_name', '')
     file_path = request.args.get('file_path', '')
     placeholder_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -2838,6 +2914,11 @@ def get_artwork():
     if file_path:
         physical_path = resolve_physical_path(file_path)
         if physical_path and os.path.exists(physical_path):
+            music_root = os.path.abspath(MUSIC_DIR)
+            resolved = os.path.abspath(physical_path)
+            if os.path.commonpath([music_root, resolved]) != music_root:
+                return jsonify({"error": "Invalid path"}), 403
+                
             from mutagen.mp3 import MP3
             from mutagen.id3 import APIC, ID3
             try:
@@ -2927,8 +3008,10 @@ def extract_metadata_from_file(file_path):
 
 @app.route('/api/pull_jobs', methods=['GET'])
 def get_pull_jobs():
-    with state.url_queue.lock:
-        items = list(state.url_queue.items)
+    # Serves the Soulseek-miss scrape queue, not the general url_queue -
+    # the Windows worker only needs to handle what Soulseek couldn't find.
+    with state.scrape_queue.lock:
+        items = list(state.scrape_queue.items)
     return jsonify(items)
 
 @app.route('/api/deletions/enqueue', methods=['POST'])
@@ -2981,7 +3064,7 @@ def complete_pull_job():
     )
     
     if status:
-        removed = state.url_queue.remove(item_id)
+        removed = state.scrape_queue.remove(item_id)
         state.increment_completed()
         
         # Trigger immediate background rclone sync to Google Drive on Linux
