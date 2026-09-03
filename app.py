@@ -883,6 +883,9 @@ def downloader_worker():
                 if meta.get("veto"):
                     state.log(f"[VETO] Rejection: {meta.get('error', 'Strict veto applied.')}")
                     handoff_success = False
+                    job_id = task.get('job_id')
+                    if job_id:
+                        threading.Thread(target=_acknowledge_remote_job, args=(job_id,), daemon=True).start()
                     continue
                 state.log(f"[WARNING] Gatekeeper blind: {meta.get('error', 'Unknown')}. Forcing SomeDL override.")
                 meta = {'release_year': 'Unknown', 'lyrics': 'Not Found', 'url': url}
@@ -922,8 +925,11 @@ def downloader_worker():
                 dead_link_log = os.path.join(LOG_DIR, "failed_downloads.txt")
                 with open(dead_link_log, "a", encoding="utf-8") as f:
                     f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {url}\n")
-                
+
                 handoff_success = False
+                job_id = task.get('job_id')
+                if job_id:
+                    threading.Thread(target=_acknowledge_remote_job, args=(job_id,), daemon=True).start()
                 continue
             # --------------------------------------------
 
@@ -1082,6 +1088,16 @@ def downloader_worker():
                         pass
                 if os.path.exists(staging_task_dir):
                     shutil.rmtree(staging_task_dir, ignore_errors=True)
+                # Same as the duplicate-skip path above - if this came from
+                # the broker, clear it from the VM's queue. Without this the
+                # job just sits there forever: claimed_broker_job_ids means
+                # Windows will never re-poll it, and nothing else ever tells
+                # the VM this job is done, so it becomes a permanent zombie
+                # entry in /api/pull_jobs - confirmed live 2026-09-03 (Q-Tip
+                # - Vivrant Thing, rejected for a mislabeled YouTube source).
+                job_id = task.get('job_id')
+                if job_id:
+                    threading.Thread(target=_acknowledge_remote_job, args=(job_id,), daemon=True).start()
                 state.url_queue.task_done()
                 state.update_count()
                 continue
@@ -1091,6 +1107,9 @@ def downloader_worker():
             
             if not mastered_path:
                 handoff_success = False
+                job_id = task.get('job_id')
+                if job_id:
+                    threading.Thread(target=_acknowledge_remote_job, args=(job_id,), daemon=True).start()
                 continue
             
             # Protect the yt-dlp year
