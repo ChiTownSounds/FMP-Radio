@@ -19,6 +19,11 @@ from config import CSV_BLUEPRINT, MUSIC_DIR
 
 BACKUP_PATH = Path(os.path.join(ROOT_DIR, "configs", "fmp_data_7718_heal_backup.csv"))
 
+# This script previously had no safety gate at all around its physical file
+# deletions (Step 4), unlike its sibling tools. Set to True to log what would
+# be deleted without actually removing anything.
+DRY_RUN = True
+
 if platform.system() == "Windows":
     Z_DIR = Path("Z:/")
 else:
@@ -241,6 +246,10 @@ def heal_library():
         if not is_valid:
             # DELETE incomplete/corrupt file
             print(f"    [!] INCOMPLETE/CORRUPT TRACK DETECTED: {reason}")
+            if DRY_RUN:
+                print(f"    [DRY_RUN] Would physically delete '{file_name}'.")
+                deleted_physical_files.append((file_name, reason))
+                continue
             print(f"    [!] Action: Physically deleting '{file_name}'...")
             if z_online:
                 try:
@@ -324,6 +333,10 @@ def heal_library():
         except Exception as e:
             # Delete on failure
             print(f"    [!] Error processing tags: {e}")
+            if DRY_RUN:
+                print(f"    [DRY_RUN] Would physically delete '{file_name}'.")
+                deleted_physical_files.append((file_name, f"Metadata extraction failed: {e}"))
+                continue
             print(f"    [!] Action: Physically deleting '{file_name}'...")
             if z_online:
                 try:
@@ -365,9 +378,15 @@ def heal_library():
         import subprocess
         try:
             print("[*] Committing CSV updates to Git...")
-            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-            subprocess.run(["git", "commit", "-m", "Database automated healing and realignment complete"], check=True, capture_output=True)
-            subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+            branch_name = res_branch.stdout.strip()
+            # Pathspec-restricted commit + real branch detection instead of a
+            # hardcoded "origin main" - same bug fixed elsewhere tonight.
+            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", "Database automated healing and realignment complete"], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
             print("[✓] Pushed changes successfully to GitHub.")
         except Exception as e:
             print(f"[-] Git push failed: {e}")
