@@ -320,10 +320,13 @@
             letter-spacing: 0.5px;
         }
 
-        /* Queue Columns Layout */
+        /* Queue Columns Layout - stacked (1 column) so Active Download Queue
+           and Staged Discoveries each get the full container width instead
+           of splitting it in half; was a 2-column grid that made both lists
+           too narrow to read comfortably. */
         .queue-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-top: 20px;
         }
