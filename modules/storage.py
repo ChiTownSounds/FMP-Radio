@@ -899,6 +899,15 @@ class VaultManager:
                 if AUTO_GIT_PUSH:
                     threading.Thread(target=self._git_auto_push, args=(track_name,), daemon=True).start()
 
+                # Callers that need to transport the file elsewhere after a
+                # successful vault (e.g. wait_and_scp, pushing a copy to the
+                # VM) previously kept using the original staging path - but
+                # this function's own cleanup step (below, task_dir rmtree)
+                # deletes that staging file as its last action, so by the
+                # time an async transport thread ran, the source was already
+                # gone ("No such file or directory"). Exposing the real
+                # final path here lets callers use the right file instead.
+                self.last_vaulted_path = g_target_file
                 return True, "Success"
             except Exception as e:
                 return False, f"Database Write Failure: {e}"

@@ -1397,12 +1397,20 @@ def vault_worker():
             if status:
                 state.log(f"Complete: {clean_name}")
                 state.increment_completed()
-                
+
+                # store_track() deletes its own staging directory as its
+                # last step on success, so task['path'] (the original
+                # staging location) no longer exists by the time this runs -
+                # use the real vaulted G: drive path it hands back instead
+                # (falls back to task['path'] only if that attribute is
+                # somehow missing, so this can't behave worse than before).
+                transport_path = getattr(vm, 'last_vaulted_path', None) or task['path']
+
                 job_id = task.get('job_id')
                 if job_id:
                     t = threading.Thread(
                         target=wait_and_scp,
-                        args=(task['path'], clean_name, job_id, task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
+                        args=(transport_path, clean_name, job_id, task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
                         daemon=True
                     )
                     t.start()
@@ -1411,7 +1419,7 @@ def vault_worker():
                     # They MUST reach the VM as well. We pass 'local_upload' to bypass the 400 error on the VM.
                     t = threading.Thread(
                         target=wait_and_scp,
-                        args=(task['path'], clean_name, "local_upload", task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
+                        args=(transport_path, clean_name, "local_upload", task.get('target', 'Music'), task.get('overwrite', False), task.get('meta', {}).get('url', '')),
                         daemon=True
                     )
                     t.start()
