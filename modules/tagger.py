@@ -49,6 +49,26 @@ class AutoMaster:
         except Exception:
             return "Throwbacks"
 
+    def _get_audio_fingerprint(self, file_path: str) -> str:
+        """Computes a Chromaprint fingerprint via fpcalc for later duplicate
+        detection. Local/offline only - no AcoustID API call. Same fpcalc
+        path resolution as tools/find_audio_mismatches.py, kept independent
+        since this runs in the hot ingest path, not that tool's batch scan."""
+        import platform
+        import shutil as _shutil
+        if platform.system() == "Windows":
+            fpcalc_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fpcalc.exe")
+        else:
+            fpcalc_path = _shutil.which("fpcalc") or "fpcalc"
+        try:
+            cmd = [fpcalc_path, "-json", file_path]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=30)
+            data = json.loads(result.stdout)
+            return data.get("fingerprint") or ""
+        except Exception as e:
+            logging.error(f"fpcalc fingerprint generation failed for {file_path}: {e}")
+            return ""
+
     def _verify_quality(self, file_path: str) -> bool:
         """Analyzes audio channel and sample-rate baselines before vaulting."""
         try:
@@ -414,6 +434,13 @@ class AutoMaster:
         final_title = clean_metadata_text(base_title)
         final_artist = clean_metadata_text(final_artist)
 
+        # Generate the Chromaprint fingerprint once here, at ingest, so future
+        # dedup/verification work never has to re-fingerprint the whole library
+        # from scratch again. Embedded as a TXXX tag (not a path-keyed sidecar
+        # cache) so it travels with the file through renames/moves instead of
+        # going stale the way configs/audio_fingerprint_cache.json did.
+        audio_fingerprint = self._get_audio_fingerprint(file_path)
+
         # Embed the final precision cue points & BPM back into the MP3 tags
         try:
             from mutagen.id3 import TXXX, TBPM, TIT2, TPE1
@@ -426,6 +453,8 @@ class AutoMaster:
             audio.tags.add(TBPM(encoding=3, text=[str(bpm_int)]))
             audio.tags.add(TIT2(encoding=3, text=[final_title]))
             audio.tags.add(TPE1(encoding=3, text=[final_artist]))
+            if audio_fingerprint:
+                audio.tags.add(TXXX(encoding=3, desc='AUDIO_FINGERPRINT', text=[audio_fingerprint]))
             audio.save()
         except Exception as e:
             logging.error(f"Failed to write cue points and metadata to MP3 tags: {e}")
@@ -444,7 +473,8 @@ class AutoMaster:
             'intro_duration': intro_duration,
             'outro_duration': outro_duration,
             'punch_ms': punch_ms,
-            'energy_category': energy_category
+            'energy_category': energy_category,
+            'fingerprint': audio_fingerprint
         }
         
         # Only overwrite the URL if SomeDL successfully embedded one.

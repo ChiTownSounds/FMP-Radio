@@ -759,7 +759,7 @@ class VaultManager:
                 fieldnames = [
                     'Track Name', 'File Path', 'Source_URL', 'duration_ms', 'item_type',
                     'energy_category', 'Intro_Duration', 'Punch_Ms', 'outro_duration', 'bpm',
-                    'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length', 'Pool', 'Explicit'
+                    'Bitrate', 'Lyrics', 'Year', 'Art Ratio', 'Length', 'Pool', 'Explicit', 'Fingerprint'
                 ]
                 with self._csv_lock:
                     if os.path.exists(CSV_BLUEPRINT):

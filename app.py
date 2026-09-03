@@ -3048,7 +3048,8 @@ def extract_metadata_from_file(file_path):
         "punch_ms": 0,
         "outro_duration": 20000,
         "bitrate": "320k",
-        "lyrics": "Not Found"
+        "lyrics": "Not Found",
+        "fingerprint": ""
     }
     
     try:
@@ -3086,6 +3087,8 @@ def extract_metadata_from_file(file_path):
                 elif txxx_desc == "OUTRO_DURATION":
                     try: meta["outro_duration"] = int(float(val))
                     except: pass
+                elif txxx_desc == "AUDIO_FINGERPRINT":
+                    meta["fingerprint"] = val
         # Check standard TBPM tag
         if "TBPM" in id3:
             try: meta["bpm"] = int(float(id3["TBPM"].text[0]))
