@@ -1606,19 +1606,16 @@ def git_sync_worker():
             try:
                 res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
                 branch_name = res_branch.stdout.strip()
-                stashed = False
-                stash_res = subprocess.run(["git", "stash"], capture_output=True, text=True)
-                if stash_res.returncode == 0 and "No local changes to save" not in stash_res.stdout and "No local changes to save" not in stash_res.stderr:
-                    stashed = True
-                
-                pull_res = subprocess.run(["git", "pull", "--rebase", "origin", branch_name], capture_output=True, text=True)
+                # --autostash: this runs unattended every 15 minutes, forever - a
+                # hand-rolled stash/pop with a silently-swallowed pop failure
+                # (check=False) run on that cadence is exactly how this repo ended
+                # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
+                # handles this far more robustly than re-implementing it here.
+                pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
                 if pull_res.returncode == 0:
                     state.log("[SYSTEM] Periodic GitHub database pull successful.")
                 else:
                     logging.warning(f"Periodic git pull failed: {pull_res.stderr}")
-                    
-                if stashed:
-                    subprocess.run(["git", "stash", "pop"], check=False, capture_output=True)
             except Exception as e:
                 logging.warning(f"Periodic git pull failed with exception: {e}")
         # Wait 15 minutes (900 seconds) in 10-second intervals to check stop_event
@@ -2096,12 +2093,15 @@ def background_rename_task(old_name, new_name):
                     branch_name = res_branch.stdout.strip()
 
                     subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-                    
+
                     # Check if there are any staged changes for the CSV file
                     status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv"], capture_output=True, text=True, check=True)
                     if status_res.stdout.strip():
                         commit_msg = f"Rename show {old_name} to {new_name}"
-                        commit_res = subprocess.run(["git", "commit", "-m", commit_msg], capture_output=True, text=True)
+                        # Pathspec-restricted so this can never sweep up whatever else
+                        # happens to be staged (same bug/fix as storage.py's
+                        # _git_auto_push and sync_library_db.py's end-of-run commit).
+                        commit_res = subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", commit_msg], capture_output=True, text=True)
                         if commit_res.returncode != 0:
                             stdout_lower = commit_res.stdout.lower()
                             stderr_lower = commit_res.stderr.lower()
@@ -2113,18 +2113,12 @@ def background_rename_task(old_name, new_name):
                     else:
                         state.log(f"[RENAME] CSV database file has no changes to commit. Proceeding to pull and push.")
 
-                    stashed = False
-                    stash_res = subprocess.run(["git", "stash"], capture_output=True, text=True)
-                    if stash_res.returncode == 0 and "No local changes to save" not in stash_res.stdout and "No local changes to save" not in stash_res.stderr:
-                        stashed = True
-
-                    try:
-                        subprocess.run(["git", "pull", "--rebase", "origin", branch_name], check=True, capture_output=True)
-                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
-                        state.log(f"[RENAME] GitHub database synchronization successful.")
-                    finally:
-                        if stashed:
-                            subprocess.run(["git", "stash", "pop"], check=False, capture_output=True)
+                    # --autostash: git's own stash/pop handling instead of a
+                    # hand-rolled stash/pop where a failed pop was silently
+                    # swallowed (check=False) and left the stash orphaned forever.
+                    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                    subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
+                    state.log(f"[RENAME] GitHub database synchronization successful.")
                 except Exception as git_err:
                     state.log(f"[ERROR] GitHub synchronization failed: {git_err}")
 
