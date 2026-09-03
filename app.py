@@ -83,7 +83,20 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     }
 
     def norm_title(t):
-        t = t.lower()
+        t_lower = t.lower()
+        # Detect version markers BEFORE the bracket-stripping regex below runs -
+        # otherwise "(Radio Edit)"/"(Explicit)" gets silently discarded as if it
+        # were decorative album-name noise (e.g. "[The Evolution of Robin
+        # Thicke]"), making a Radio Edit normalize identically to its base
+        # Clean version and get wrongly treated as an already-owned duplicate.
+        # store_track's own _normalize_track_key() already keeps these as
+        # distinct, coexisting versions (via a _radioedit/_explicit/_clean
+        # suffix) - this mirrors that so the pre-download duplicate check
+        # agrees with what vaulting itself considers a real duplicate.
+        is_radio = 'radio edit' in t_lower or 'radio version' in t_lower
+        is_explicit = 'explicit' in t_lower and 'clean' not in t_lower
+
+        t = t_lower
         import unicodedata
         t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
         t = t.replace('&', ' and ')
@@ -94,6 +107,10 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
         clean_t = re.sub(r'[^a-z0-9]', '', t)
         for k, v in ALIAS_MAP.items():
             clean_t = clean_t.replace(k, v)
+        if is_radio:
+            clean_t += "_radioedit"
+        elif is_explicit:
+            clean_t += "_explicit"
         return clean_t
         
     if norm_title(ex_title) != norm_title(check_title):
