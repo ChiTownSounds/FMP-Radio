@@ -170,6 +170,7 @@ def run_sync():
         sys.exit(1)
 
     local_files = {}  # key: normalized_key -> value: {local_path, rel_path, filename_no_ext, folder}
+    duplicate_files = []  # (key, kept_rel_path, discarded_rel_path) - same identity key, two physical files
     for root, dirs, files in os.walk(G_DRIVE_MUSIC):
         # Prune folders in-place to prevent scanning giant or unresponsive Google Drive directories
         for d in list(dirs):
@@ -182,15 +183,38 @@ def run_sync():
                 folder = rel_path.split('/')[0] if '/' in rel_path else ''
                 filename_no_ext = filepath.stem
                 key = normalize_track_key(filename_no_ext)
-                if key:
-                    local_files[key] = {
-                        'local_path': filepath,
-                        'rel_path': rel_path,
-                        'filename_no_ext': filename_no_ext,
-                        'folder': folder
-                    }
+                if not key:
+                    continue
+                if key in local_files:
+                    # Two physical files share the same identity key (e.g. a leftover
+                    # "Song (Clean).mp3" alongside the canonical "Song.mp3" after a
+                    # rename). Silently overwriting here used to make one of them
+                    # invisible to the rest of this script - never matched to a CSV
+                    # row, never imported, never flagged for cleanup. Keep whichever
+                    # filename has no bracketed version tag (the canonical form per
+                    # the "no version tags in filenames" convention); report the other
+                    # as a duplicate instead of discarding it silently.
+                    existing = local_files[key]
+                    existing_has_tag = bool(re.search(r'\((?:clean|explicit|radio edit|radio version)\)', existing['filename_no_ext'], re.I))
+                    new_has_tag = bool(re.search(r'\((?:clean|explicit|radio edit|radio version)\)', filename_no_ext, re.I))
+                    if existing_has_tag and not new_has_tag:
+                        duplicate_files.append((key, rel_path, existing['rel_path']))
+                        local_files[key] = {'local_path': filepath, 'rel_path': rel_path, 'filename_no_ext': filename_no_ext, 'folder': folder}
+                    else:
+                        duplicate_files.append((key, existing['rel_path'], rel_path))
+                    continue
+                local_files[key] = {
+                    'local_path': filepath,
+                    'rel_path': rel_path,
+                    'filename_no_ext': filename_no_ext,
+                    'folder': folder
+                }
 
     print(f"  [OK] Scanned {len(local_files)} tracks from G: Drive.")
+    if duplicate_files:
+        print(f"  [WARNING] {len(duplicate_files)} duplicate physical files found sharing an identity key with another file (not deleted, needs manual review):")
+        for key, kept, discarded in duplicate_files:
+            print(f"    - KEEP: {kept}  |  DUPLICATE: {discarded}")
 
     # 2. Load CSV Master Database
     print(f"\n[*] Loading master CSV database: {CSV_BLUEPRINT}...")
@@ -499,9 +523,13 @@ def run_sync():
 
 
     # 5. Process New Untracked Files from G: Drive
-    untracked_keys = []
+    # untracked_keys was previously declared empty and never populated, making
+    # this entire "import new tracks" feature permanently dead code - nothing
+    # has ever been auto-imported by this script, regardless of what's sitting
+    # unmatched on G: Drive.
+    untracked_keys = sorted(set(local_files.keys()) - local_keys_matched)
     new_imported_rows = []
-    
+
     if untracked_keys:
         print(f"\n[*] Found {len(untracked_keys)} new untracked tracks on G: Drive. Importing...")
         am = AutoMaster()
@@ -618,29 +646,39 @@ def run_sync():
                                 year_int = None
                                 
                             explicit_val = 1 if new_row.get('Explicit') == 'True' else 0
-                            
-                            cursor.execute("""
-                                INSERT INTO media_library (
-                                    title, artist, file_path, duration_ms, item_type, energy_category,
-                                    intro_duration, punch_ms, outro_duration, bpm, year, explicit, music_pool_id
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                title,
-                                artist,
-                                rel_path,
-                                duration_ms,
-                                'Music',
-                                category,
-                                meta_updates.get('intro_duration', 0),
-                                meta_updates.get('punch_ms', 2000),
-                                meta_updates.get('outro_duration', 0),
-                                meta_updates.get('bpm', 98),
-                                year_int,
-                                explicit_val,
-                                pool_id
-                            ))
-                            print(f"      [OK] Inserted new track '{new_filename}' into Broadcaster SQLite DB.")
-                            db_updated = True
+
+                            # This file was "untracked" only relative to the CSV -
+                            # the DB (local or VM) may already have a real row for
+                            # this exact file_path from a prior sync that never made
+                            # it into the CSV. Check first rather than blindly
+                            # INSERTing and hitting the UNIQUE(file_path) constraint.
+                            cursor.execute("SELECT id FROM media_library WHERE file_path = ?", (rel_path,))
+                            existing = cursor.fetchone()
+                            if existing:
+                                print(f"      [OK] '{new_filename}' already exists in Broadcaster SQLite DB (id {existing[0]}) - CSV was the only thing out of date, nothing to insert.")
+                            else:
+                                cursor.execute("""
+                                    INSERT INTO media_library (
+                                        title, artist, file_path, duration_ms, item_type, energy_category,
+                                        intro_duration, punch_ms, outro_duration, bpm, year, explicit, music_pool_id
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (
+                                    title,
+                                    artist,
+                                    rel_path,
+                                    duration_ms,
+                                    'Music',
+                                    category,
+                                    meta_updates.get('intro_duration', 0),
+                                    meta_updates.get('punch_ms', 2000),
+                                    meta_updates.get('outro_duration', 0),
+                                    meta_updates.get('bpm', 98),
+                                    year_int,
+                                    explicit_val,
+                                    pool_id
+                                ))
+                                print(f"      [OK] Inserted new track '{new_filename}' into Broadcaster SQLite DB.")
+                                db_updated = True
                         except Exception as db_err:
                             print(f"      [-] Failed to insert new track in Broadcaster DB: {db_err}")
                 except Exception as e:
@@ -676,8 +714,14 @@ def run_sync():
                     script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                     subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True, cwd=script_root)
                     msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
-                    subprocess.run(["git", "commit", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
-                    subprocess.run(["git", "push", "origin", "HEAD"], check=True, capture_output=True, cwd=script_root)
+                    # Pathspec-restricted commit so this cannot sweep up whatever
+                    # else happens to be staged (same bug/fix as storage.py's own
+                    # _git_auto_push).
+                    subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
+                    res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True, cwd=script_root)
+                    branch_name = res_branch.stdout.strip()
+                    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
+                    subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
                     print("  [OK] Pushed successfully to GitHub.")
                 except Exception as e:
                     print(f"  [-] Git push failed: {e}")
