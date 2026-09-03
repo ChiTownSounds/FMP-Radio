@@ -828,7 +828,7 @@
             
             document.getElementById('player-title').textContent = name;
             document.getElementById('player-artist').textContent = artist;
-            document.getElementById('player-art').src = `/api/artwork?track_name=${encodeURIComponent(name)}&file_path=${encodeURIComponent(filePath)}`;
+            document.getElementById('player-art').src = `/api/artwork?track_name=${encodeURIComponent(name)}&file_path=${encodeURIComponent(filePath)}&key=${encodeURIComponent(INTERNAL_KEY)}`;
             
             audio.src = `/api/stream_local?file_path=${encodeURIComponent(filePath)}&key=${encodeURIComponent(INTERNAL_KEY)}`;
             audio.play();

@@ -44,7 +44,11 @@ def get_rclone_path():
     return "rclone"
 
 RCLONE_EXE = get_rclone_path()
-DRY_RUN = False  # Change to True to print actions without committing them
+# This previously defaulted to live (DRY_RUN = False) with no CLI flag to
+# override it at all - running the script with zero arguments rewrote the
+# CSV, wrote directly to the Broadcaster SQLite DB, and auto-pushed to git.
+# Defaults to a dry run now; pass --live to actually apply changes.
+DRY_RUN = True
 SKIP_FTP = True  # Set to True to bypass Citrus3 FTP operations for speed
 
 def normalize_track_key(name: str, explicit_val=None) -> str:
@@ -822,4 +826,10 @@ def run_sync():
         print(f"  [-] Failed to write to log file: {le}")
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="Sync the music library CSV/DB against physical files")
+    parser.add_argument("--live", action="store_true", help="Actually write the CSV/DB and push to git (default is a dry run)")
+    args = parser.parse_args()
+    if args.live:
+        DRY_RUN = False
     run_sync()

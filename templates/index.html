@@ -906,7 +906,7 @@
         const titleText = document.getElementById('player-title');
         const artistText = document.getElementById('player-artist');
 
-        art.src = thumbnail || '/api/artwork';
+        art.src = thumbnail || `/api/artwork?key=${encodeURIComponent(INTERNAL_KEY)}`;
         titleText.innerText = title;
         artistText.innerText = artist;
         player.style.display = 'flex';
@@ -947,7 +947,7 @@
         const artist = parts[0] || 'Local Catalog';
         const title = parts[1] || trackName;
 
-        art.src = `/api/artwork?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}`;
+        art.src = `/api/artwork?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}&key=${encodeURIComponent(INTERNAL_KEY)}`;
         titleText.innerText = title;
         artistText.innerText = artist;
         player.style.display = 'flex';
@@ -955,7 +955,7 @@
         playBtn.innerText = '⌛';
         audio.pause();
 
-        audio.src = `/api/stream_local?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}`;
+        audio.src = `/api/stream_local?track_name=${encodeURIComponent(trackName)}&file_path=${encodeURIComponent(filePath || '')}&key=${encodeURIComponent(INTERNAL_KEY)}`;
         audio.play();
     }
 
@@ -1096,7 +1096,7 @@
             list.forEach(item => {
                 const escapedTitle = item.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const escapedUploader = item.uploader.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const thumbnailSrc = item.thumbnail ? item.thumbnail : '/api/artwork';
+                const thumbnailSrc = item.thumbnail ? item.thumbnail : `/api/artwork?key=${encodeURIComponent(INTERNAL_KEY)}`;
                 
                 div.innerHTML += `
                 <div class="match-row">
@@ -1200,7 +1200,7 @@
                 
                 const escapedTrackName = item.name.replace(/'/g, "\\'");
                 const escapedFilePath = (item['File Path'] || '').replace(/'/g, "\\'");
-                const artworkUrl = `/api/artwork?track_name=${encodeURIComponent(item.name)}&file_path=${encodeURIComponent(item['File Path'] || '')}`;
+                const artworkUrl = `/api/artwork?track_name=${encodeURIComponent(item.name)}&file_path=${encodeURIComponent(item['File Path'] || '')}&key=${encodeURIComponent(INTERNAL_KEY)}`;
                 
                 // Color-coded version badges
                 let versionBadge = '';

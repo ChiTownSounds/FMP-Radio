@@ -1868,11 +1868,20 @@ def poll_deletions_worker():
                 if csv_cleaned:
                     try:
                         import subprocess
-                        subprocess.run("git add configs/fmp_data_7718.csv", cwd=r"C:\FMP_Ultimate", shell=True, check=True)
-                        subprocess.run('git commit --no-verify -m "Broker auto-sync: Purge deleted tracks"', cwd=r"C:\FMP_Ultimate", shell=True, check=True)
-                        subprocess.run("git push origin dev", cwd=r"C:\FMP_Ultimate", shell=True, check=True)
-                    except Exception:
-                        pass
+                        # No hardcoded cwd (relies on the process's own working
+                        # directory, same as every other git-sync site in this
+                        # file) - the old hardcoded Windows path silently made
+                        # this a no-op on the VM. Pathspec-restricted commit +
+                        # dynamic branch + --autostash, matching the fix already
+                        # applied to background_rename_task/sync_library_db.py.
+                        res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                        branch_name = res_branch.stdout.strip()
+                        subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                        subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "--no-verify", "-m", "Broker auto-sync: Purge deleted tracks"], check=True, capture_output=True)
+                        subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
+                    except Exception as git_err:
+                        state.log(f"[Broker Error] Git sync of deletion purge failed: {git_err}")
                         
         except Exception:
             pass
@@ -1935,7 +1944,11 @@ def start_engines():
         state.poll_jobs_thread = threading.Thread(target=poll_jobs_worker, daemon=True)
         state.poll_jobs_thread.start()
         
-    if not hasattr(state, 'poll_deletions_thread') or not state.poll_deletions_thread or not state.poll_deletions_thread.is_alive():
+    # poll_deletions_worker deletes from local_music_dir (WINDOWS_AUDIO_PATH,
+    # a Windows path) - same Windows-only reasoning as poll_jobs_worker above.
+    # Previously started unconditionally on both platforms; on the VM it would
+    # poll its own public endpoint and always no-op on the physical-delete step.
+    if platform.system() == "Windows" and (not hasattr(state, 'poll_deletions_thread') or not state.poll_deletions_thread or not state.poll_deletions_thread.is_alive()):
         state.poll_deletions_thread = threading.Thread(target=poll_deletions_worker, daemon=True)
         state.poll_deletions_thread.start()
 
