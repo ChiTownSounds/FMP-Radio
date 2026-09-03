@@ -32,7 +32,7 @@ G_DRIVE_MUSIC = MUSIC_DIR
 LYRICS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs", "lyrics")
 
 # Set to True to only report duplicates without deleting anything
-DRY_RUN = False 
+DRY_RUN = True
 
 def titles_are_similar(t1, t2):
     # Normalize them to alphanumeric lowercase words
@@ -275,22 +275,16 @@ def main():
         
         best_score, best_exists, _, best_idx, best_row = scored_items[0]
         print(f"    [KEEP] '{best_row['Track Name']}' (Score: {best_score}, Exists: {best_exists})")
-        
+
+        # PASS 2 matches on normalized title/artist key alone - no file-size or
+        # audio-content verification like PASS 1 has. That's too weak a signal
+        # to auto-delete on: a title-key collision can be a genuine duplicate,
+        # or it can be two different recordings (different cut, different
+        # bitrate re-encode, or truly different songs) that just normalize to
+        # the same key. Report only; these need a human to actually listen/
+        # compare before anything gets deleted.
         for score, exists, _, idx, row in scored_items[1:]:
-            print(f"    [DELETE] '{row['Track Name']}' (Score: {score}, Exists: {exists})")
-            indices_to_delete.add(idx)
-            
-            gpath = get_absolute_gpath(row.get('File Path', ''))
-            if exists:
-                files_to_delete_local.append(gpath)
-            
-            ftp_path = get_ftp_path(row.get('File Path', ''))
-            files_to_delete_remote.append(ftp_path)
-            
-            safe_track = "".join(c for c in row.get('Track Name', '') if c not in r'\/:*?"<>|').strip()
-            lyric_file = os.path.join(LYRICS_DIR, f"{safe_track}.txt")
-            if os.path.exists(lyric_file):
-                lyrics_to_delete.append(lyric_file)
+            print(f"    [REVIEW NEEDED] '{row['Track Name']}' (Score: {score}, Exists: {exists}) - title-key match only, not auto-queued for deletion")
 
     print("\n" + "=" * 80)
     print(" CLEANUP SUMMARY")
@@ -373,10 +367,20 @@ def main():
     if AUTO_GIT_PUSH:
         try:
             print("\n[*] Committing database updates to Git...")
-            subprocess.run(["git", "add", str(CSV_BLUEPRINT)], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+            branch_name = res_branch.stdout.strip()
+            # Pathspec-restricted commit (can't sweep up unrelated staged files)
+            # and --autostash pull-before-push, matching the same fix applied
+            # everywhere else in this codebase tonight. This previously hardcoded
+            # "origin main" regardless of the actual current branch (which has
+            # been "dev" all night) and used a bare `git commit -m` with no
+            # pathspec.
+            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
             msg = f"Auto-Dedupe: Cleaned up {len(indices_to_delete)} duplicate songs"
-            subprocess.run(["git", "commit", "-m", msg], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
             print("  [OK] Pushed changes successfully to GitHub.")
         except Exception as e:
             print(f"  [-] Git push failed or skipped: {e}")
