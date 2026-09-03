@@ -42,17 +42,28 @@ class VaultManager:
             return ""
         return "".join(c for c in name if c not in r'\/:*?"<>|').strip()
 
-    def _normalize_track_key(self, name: str, explicit_val=None) -> str:
+    def _normalize_track_key(self, name: str, explicit_val=None, is_radio_val=None) -> str:
         if not name:
             return ""
         import re
         import unicodedata
-        
+
         name_lower = name.lower()
-        
-        # Determine version category
-        is_radio = 'radio edit' in name_lower or 'radio version' in name_lower
-        
+
+        # Determine version category - callers that know the real value
+        # should pass is_radio_val explicitly rather than relying on text
+        # detection, which silently breaks once the caller's own name has
+        # already had its version tag stripped elsewhere (confirmed live
+        # 2026-09-03 - a Radio Edit download's own Track Name never carried
+        # "radio edit" text at all, so this always fell through to False
+        # and got miskeyed as a duplicate of the Clean version). Existing
+        # CSV rows without a dedicated is-radio column still rely on the
+        # text fallback, which is fine since many of them do carry the tag.
+        if is_radio_val is not None:
+            is_radio = bool(is_radio_val) or 'radio edit' in name_lower or 'radio version' in name_lower
+        else:
+            is_radio = 'radio edit' in name_lower or 'radio version' in name_lower
+
         if explicit_val is not None:
             is_explicit = explicit_val in [True, 1, 'true', '1', 'True'] or ('explicit' in name_lower and 'clean' not in name_lower)
         else:
@@ -159,11 +170,16 @@ class VaultManager:
                     res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
                     branch_name = res_branch.stdout.strip()
 
-                    # 1. Add modified CSV file
-                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                    # 1. Add modified CSV file, plus any lyrics file this vault/scrub
+                    # touched. Only the CSV was ever staged here - a scrub's lyrics
+                    # .txt deletion (or a vault's new one) happened for real on disk
+                    # but never got committed, silently drifting further from git on
+                    # every single track. Confirmed live 2026-09-03 (Billy Stewart,
+                    # then Arthur Conley) as a real, recurring gap, not a one-off.
+                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv", "configs/lyrics"], check=True, capture_output=True)
 
-                    # Check if there are any staged changes for the CSV file
-                    status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv"], capture_output=True, text=True, check=True)
+                    # Check if there are any staged changes for the CSV/lyrics files
+                    status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv", "configs/lyrics"], capture_output=True, text=True, check=True)
                     if status_res.stdout.strip():
                         # 2. Commit change - pathspec-restricted so this NEVER sweeps up
                         # whatever else happens to be staged by other work (e.g. an
@@ -171,7 +187,7 @@ class VaultManager:
                         # `git commit -m ...` here silently committed and pushed
                         # unrelated in-progress files more than once.
                         commit_msg = f"Vaulted new track: {track_name}"
-                        commit_res = subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", commit_msg], capture_output=True, text=True)
+                        commit_res = subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "configs/lyrics", "-m", commit_msg], capture_output=True, text=True)
                         if commit_res.returncode != 0:
                             stdout_lower = commit_res.stdout.lower()
                             stderr_lower = commit_res.stderr.lower()
@@ -620,7 +636,11 @@ class VaultManager:
                 version_folder = "Clean"
             
             release_year = metadata.get('release_year', 'Unknown')
-            new_key = self._normalize_track_key(track_name, explicit_val=is_explicit)
+            new_key = self._normalize_track_key(track_name, explicit_val=is_explicit, is_radio_val=is_radio)
+            # Only relevant when this track is Clean (not radio, not explicit)
+            # - see the version-suffix logic below for how this gets used.
+            explicit_counterpart_key = self._normalize_track_key(track_name, explicit_val=True, is_radio_val=False)
+            has_explicit_counterpart = False
             
             # 3. Verify music folder/G: drive is mounted
             from config import MUSIC_DIR
@@ -645,6 +665,8 @@ class VaultManager:
                                         duplicates_to_scrub.append(existing_path or existing_name)
                                     else:
                                         return False, "Duplicate Track Detected in CSV"
+                                if existing_key == explicit_counterpart_key:
+                                    has_explicit_counterpart = True
 
             # If overwrite is active and we found duplicates, scrub them cleanly
             if overwrite and duplicates_to_scrub:
@@ -727,15 +749,29 @@ class VaultManager:
                 relative_target_dir = "Music"
                 remote_target = "/Music"
                 
-                # Determine version suffix
+                # Determine version suffix. User-decided convention
+                # (2026-09-03): Radio Edit is always tagged: it's a distinct
+                # edited cut and needs to read as one at a glance. Explicit
+                # is NEVER tagged - it's a song's natural/default state when
+                # that's how it was released, not a deviation worth calling
+                # out. Clean only gets tagged when a genuinely explicit
+                # counterpart of the same song exists in the catalog - only
+                # then is "Clean" actually distinguishing it from something,
+                # rather than labeling a song that was never explicit to
+                # begin with. Applied to both the filename and track_name
+                # (previously only the filename got a suffix at all here,
+                # and track_name never did for any category - the actual
+                # root cause of the duplicate-detection bug this fixes,
+                # since _normalize_track_key() keys off track_name).
                 suffix = ""
                 if is_radio:
                     suffix = " (Radio Edit)"
-                elif is_explicit:
-                    suffix = " (Explicit)"
-                
+                elif not is_explicit and has_explicit_counterpart:
+                    suffix = " (Clean)"
+
                 target_filename = f"{clean_artist_filename} - {clean_title_filename}{suffix}.mp3"
                 clean_name = target_filename
+                track_name = f"{clean_artist_filename} - {clean_title_filename}{suffix}"
                 relative_file_path = f"Music/{target_filename}"
 
             # 7. Vault to G: drive first (source of truth)
