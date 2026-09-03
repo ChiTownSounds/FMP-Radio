@@ -3239,6 +3239,15 @@ def complete_pull_job():
                 
         return jsonify({"status": "ok", "message": "Track successfully vaulted."})
     else:
+        # Same zombie-queue bug as downloader_worker()'s early-exit paths
+        # (app.py, fixed same session) - this only ever removed the item on
+        # success, so a permanent rejection (duplicate, quality gate, etc.)
+        # left it stuck in scrape_queue forever: Windows already claimed
+        # this job_id via claimed_broker_job_ids, so it will never re-poll
+        # it, and nothing else ever clears the VM-side entry. Confirmed
+        # live 2026-09-03 (The Isley Brothers - Make Me Say It Again Girl,
+        # rejected as a duplicate already in the catalog).
+        state.scrape_queue.remove(item_id)
         state.log(f"[Pull Broker Error] Vaulting failed: {msg}")
         return jsonify({"status": "error", "message": msg}), 500
 
