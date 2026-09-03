@@ -325,17 +325,37 @@ class Transporter:
             elif "path" in target_dl:
                 local_rel_path = target_dl["path"]
                 
-            if state == "Completed" or percent >= 100:
+            # slskd reports compound states like "Completed, Succeeded" or
+            # "Completed, TimedOut" - exact-match against "Completed" or
+            # against a bare "TimedOut"/"Errored"/etc tuple never matches
+            # either of those, so neither branch fired and every download
+            # relied entirely on percent>=100 or the entry disappearing
+            # (see the fallback path derivation above) to get noticed at
+            # all. Substring checks catch the real values.
+            if "Succeeded" in state or percent >= 100:
                 break
-            elif state in ("Errored", "Cancelled", "TimedOut", "RemoteCaborted"):
+            elif any(bad in state for bad in ("Errored", "Cancelled", "TimedOut", "RemoteCaborted")):
                 self._log_to_system(f"[ERROR] Soulseek download aborted: state={state}")
                 return "", ""
                 
         # 5. Resolve host path and transport file
-        # Default fallback structure inside container: /app/downloads/completed/username/filename
         if not local_rel_path:
-            # Fallback path prediction based on standard structure
-            local_rel_path = f"/app/downloads/completed/{best_file['username']}/{os.path.basename(best_file['filename'])}"
+            # The old fallback here guessed "completed/<username>/<basename>",
+            # which is not how slskd actually lays out completed downloads.
+            # Confirmed live 2026-09-03 by finding two real, fully-completed
+            # FLAC downloads (state "Completed, Succeeded", 100% per slskd's
+            # own transfer history) sitting unclaimed on disk because that
+            # guess couldn't find them - they'd been discarded as "no
+            # suitable matches" for a track that had, in fact, already been
+            # downloaded successfully. Empirically verified against both:
+            # slskd saves to <downloads_root>/<immediate parent folder of
+            # the remote file>/<filename> - it keeps exactly one level of
+            # directory context and drops everything above that (the share
+            # alias root, and any deeper nesting), not the full remote path.
+            remote_rel_path = best_file['filename'].replace('\\', '/')
+            parent_dir = os.path.basename(os.path.dirname(remote_rel_path))
+            file_name = os.path.basename(remote_rel_path)
+            local_rel_path = f"/app/downloads/{parent_dir}/{file_name}"
             
         # Translate the container internal path back to the VM host path
         host_path_on_vm = local_rel_path.replace('/app/downloads', '/home/ubuntu/music/staging')
