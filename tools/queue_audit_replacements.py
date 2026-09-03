@@ -33,10 +33,13 @@ ADD_URL = "https://ultimate.fmpmediagroup.com/add"
 # Defaults to a dry run; pass --live to actually queue downloads.
 DRY_RUN = True
 
-# Bypass SSL validation for remote ultimate API
+# Unlike app.py's internal worker calls (which connect by raw IP against a
+# domain-issued cert, needing check_hostname=False), this script connects to
+# ADD_URL by its real hostname - the cert matches it exactly, so full default
+# validation (hostname + CERT_REQUIRED) applies with no overrides needed.
+# Previously both were disabled here for no real reason (the cert isn't
+# self-signed).
 ssl_ctx = ssl.create_default_context()
-ssl_ctx.check_hostname = False
-ssl_ctx.verify_mode = ssl.CERT_NONE
 
 # nginx in front of ultimate.fmpmediagroup.com requires Basic Auth on every
 # path - this request was never sending it, so /add has always 401'd here

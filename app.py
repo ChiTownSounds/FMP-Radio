@@ -621,8 +621,14 @@ def _acknowledge_remote_job(job_id):
     remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
     auth_b64 = base64.b64encode(b"fmpadmin:773312").decode()
     ssl_ctx = _ssl.create_default_context()
+    # check_hostname=False is required since this connects by raw IP while
+    # the cert is issued for ultimate.fmpmediagroup.com - but verify_mode
+    # stays at its default CERT_REQUIRED (previously forced to CERT_NONE,
+    # disabling all certificate validation). The cert here is a real
+    # Let's Encrypt cert, not self-signed, so there's no reason to also
+    # accept a cert from an untrusted CA - this still stops a MITM
+    # presenting a forged/invalid cert.
     ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = _ssl.CERT_NONE
     try:
         req = urllib.request.Request(
             f"https://{remote_host}/api/queue/remove",
@@ -1694,9 +1700,10 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url):
         auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
         
         ssl_ctx = ssl.create_default_context()
+        # check_hostname=False only (connects by IP against a domain cert) -
+        # verify_mode stays CERT_REQUIRED, see _acknowledge_remote_job() above for why.
         ssl_ctx.check_hostname = False
-        ssl_ctx.verify_mode = ssl.CERT_NONE
-        
+
         req = urllib.request.Request(
             complete_url,
             data=json.dumps(payload).encode('utf-8'),
@@ -1728,9 +1735,9 @@ def poll_jobs_worker():
     poll_url = f"https://{remote_host}/api/pull_jobs"
     
     ssl_ctx = ssl.create_default_context()
+    # check_hostname=False only, see _acknowledge_remote_job() above for why.
     ssl_ctx.check_hostname = False
-    ssl_ctx.verify_mode = ssl.CERT_NONE
-    
+
     state.log(f"[Broker] Outbound polling loop started against {poll_url}")
     
     while not state.stop_event.is_set():
@@ -1815,8 +1822,8 @@ def poll_deletions_worker():
     poll_url = f"https://{remote_host}/api/deletions/poll"
     
     ctx = ssl.create_default_context()
+    # check_hostname=False only, see _acknowledge_remote_job() above for why.
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
     
     auth_str = "fmpadmin:773312"
     auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
