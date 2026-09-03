@@ -63,8 +63,25 @@ class Transporter:
                 raw_path, bitrate = self._download_via_slskd(query_clean, task_id)
                 if raw_path:
                     self._log_to_system(f"[SUCCESS] Soulseek download complete: {raw_path}")
-                    return raw_path, bitrate
-                else:
+                    # Soulseek is scored to prefer FLAC over MP3 (see the
+                    # scoring in _download_via_slskd), but every downstream
+                    # step (AutoMaster.process_file's mutagen.mp3.MP3 calls,
+                    # store_track's hardcoded .mp3 filename/extension) assumes
+                    # MP3. Left alone, a FLAC hit produces a double-extension
+                    # file ("Title.flac.mp3") containing raw FLAC bytes that
+                    # fails to vault - confirmed live 2026-09-03 with two
+                    # real FLAC downloads that had to be recovered and
+                    # manually converted after the fact. Transcoding here,
+                    # immediately after a successful Soulseek download,
+                    # keeps the "vault is always MP3" invariant intact
+                    # without touching anything downstream.
+                    if raw_path.lower().endswith('.flac'):
+                        transcoded_path = self._transcode_flac_to_mp3(raw_path)
+                        raw_path = transcoded_path or ""
+                        bitrate = "320"
+                    if raw_path:
+                        return raw_path, bitrate
+                if not raw_path:
                     self._log_to_system(f"[WARNING] Soulseek found no suitable matches for \"{query_clean}\". Falling back to web scrapers.")
             except Exception as e:
                 self._log_to_system(f"[ERROR] Soulseek download failed: {e}. Falling back to web scrapers.")
@@ -413,3 +430,30 @@ class Transporter:
                     
                 self._log_to_system(f"[ERROR] SCP transport failed. stdout: {res.stdout.strip()} | stderr: {res.stderr.strip()}")
                 return "", ""
+
+    def _transcode_flac_to_mp3(self, flac_path: str) -> str:
+        """Converts a Soulseek FLAC download to 320kbps MP3 in place (same
+        directory, same base filename) so it matches the format every other
+        ingest path already produces. Returns the new MP3 path, or "" on
+        failure - callers should treat that as "no usable file" the same
+        way an empty download result is treated everywhere else.
+        """
+        mp3_path = os.path.splitext(flac_path)[0] + ".mp3"
+        cmd = ["ffmpeg", "-y", "-i", flac_path, "-codec:a", "libmp3lame", "-b:a", "320k", "-map_metadata", "0", mp3_path]
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+            if res.returncode != 0 or not os.path.exists(mp3_path):
+                logging.error(f"FLAC->MP3 transcode failed for {flac_path}: {res.stderr[-500:] if res.stderr else 'no output'}")
+                return ""
+            self._log_to_system(f"[SOULSEEK] Transcoded FLAC to 320k MP3: {os.path.basename(mp3_path)}")
+            try:
+                os.remove(flac_path)
+            except Exception:
+                pass
+            return mp3_path
+        except subprocess.TimeoutExpired:
+            logging.error(f"FLAC->MP3 transcode timed out after 120s for {flac_path}")
+            return ""
+        except Exception as e:
+            logging.error(f"FLAC->MP3 transcode crashed for {flac_path}: {e}")
+            return ""
