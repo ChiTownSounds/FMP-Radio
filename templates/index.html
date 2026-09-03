@@ -678,6 +678,7 @@
 </div>
 
 <script>
+    const INTERNAL_KEY = "{{ internal_key }}";
     // Audio Player State variables
     let audio = document.getElementById('audio-element');
     let playBtn = document.getElementById('player-play-btn');
@@ -1070,7 +1071,7 @@
         formData.append('file', fileInput.files[0]);
         formData.append('target', target);
         
-        await fetch('/upload_local', { method: 'POST', body: formData });
+        await fetch('/upload_local', { method: 'POST', headers: {'X-Internal-Key': INTERNAL_KEY}, body: formData });
         fileInput.value = '';
     }
 
@@ -1246,10 +1247,10 @@
         const displayVersion = filePath ? (filePath.includes('/Clean/') ? 'Clean' : filePath.includes('/Explicit/') ? 'Explicit' : filePath.includes('/Radio Edit/') || filePath.includes('/RadioEdit/') ? 'Radio Edit' : '') : '';
         const versionStr = displayVersion ? ` (${displayVersion} version)` : '';
         if(!confirm(`Are you absolutely sure you want to delete "${name}"${versionStr} from the system and remote storage?`)) return;
-        await fetch('/execute_scrub', { 
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
-            body: JSON.stringify({track_name: name, file_path: filePath || ''}) 
+        await fetch('/execute_scrub', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-Internal-Key': INTERNAL_KEY},
+            body: JSON.stringify({track_name: name, file_path: filePath || ''})
         });
         search();
     }

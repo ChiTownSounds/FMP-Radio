@@ -1962,7 +1962,7 @@ def get_rclone_path():
 
 # --- WEB ROUTES ---
 @app.route('/')
-def index(): return render_template('index.html')
+def index(): return render_template('index.html', internal_key=INTERNAL_API_KEY)
 @app.route('/api/status')
 def status(): return jsonify(state.get_snapshot())
 
