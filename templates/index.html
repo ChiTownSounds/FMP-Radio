@@ -1037,7 +1037,7 @@
         try {
             const response = await fetch('/api/rename_show', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', 'X-Internal-Key': INTERNAL_KEY},
                 body: JSON.stringify({old_name: oldShowName, new_name: cleanName})
             });
             const data = await response.json();

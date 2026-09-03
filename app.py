@@ -1700,7 +1700,8 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url):
             headers={
                 'Content-Type': 'application/json',
                 'Authorization': f'Basic {auth_b64}',
-                'Host': 'ultimate.fmpmediagroup.com'
+                'Host': 'ultimate.fmpmediagroup.com',
+                'X-Internal-Key': INTERNAL_API_KEY
             },
             method='POST'
         )
@@ -1757,7 +1758,8 @@ def poll_jobs_worker():
                 poll_url,
                 headers={
                     'Authorization': f'Basic {auth_b64}',
-                    'Host': 'ultimate.fmpmediagroup.com'
+                    'Host': 'ultimate.fmpmediagroup.com',
+                    'X-Internal-Key': INTERNAL_API_KEY
                 },
                 method='GET'
             )
@@ -1824,6 +1826,7 @@ def poll_deletions_worker():
             req = urllib.request.Request(poll_url, method='GET')
             req.add_header("Authorization", f"Basic {auth_b64}")
             req.add_header("Host", "ultimate.fmpmediagroup.com")
+            req.add_header("X-Internal-Key", INTERNAL_API_KEY)
             
             with urllib.request.urlopen(req, context=ctx, timeout=10) as res:
                 deletions = json.loads(res.read().decode('utf-8'))
@@ -2128,6 +2131,8 @@ def background_rename_task(old_name, new_name):
 
 @app.route('/api/rename_show', methods=['POST'])
 def rename_show():
+    auth_err = _require_internal_key()
+    if auth_err: return auth_err
     data = request.get_json(silent=True) or {}
     old_name = data.get('old_name', '').strip()
     new_name = data.get('new_name', '').strip()
@@ -3005,6 +3010,8 @@ def extract_metadata_from_file(file_path):
 
 @app.route('/api/pull_jobs', methods=['GET'])
 def get_pull_jobs():
+    auth_err = _require_internal_key()
+    if auth_err: return auth_err
     # Serves the Soulseek-miss scrape queue, not the general url_queue -
     # the Windows worker only needs to handle what Soulseek couldn't find.
     with state.scrape_queue.lock:
@@ -3013,6 +3020,8 @@ def get_pull_jobs():
 
 @app.route('/api/deletions/enqueue', methods=['POST'])
 def enqueue_deletion_api():
+    auth_err = _require_internal_key()
+    if auth_err: return auth_err
     payload = request.get_json(silent=True) or {}
     if not payload or not payload.get("file_path"):
         return jsonify({"status": "error", "message": "Missing file_path"}), 400
@@ -3021,11 +3030,15 @@ def enqueue_deletion_api():
 
 @app.route('/api/deletions/poll', methods=['GET'])
 def poll_deletions_api():
+    auth_err = _require_internal_key()
+    if auth_err: return auth_err
     items = state.poll_deletions()
     return jsonify(items)
 
 @app.route('/api/pull_jobs/complete', methods=['POST'])
 def complete_pull_job():
+    auth_err = _require_internal_key()
+    if auth_err: return auth_err
     payload = request.get_json(silent=True) or {}
     if not payload:
         return jsonify({"status": "error", "message": "Missing JSON payload"}), 400
