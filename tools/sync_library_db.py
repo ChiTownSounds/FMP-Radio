@@ -542,6 +542,26 @@ def run_sync():
             print(f"    - {local_files[k]['rel_path']}")
     untracked_keys = [k for k in untracked_keys if k not in non_song_keys]
 
+    # Windows/Google-Drive sync-collision duplicates: a filename ending in a
+    # bare " (N)" (e.g. "Song (1).mp3") sitting alongside content that's
+    # already cataloged under the non-suffixed name. These are not new
+    # tracks - they're leftover duplicate copies from a sync collision.
+    # Exclude any whose base name (suffix stripped) already exists in the
+    # CSV. (A collision between two *untracked* candidates is already
+    # caught above as a duplicate_files entry via the key-collision path.)
+    current_csv_names = {(r.get('Track Name') or '').strip().lower() for r in rows}
+    sync_dup_keys = []
+    for k in untracked_keys:
+        fn = local_files[k]['filename_no_ext']
+        m = re.search(r'\s*\(\d+\)$', fn)
+        if m and re.sub(r'\s*\(\d+\)$', '', fn).strip().lower() in current_csv_names:
+            sync_dup_keys.append(k)
+    if sync_dup_keys:
+        print(f"  [SKIP] {len(sync_dup_keys)} untracked file(s) are sync-collision '(N)' duplicates of a track already in the CSV, excluding from import:")
+        for k in sync_dup_keys:
+            print(f"    - {local_files[k]['rel_path']}")
+    untracked_keys = [k for k in untracked_keys if k not in sync_dup_keys]
+
     new_imported_rows = []
 
     if untracked_keys:
