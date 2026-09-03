@@ -18,7 +18,7 @@ import uuid
 import hmac
 from werkzeug.utils import secure_filename
 
-from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT, MUSIC_DIR, INTERNAL_API_KEY, git_operation_lock
+from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT, MUSIC_DIR, INTERNAL_API_KEY, git_operation_lock, git_safe_pull
 
 # --- CORE MODULE IMPORTS ---
 from modules.ingest import Gatekeeper
@@ -1658,16 +1658,10 @@ def git_sync_worker():
             with git_operation_lock(timeout=60):
                 res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
                 branch_name = res_branch.stdout.strip()
-                # --autostash: this runs unattended every 15 minutes, forever - a
-                # hand-rolled stash/pop with a silently-swallowed pop failure
-                # (check=False) run on that cadence is exactly how this repo ended
-                # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
-                # handles this far more robustly than re-implementing it here.
-                pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
-            if pull_res.returncode == 0:
-                state.log("[SYSTEM] Periodic GitHub database pull successful.")
-            else:
-                logging.warning(f"Periodic git pull failed: {pull_res.stderr}")
+                # Merge, not rebase+autostash - see config.git_safe_pull's
+                # docstring for the 2026-09-03 incident this replaces.
+                git_safe_pull(branch_name)
+            state.log("[SYSTEM] Periodic GitHub database pull successful.")
         except Exception as e:
             logging.warning(f"Periodic git pull failed with exception: {e}")
         # Wait 15 minutes (900 seconds) in 10-second intervals to check stop_event
@@ -1948,7 +1942,9 @@ def poll_deletions_worker():
                             branch_name = res_branch.stdout.strip()
                             subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
                             subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "--no-verify", "-m", "Broker auto-sync: Purge deleted tracks"], check=True, capture_output=True)
-                            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                            # Merge, not rebase+autostash - see config.git_safe_pull's
+                            # docstring for the 2026-09-03 incident this replaces.
+                            git_safe_pull(branch_name)
                             subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
                     except Exception as git_err:
                         state.log(f"[Broker Error] Git sync of deletion purge failed: {git_err}")
@@ -2203,10 +2199,9 @@ def background_rename_task(old_name, new_name):
                     else:
                         state.log(f"[RENAME] CSV database file has no changes to commit. Proceeding to pull and push.")
 
-                    # --autostash: git's own stash/pop handling instead of a
-                    # hand-rolled stash/pop where a failed pop was silently
-                    # swallowed (check=False) and left the stash orphaned forever.
-                    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                    # Merge, not rebase+autostash - see config.git_safe_pull's
+                    # docstring for the 2026-09-03 incident this replaces.
+                    git_safe_pull(branch_name)
                     subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
                     state.log(f"[RENAME] GitHub database synchronization successful.")
                 except Exception as git_err:

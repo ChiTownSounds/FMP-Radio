@@ -12,7 +12,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='repla
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR, git_operation_lock, git_safe_pull
 import argparse
 
 G_DRIVE_MUSIC = MUSIC_DIR
@@ -156,15 +156,18 @@ def main():
         try:
             print("\n[*] Committing database updates to Git...")
             repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
-            branch_name = res_branch.stdout.strip()
-            # Pathspec-restricted commit + real branch detection instead of a
-            # hardcoded "origin main" - same bug fixed elsewhere tonight.
-            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
-            msg = f"Auto-Cleanup: Purged {len(indices_to_remove)} duplicate database rows for deleted files"
-            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg], cwd=repo_root, check=True, capture_output=True)
-            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
-            subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+            with git_operation_lock(timeout=60):
+                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+                branch_name = res_branch.stdout.strip()
+                # Pathspec-restricted commit + real branch detection instead of a
+                # hardcoded "origin main" - same bug fixed elsewhere tonight.
+                subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
+                msg = f"Auto-Cleanup: Purged {len(indices_to_remove)} duplicate database rows for deleted files"
+                subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg], cwd=repo_root, check=True, capture_output=True)
+                # Merge, not rebase+autostash - see config.git_safe_pull's
+                # docstring for the 2026-09-03 incident this replaces.
+                git_safe_pull(branch_name, cwd=repo_root)
+                subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
             print("  [OK] Pushed changes successfully to GitHub.")
         except Exception as e:
             print(f"  [-] Git push failed: {e}")

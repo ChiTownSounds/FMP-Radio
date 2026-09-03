@@ -15,7 +15,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 # Append root dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, is_non_song, git_operation_lock
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, is_non_song, git_operation_lock, git_safe_pull
 
 try:
     from mutagen.mp3 import MP3
@@ -780,7 +780,9 @@ def run_sync():
                         subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
                         res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True, cwd=script_root)
                         branch_name = res_branch.stdout.strip()
-                        subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
+                        # Merge, not rebase+autostash - see config.git_safe_pull's
+                        # docstring for the 2026-09-03 incident this replaces.
+                        git_safe_pull(branch_name, cwd=script_root)
                         subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
                         print("  [OK] Pushed successfully to GitHub.")
                 except Exception as e:

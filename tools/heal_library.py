@@ -383,20 +383,23 @@ def heal_library():
     print("="*50 + "\n")
     
     # 5. Git Commit and Push
-    from config import AUTO_GIT_PUSH
+    from config import AUTO_GIT_PUSH, git_operation_lock, git_safe_pull
     if AUTO_GIT_PUSH and not DRY_RUN:
         import subprocess
         try:
             print("[*] Committing CSV updates to Git...")
             repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
-            branch_name = res_branch.stdout.strip()
-            # Pathspec-restricted commit + real branch detection instead of a
-            # hardcoded "origin main" - same bug fixed elsewhere tonight.
-            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
-            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", "Database automated healing and realignment complete"], cwd=repo_root, check=True, capture_output=True)
-            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
-            subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+            with git_operation_lock(timeout=60):
+                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+                branch_name = res_branch.stdout.strip()
+                # Pathspec-restricted commit + real branch detection instead of a
+                # hardcoded "origin main" - same bug fixed elsewhere tonight.
+                subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
+                subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", "Database automated healing and realignment complete"], cwd=repo_root, check=True, capture_output=True)
+                # Merge, not rebase+autostash - see config.git_safe_pull's
+                # docstring for the 2026-09-03 incident this replaces.
+                git_safe_pull(branch_name, cwd=repo_root)
+                subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
             print("[✓] Pushed changes successfully to GitHub.")
         except Exception as e:
             print(f"[-] Git push failed: {e}")

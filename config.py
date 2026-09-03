@@ -2,6 +2,8 @@ import os
 import platform
 import sys
 import shutil
+import subprocess
+import logging
 from dotenv import load_dotenv
 
 # Load secrets from the .env file
@@ -118,6 +120,63 @@ GIT_LOCK_PATH = os.path.join(BASE_DIR, "configs", "git_ops.lock")
 def git_operation_lock(timeout=120):
     from filelock import FileLock
     return FileLock(GIT_LOCK_PATH, timeout=timeout)
+
+
+def git_safe_pull(branch_name, cwd=None):
+    """Reconciles the local branch with origin, replacing every hand-rolled
+    `git pull --rebase --autostash` call in this codebase.
+
+    Two real incidents on 2026-09-03 (both discovered hours after the fact,
+    with literal <<<<<<< markers sitting in the live production CSV in the
+    meantime) drove this:
+
+    1. --autostash's own pop step conflicting with the freshly-rebased
+       branch, even with git_operation_lock already serializing same-machine
+       callers - the lock prevents concurrent git commands, it does nothing
+       for a single caller's rebase+autostash-pop sequence going wrong on
+       its own. This class of failure is eliminated by not rebasing at all:
+       a plain merge never stashes/pops, so it never has this failure mode.
+    2. A rebase left stuck (interactive, "editing a commit", no
+       rebase-merge/todo commands remaining) from an earlier failed run,
+       still sitting there when the NEXT scheduled sync fired - which then
+       tried to start its own pull on top of an already-broken repo state,
+       compounding the mess. Any caller of this function gets a stuck
+       rebase/merge from a previous run cleaned up FIRST, loudly logged,
+       before attempting anything new - never silently layered on top of.
+
+    Raises on a genuine content conflict (callers already wrap their git
+    sequence in try/except and log) rather than leaving the repo mid-merge -
+    a merge conflict is always aborted back to a clean state before this
+    raises, so the working tree is never left broken for the next caller.
+
+    cwd: repo root to run in. Defaults to the process's own working
+    directory (matches every caller except tools/sync_library_db.py, which
+    explicitly manages its own cwd since it can be invoked from elsewhere).
+    """
+    git_dir = os.path.join(cwd, ".git") if cwd else ".git"
+    rebase_dir_i = os.path.join(git_dir, "rebase-merge")
+    rebase_dir_a = os.path.join(git_dir, "rebase-apply")
+    merge_head = os.path.join(git_dir, "MERGE_HEAD")
+
+    if os.path.exists(rebase_dir_i) or os.path.exists(rebase_dir_a):
+        logging.warning("[git_safe_pull] Found a stuck rebase from a previous run - aborting it before proceeding.")
+        subprocess.run(["git", "rebase", "--abort"], capture_output=True, text=True, cwd=cwd)
+    if os.path.exists(merge_head):
+        logging.warning("[git_safe_pull] Found a stuck merge from a previous run - aborting it before proceeding.")
+        subprocess.run(["git", "merge", "--abort"], capture_output=True, text=True, cwd=cwd)
+
+    pull_res = subprocess.run(
+        ["git", "pull", "--no-rebase", "origin", branch_name],
+        capture_output=True, text=True, cwd=cwd
+    )
+    if pull_res.returncode != 0:
+        # Conflict (or any other pull failure) - abort back to a clean
+        # state rather than leaving a half-merged working tree for
+        # whatever runs next. Real content conflicts on the shared CSV
+        # still need a human, same as before - this just guarantees the
+        # repo is never left silently broken while waiting for one.
+        subprocess.run(["git", "merge", "--abort"], capture_output=True, text=True, cwd=cwd)
+        raise Exception(f"git pull failed and was aborted: {pull_res.stderr or pull_res.stdout}")
 
 # --- iHEART SYNC SETTINGS ---
 IHEART_SYNC_ENABLED = True

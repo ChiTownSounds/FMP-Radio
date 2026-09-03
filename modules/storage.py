@@ -184,12 +184,14 @@ class VaultManager:
                     else:
                         logging.info("[Git Sync] CSV database file has no changes to commit. Proceeding to pull and push.")
 
-                    # 3. Pull + rebase with --autostash: git's own stash/pop handling
-                    # for any unrelated unstaged changes, instead of a hand-rolled
-                    # stash/pop where a failed pop was silently swallowed (check=False)
-                    # and left the stash orphaned forever - the source of a large pile
-                    # of abandoned "WIP on dev" stashes found in this repo.
-                    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                    # 3. Pull (merge, not rebase) - see config.git_safe_pull's
+                    # own docstring for why: rebase+autostash's pop step
+                    # produced a real stuck-conflict incident 2026-09-03, and
+                    # a plain merge has no stash/pop step to go wrong. Also
+                    # auto-recovers a stuck rebase/merge left by a previous
+                    # failed run instead of layering a new attempt on top.
+                    from config import git_safe_pull
+                    git_safe_pull(branch_name)
                     # 4. Push to origin branch
                     subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
 
