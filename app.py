@@ -18,7 +18,7 @@ import uuid
 import hmac
 from werkzeug.utils import secure_filename
 
-from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT, MUSIC_DIR, INTERNAL_API_KEY
+from config import STAGING_DIR, SOMEDL_CMD, YT_DLP_CMD, FTP_HOST, FTP_USER, FTP_PASS, FTP_BASE_DIR, FTP_PORT, CSV_BLUEPRINT, APP_HOST, APP_PORT, MUSIC_DIR, INTERNAL_API_KEY, git_operation_lock
 
 # --- CORE MODULE IMPORTS ---
 from modules.ingest import Gatekeeper
@@ -1655,14 +1655,15 @@ def git_sync_worker():
         # platforms, both sides can go stale between their own vault-triggered
         # pulls, so both get the periodic pull.
         try:
-            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
-            branch_name = res_branch.stdout.strip()
-            # --autostash: this runs unattended every 15 minutes, forever - a
-            # hand-rolled stash/pop with a silently-swallowed pop failure
-            # (check=False) run on that cadence is exactly how this repo ended
-            # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
-            # handles this far more robustly than re-implementing it here.
-            pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
+            with git_operation_lock(timeout=60):
+                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                branch_name = res_branch.stdout.strip()
+                # --autostash: this runs unattended every 15 minutes, forever - a
+                # hand-rolled stash/pop with a silently-swallowed pop failure
+                # (check=False) run on that cadence is exactly how this repo ended
+                # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
+                # handles this far more robustly than re-implementing it here.
+                pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
             if pull_res.returncode == 0:
                 state.log("[SYSTEM] Periodic GitHub database pull successful.")
             else:
@@ -1942,12 +1943,13 @@ def poll_deletions_worker():
                         # this a no-op on the VM. Pathspec-restricted commit +
                         # dynamic branch + --autostash, matching the fix already
                         # applied to background_rename_task/sync_library_db.py.
-                        res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
-                        branch_name = res_branch.stdout.strip()
-                        subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
-                        subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "--no-verify", "-m", "Broker auto-sync: Purge deleted tracks"], check=True, capture_output=True)
-                        subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
-                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
+                        with git_operation_lock(timeout=60):
+                            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+                            branch_name = res_branch.stdout.strip()
+                            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "--no-verify", "-m", "Broker auto-sync: Purge deleted tracks"], check=True, capture_output=True)
+                            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True)
+                            subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True)
                     except Exception as git_err:
                         state.log(f"[Broker Error] Git sync of deletion purge failed: {git_err}")
                         
@@ -2170,7 +2172,11 @@ def background_rename_task(old_name, new_name):
         from config import AUTO_GIT_PUSH
         if AUTO_GIT_PUSH and updated_count > 0:
             state.log(f"[RENAME] Synchronizing updated database to GitHub...")
-            with vm._git_lock:
+            # vm._git_lock is a threading.Lock - process-local only, doesn't
+            # exclude the cron script or a manual deploy. Use the cross-process
+            # filelock-based lock for the actual pull+push, same as every other
+            # git-sync site in this file.
+            with git_operation_lock(timeout=60):
                 try:
                     # Get current branch name dynamically
                     res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)

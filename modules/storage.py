@@ -118,28 +118,30 @@ class VaultManager:
         """Helper to push vaulted updates to GitHub in a background thread with retries."""
         import time
         import os
-        
-        # Use a file-based lock for cross-process synchronization
-        lock_file = os.path.join(os.path.dirname(CSV_BLUEPRINT), "git_commit.lock")
-        
+        from config import git_operation_lock
+        from filelock import Timeout as _LockTimeout
+
         for attempt in range(5):
             lock_acquired = False
             try:
-                # Acquire file-based lock
-                for _ in range(50): # try for 5 seconds
-                    try:
-                        fd = os.open(lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                        os.close(fd)
-                        lock_acquired = True
-                        break
-                    except FileExistsError:
-                        time.sleep(0.1)
-                
-                if not lock_acquired:
-                    logging.warning(f"[Git Sync] Could not acquire lock file. Retrying attempt {attempt+1}/5...")
+                # Cross-process lock (config.git_operation_lock) shared with
+                # every other git-touching site in this codebase - a prior
+                # hand-rolled O_CREAT|O_EXCL lock file here only protected
+                # against other callers using that exact same mechanism.
+                # tools/sync_library_db.py's cron-invoked git pull/push never
+                # touched it, so the two could (and did, 2026-09-03) run
+                # `git pull --rebase` at the same moment and produce a real,
+                # stuck merge conflict with literal <<<<<<< markers baked
+                # into the live CSV for ~50 minutes before anything noticed.
+                try:
+                    lock_ctx = git_operation_lock(timeout=10)
+                    lock_ctx.acquire()
+                    lock_acquired = True
+                except _LockTimeout:
+                    logging.warning(f"[Git Sync] Could not acquire git lock. Retrying attempt {attempt+1}/5...")
                     time.sleep(1 + attempt)
                     continue
-                
+
                 # Synchronize with self._git_lock for in-process safety
                 with self._git_lock:
                     logging.info(f"[*] Starting Auto-Git Synchronization for '{track_name}' (attempt {attempt+1})...")
@@ -199,10 +201,10 @@ class VaultManager:
             finally:
                 if lock_acquired:
                     try:
-                        os.remove(lock_file)
+                        lock_ctx.release()
                     except:
                         pass
-                        
+
         logging.error(f"[FATAL] Auto-Git Sync completely failed for '{track_name}' after 5 attempts.")
 
     def find_candidates(self, query: str) -> List[Dict]:

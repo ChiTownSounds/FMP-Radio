@@ -15,7 +15,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 # Append root dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, is_non_song
+from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, is_non_song, git_operation_lock
 
 try:
     from mutagen.mp3 import MP3
@@ -760,19 +760,29 @@ def run_sync():
             # 7. Git Commit & Push
             if AUTO_GIT_PUSH:
                 try:
-                    print("\n[*] Committing database updates to GitHub...")
-                    script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True, cwd=script_root)
-                    msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
-                    # Pathspec-restricted commit so this cannot sweep up whatever
-                    # else happens to be staged (same bug/fix as storage.py's own
-                    # _git_auto_push).
-                    subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
-                    res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True, cwd=script_root)
-                    branch_name = res_branch.stdout.strip()
-                    subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
-                    subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
-                    print("  [OK] Pushed successfully to GitHub.")
+                    # This script runs unattended every ~3 minutes via cron,
+                    # concurrently with the long-running app.py service's own
+                    # git-sync sites (git_sync_worker, _git_auto_push, etc.).
+                    # This previously had no locking against any of them - two
+                    # `git pull --rebase` calls landing at the same moment
+                    # produced a real, stuck merge conflict with literal
+                    # <<<<<<< markers baked into the live CSV for ~50 minutes
+                    # before anything noticed (2026-09-03). Sharing the same
+                    # cross-process lock every other git-sync site now uses.
+                    with git_operation_lock(timeout=60):
+                        print("\n[*] Committing database updates to GitHub...")
+                        script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                        subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], check=True, capture_output=True, cwd=script_root)
+                        msg = f"Auto-Sync: Realigned {realigned_count} tracks, imported {len(new_imported_rows)} new tracks"
+                        # Pathspec-restricted commit so this cannot sweep up whatever
+                        # else happens to be staged (same bug/fix as storage.py's own
+                        # _git_auto_push).
+                        subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg, "--no-verify"], check=True, capture_output=True, cwd=script_root)
+                        res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True, cwd=script_root)
+                        branch_name = res_branch.stdout.strip()
+                        subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
+                        subprocess.run(["git", "push", "origin", branch_name], check=True, capture_output=True, cwd=script_root)
+                        print("  [OK] Pushed successfully to GitHub.")
                 except Exception as e:
                     print(f"  [-] Git push failed: {e}")
 

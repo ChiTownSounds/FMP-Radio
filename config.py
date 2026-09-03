@@ -103,6 +103,22 @@ MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmai
 # stale/aspirational and never matched the actual value.
 AUTO_GIT_PUSH = True
 
+# Cross-process lock serializing every git pull/push against this repo.
+# Multiple independent processes touch it concurrently - the long-running
+# app.py service (its own periodic git_sync_worker, plus several per-action
+# git-sync call sites), the cron-invoked tools/sync_library_db.py, and
+# manual deploys. A threading.Lock only protects against races within one
+# process, so two of these could still run `git pull --rebase` at the same
+# moment and produce a real, stuck merge conflict - confirmed happening
+# 2026-09-03: a stuck rebase left literal <<<<<<< conflict markers baked
+# into the live CSV for ~50 minutes before anything noticed. Callers should
+# hold this for the full pull+push sequence of a sync, not just one half.
+GIT_LOCK_PATH = os.path.join(BASE_DIR, "configs", "git_ops.lock")
+
+def git_operation_lock(timeout=120):
+    from filelock import FileLock
+    return FileLock(GIT_LOCK_PATH, timeout=timeout)
+
 # --- iHEART SYNC SETTINGS ---
 IHEART_SYNC_ENABLED = True
 IHEART_STATION_ID = "865"  # WVAZ V103 Chicago

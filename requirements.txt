@@ -4,3 +4,4 @@ thefuzz==0.22.1
 requests==2.32.3
 python-dotenv==1.0.1
 ytmusicapi
+filelock>=3.13
