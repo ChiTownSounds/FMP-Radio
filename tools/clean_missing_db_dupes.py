@@ -13,8 +13,14 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR
+import argparse
 
 G_DRIVE_MUSIC = MUSIC_DIR
+# This script previously had no safety gate at all despite writing the CSV
+# and pushing to git unconditionally, using only a weak word-overlap title
+# match (no file-size or content verification) to decide what to remove.
+# Defaults to a dry run; pass --live to actually write/push.
+DRY_RUN = True
 
 def titles_are_similar(t1, t2):
     # Normalize to alphanumeric lowercase words
@@ -106,6 +112,10 @@ def main():
         print("[OK] No missing duplicate rows found to clean up in the database!")
         return
 
+    if DRY_RUN:
+        print(f"\n[DRY-RUN] Would remove {len(indices_to_remove)} rows from the database. Pass --live to actually apply this.")
+        return
+
     # 4. Write CSV
     print(f"\n[*] Writing updated database (removing {len(indices_to_remove)} rows)...")
     remaining_rows = [row for idx, row in enumerate(rows) if idx not in indices_to_remove]
@@ -133,10 +143,16 @@ def main():
     if AUTO_GIT_PUSH:
         try:
             print("\n[*] Committing database updates to Git...")
-            subprocess.run(["git", "add", str(CSV_BLUEPRINT)], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+            branch_name = res_branch.stdout.strip()
+            # Pathspec-restricted commit + real branch detection instead of a
+            # hardcoded "origin main" - same bug fixed elsewhere tonight.
+            subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
             msg = f"Auto-Cleanup: Purged {len(indices_to_remove)} duplicate database rows for deleted files"
-            subprocess.run(["git", "commit", "-m", msg], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+            subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+            subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
             print("  [OK] Pushed changes successfully to GitHub.")
         except Exception as e:
             print(f"  [-] Git push failed: {e}")
@@ -146,4 +162,9 @@ def main():
     print("=" * 80)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Clean up CSV rows for pre-deleted duplicate songs")
+    parser.add_argument("--live", action="store_true", help="Actually write the CSV and push (default is a dry run)")
+    args = parser.parse_args()
+    if args.live:
+        DRY_RUN = False
     main()

@@ -60,8 +60,13 @@ def get_absolute_gpath(file_path_on_server):
 
 def main():
     parser = argparse.ArgumentParser(description="Strip Album Brackets from FMP library")
-    parser.add_argument("--dry-run", action="store_true", help="Perform a dry run without modifying anything")
+    # Previously --dry-run was store_true (defaults False), so running with
+    # no arguments at all executed live - moved files, moved lyrics, pushed
+    # to git. Flipped so dry-run is the default; --live opts into the real
+    # thing.
+    parser.add_argument("--live", action="store_true", help="Actually move files and update the database (default is a dry run)")
     args = parser.parse_args()
+    args.dry_run = not args.live
 
     print("=" * 75)
     print(f" FMP ALBUM BRACKET REMOVAL MIGRATION TOOL (Dry-Run: {args.dry_run})")
@@ -280,10 +285,16 @@ def main():
         if AUTO_GIT_PUSH:
             try:
                 print("[*] Committing CSV updates to Git...")
-                subprocess.run(["git", "add", str(CSV_BLUEPRINT)], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+                repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo_root, capture_output=True, text=True, check=True)
+                branch_name = res_branch.stdout.strip()
+                # Pathspec-restricted commit + real branch detection instead of
+                # a hardcoded "origin main" - same bug fixed elsewhere tonight.
+                subprocess.run(["git", "add", "configs/fmp_data_7718.csv"], cwd=repo_root, check=True, capture_output=True)
                 msg = f"Auto-Rename: Stripped album brackets from {renamed_count} tracks"
-                subprocess.run(["git", "commit", "-m", msg], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
-                subprocess.run(["git", "push", "origin", "main"], cwd=r"c:\FMP_Ultimate", check=True, capture_output=True)
+                subprocess.run(["git", "commit", "configs/fmp_data_7718.csv", "-m", msg], cwd=repo_root, check=True, capture_output=True)
+                subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
+                subprocess.run(["git", "push", "origin", branch_name], cwd=repo_root, check=True, capture_output=True)
                 print("[✓] Pushed changes successfully to GitHub.")
             except Exception as e:
                 print(f"[-] Git push failed or skipped: {e}")
