@@ -1,5 +1,12 @@
 import os
-os.environ['NUMBA_CACHE_DIR'] = r"C:\FMP_Broadcaster\cache\numba_cache"
+# Was hardcoded to a Windows path in a different project's repo
+# (C:\FMP_Broadcaster) with no platform check at all - this module is
+# imported and used on both Windows and the Linux VM (downloader_worker
+# runs on both), so on Linux this silently pointed numba's JIT cache at a
+# nonexistent path, degrading/disabling caching with no error.
+_numba_cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cache", "numba_cache")
+os.makedirs(_numba_cache_dir, exist_ok=True)
+os.environ['NUMBA_CACHE_DIR'] = _numba_cache_dir
 import re
 import json
 import logging

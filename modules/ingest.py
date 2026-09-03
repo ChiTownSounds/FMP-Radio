@@ -31,7 +31,11 @@ class Gatekeeper:
             data = {
                 "title": meta.get("title", "Unknown Title"),
                 "artist": meta.get("uploader", "Unknown Artist"),
-                "release_year": meta.get("release_year") or meta.get("upload_date")[:4] if meta.get("upload_date") else "Unknown",
+                # `or` binds looser than the ternary, so this previously parsed as
+                # (release_year or upload_date[:4]) if upload_date else "Unknown" -
+                # meaning a real release_year was silently discarded and replaced
+                # with "Unknown" whenever upload_date was simply missing.
+                "release_year": meta.get("release_year") or (meta.get("upload_date")[:4] if meta.get("upload_date") else "Unknown"),
                 "duration": meta.get("duration", 0),
                 "lyrics": "Not Found",
                 "url": url

@@ -17,6 +17,7 @@ import urllib.request
 import urllib.parse
 import json
 import ssl
+import base64
 import argparse
 from ytmusicapi import YTMusic
 
@@ -27,10 +28,20 @@ sys.stderr.reconfigure(encoding='utf-8')
 AUDIT_CSV = "C:/FMP_Ultimate/configs/replacement_audit.csv"
 ADD_URL = "https://ultimate.fmpmediagroup.com/add"
 
+# This script previously had no safety gate at all - it unconditionally
+# looped over every matching row and POSTed to /add with overwrite=True.
+# Defaults to a dry run; pass --live to actually queue downloads.
+DRY_RUN = True
+
 # Bypass SSL validation for remote ultimate API
 ssl_ctx = ssl.create_default_context()
 ssl_ctx.check_hostname = False
 ssl_ctx.verify_mode = ssl.CERT_NONE
+
+# nginx in front of ultimate.fmpmediagroup.com requires Basic Auth on every
+# path - this request was never sending it, so /add has always 401'd here
+# and this tool has never actually queued a single download.
+_AUTH_B64 = base64.b64encode(b"fmpadmin:773312").decode()
 
 def clean_track_query(track_name):
     cleaned = re.sub(r'\((Explicit|Explicit Version|Dirty|Uncut)\)', '', track_name, flags=re.IGNORECASE)
@@ -91,7 +102,11 @@ def trigger_download(url, target, track_name):
         req = urllib.request.Request(
             ADD_URL,
             data=json.dumps(payload).encode('utf-8'),
-            headers={'Content-Type': 'application/json'},
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Basic {_AUTH_B64}',
+                'Host': 'ultimate.fmpmediagroup.com'
+            },
             method='POST'
         )
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as res:
@@ -108,11 +123,16 @@ def trigger_download(url, target, track_name):
 def main():
     parser = argparse.ArgumentParser(description="Queue replacement downloads")
     parser.add_argument("--start-index", type=int, default=1, help="1-indexed target number to start from")
+    parser.add_argument("--live", action="store_true", help="Actually queue downloads and write the CSV (default is a dry run)")
     args = parser.parse_args()
+    if args.live:
+        global DRY_RUN
+        DRY_RUN = False
 
     print("==================================================")
     print("    FMP ULTIMATE - QUEUE AUDIT REPLACEMENTS       ")
     print(f"               Start Index: {args.start_index}                   ")
+    print(f"               DRY_RUN: {DRY_RUN}                   ")
     print("==================================================")
 
     if not os.path.exists(AUDIT_CSV):
@@ -187,22 +207,29 @@ def main():
             continue
 
         # Trigger download
-        success = trigger_download(clean_url, target_folder, track_name)
-        if success:
+        if DRY_RUN:
+            print(f"  [DRY-RUN] Would enqueue: '{track_name}' -> {clean_url} (target: '{target_folder}')")
             success_count += 1
+        else:
+            success = trigger_download(clean_url, target_folder, track_name)
+            if success:
+                success_count += 1
         
         # Throttling to prevent API blocking
         time.sleep(2)
 
     # Save updated CSV back to preserve Resolved Clean URLs
-    try:
-        with open(AUDIT_CSV, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(updated_rows)
-        print("\n[OK] Successfully updated configs/replacement_audit.csv with resolved URLs!")
-    except Exception as e:
-        print(f"\n[Warning] Failed to write updated CSV: {e}")
+    if DRY_RUN:
+        print("\n[DRY-RUN] Would update configs/replacement_audit.csv with resolved URLs. Pass --live to actually apply this.")
+    else:
+        try:
+            with open(AUDIT_CSV, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(updated_rows)
+            print("\n[OK] Successfully updated configs/replacement_audit.csv with resolved URLs!")
+        except Exception as e:
+            print(f"\n[Warning] Failed to write updated CSV: {e}")
 
     print("==================================================")
     print(f"      QUEUEING COMPLETE ({success_count} enqueued)     ")

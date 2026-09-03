@@ -138,7 +138,13 @@ def heal_library():
     rows = clean_rows
 
     # Save database changes so far
-    save_csv_rows(rows, fieldnames)
+    # DRY_RUN previously only guarded Step 4's physical file deletions below -
+    # this write happened unconditionally, meaning DRY_RUN=True still
+    # permanently mutated the CSV on every run via Steps 1-3.
+    if not DRY_RUN:
+        save_csv_rows(rows, fieldnames)
+    else:
+        print(f"[DRY_RUN] Would save CSV database with {len(rows)} records (Steps 1-3 changes).")
 
     # -------------------------------------------------------------
     # Step 4: Quality Check & Import/Delete Untracked Files
@@ -356,9 +362,12 @@ def heal_library():
                     print(f"    [-] Failed to delete remote file: {ex}")
                 
     if new_imported_rows:
-        rows, fieldnames = load_csv_rows()
-        rows.extend(new_imported_rows)
-        save_csv_rows(rows, fieldnames)
+        if not DRY_RUN:
+            rows, fieldnames = load_csv_rows()
+            rows.extend(new_imported_rows)
+            save_csv_rows(rows, fieldnames)
+        else:
+            print(f"[DRY_RUN] Would append {len(new_imported_rows)} newly-imported row(s) to the CSV database.")
         
     print("\n" + "="*50)
     print(" HEALING COMPLETED SUMMARY")
@@ -374,7 +383,7 @@ def heal_library():
     
     # 5. Git Commit and Push
     from config import AUTO_GIT_PUSH
-    if AUTO_GIT_PUSH:
+    if AUTO_GIT_PUSH and not DRY_RUN:
         import subprocess
         try:
             print("[*] Committing CSV updates to Git...")
@@ -392,4 +401,10 @@ def heal_library():
             print(f"[-] Git push failed: {e}")
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Repair known CSV mismatches and heal untracked/corrupt library files")
+    parser.add_argument("--live", action="store_true", help="Actually write the CSV, delete bad files, and push to git (default is a dry run)")
+    args = parser.parse_args()
+    if args.live:
+        DRY_RUN = False
     heal_library()

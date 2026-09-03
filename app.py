@@ -1602,22 +1602,25 @@ def iheart_poller_worker():
 
 def git_sync_worker():
     while not state.stop_event.is_set():
-        if os.name != 'nt':
-            try:
-                res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
-                branch_name = res_branch.stdout.strip()
-                # --autostash: this runs unattended every 15 minutes, forever - a
-                # hand-rolled stash/pop with a silently-swallowed pop failure
-                # (check=False) run on that cadence is exactly how this repo ended
-                # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
-                # handles this far more robustly than re-implementing it here.
-                pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
-                if pull_res.returncode == 0:
-                    state.log("[SYSTEM] Periodic GitHub database pull successful.")
-                else:
-                    logging.warning(f"Periodic git pull failed: {pull_res.stderr}")
-            except Exception as e:
-                logging.warning(f"Periodic git pull failed with exception: {e}")
+        # Previously gated to Linux-only (if os.name != 'nt') with no comment
+        # explaining why - now that downloader_worker/vault_worker run on both
+        # platforms, both sides can go stale between their own vault-triggered
+        # pulls, so both get the periodic pull.
+        try:
+            res_branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, check=True)
+            branch_name = res_branch.stdout.strip()
+            # --autostash: this runs unattended every 15 minutes, forever - a
+            # hand-rolled stash/pop with a silently-swallowed pop failure
+            # (check=False) run on that cadence is exactly how this repo ended
+            # up with 37+ abandoned "WIP on dev" stashes. git's own --autostash
+            # handles this far more robustly than re-implementing it here.
+            pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", branch_name], capture_output=True, text=True)
+            if pull_res.returncode == 0:
+                state.log("[SYSTEM] Periodic GitHub database pull successful.")
+            else:
+                logging.warning(f"Periodic git pull failed: {pull_res.stderr}")
+        except Exception as e:
+            logging.warning(f"Periodic git pull failed with exception: {e}")
         # Wait 15 minutes (900 seconds) in 10-second intervals to check stop_event
         for _ in range(90):
             if state.stop_event.is_set():
@@ -1851,8 +1854,12 @@ def poll_deletions_worker():
                                 fieldnames = reader.fieldnames
                                 rows = []
                                 for r in reader:
-                                    val_str = str(list(r.values()))
-                                    if file_path not in val_str:
+                                    # Was matching if file_path appeared ANYWHERE in the
+                                    # stringified row (any column) - a row got dropped
+                                    # whenever the target path happened to be a substring
+                                    # of another row's Source_URL/Track Name/etc. Match
+                                    # the File Path column specifically instead.
+                                    if r.get('File Path', '').strip() != file_path.strip():
                                         rows.append(r)
                             
                             with open(CSV_BLUEPRINT, 'w', encoding='utf-8', newline='') as f:

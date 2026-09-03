@@ -286,7 +286,7 @@ def trigger_clean_download(counterpart_url, target_folder, explicit=None):
     import json
     import urllib.request
     
-    url = "http://localhost:5000/add"
+    url = "http://localhost:58000/add"
     payload = {
         "urls": counterpart_url,
         "target": target_folder,
@@ -310,10 +310,10 @@ def trigger_clean_download(counterpart_url, target_folder, explicit=None):
             else:
                 print(f"  [-] Downloader response: {res_data}")
     except Exception as e:
-        print(f"  [-] Downloader communication error: {e} (Is app.py running on port 5000?)")
+        print(f"  [-] Downloader communication error: {e} (Is app.py running on port 58000?)")
     return False
 
-def audit_library_counterparts(limit=5, query=None, dry_run=False):
+def audit_library_counterparts(limit=5, query=None, dry_run=True):
     """Audits library tracks to detect explicit status and locate clean counterparts."""
     print(f"Reading library from CSV: {CSV_PATH}")
     if dry_run:
@@ -509,7 +509,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find clean counterparts for explicit library tracks.")
     parser.add_argument("limit", type=int, nargs="?", default=5, help="Number of tracks to audit")
     parser.add_argument("--query", type=str, default=None, help="Query to filter tracks by name/artist")
-    parser.add_argument("--dry-run", action="store_true", help="Run without writing changes to the CSV database")
-    
+    parser.add_argument("--live", action="store_true", help="Actually write CSV changes and trigger downloads (default is a dry run)")
+
     args = parser.parse_args()
-    audit_library_counterparts(limit=args.limit, query=args.query, dry_run=args.dry_run)
+    audit_library_counterparts(limit=args.limit, query=args.query, dry_run=not args.live)

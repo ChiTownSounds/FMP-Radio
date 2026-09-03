@@ -479,8 +479,15 @@ class VaultManager:
                         target_esc = target_identifier.replace("'", "''")
                         sql = f"DELETE FROM media_library WHERE LOWER(title) = LOWER('{target_esc}');"
                 
-                ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-i", ssh_key, f"ubuntu@{REMOTE_VM_IP}", f"sqlite3 /home/ubuntu/FMP-Broadcaster/fmp_radio.db \"{sql}\""]
-                res = subprocess.run(ssh_cmd, capture_output=True, text=True, timeout=10)
+                # The SQL string is piped via stdin rather than embedded in the
+                # remote command string - the previous version interpolated it
+                # inside a double-quoted shell string, which only SQL-escapes
+                # single quotes and does nothing to stop the remote bash from
+                # expanding $(...), backticks, or $VAR in a crafted track
+                # title/artist. Sending it over stdin means no shell (local or
+                # remote) ever parses the SQL text at all.
+                ssh_cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-i", ssh_key, f"ubuntu@{REMOTE_VM_IP}", "sqlite3 /home/ubuntu/FMP-Broadcaster/fmp_radio.db"]
+                res = subprocess.run(ssh_cmd, input=sql, capture_output=True, text=True, timeout=10)
                 if res.returncode == 0:
                     logging.info(f"Deleted track from remote Broadcaster DB: {target_identifier}")
                     remote_deleted = True

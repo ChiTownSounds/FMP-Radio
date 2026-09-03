@@ -12,11 +12,17 @@ set TIMESTAMP=%TIMESTAMP: =0%
 echo Checking for changes to fmp_data_7718.csv...
 git add configs/fmp_data_7718.csv
 
-git commit -m "Auto-backup master database: %TIMESTAMP%"
+REM Pathspec-restricted commit so this can't sweep up whatever else happens
+REM to be staged at the moment this runs.
+git commit configs/fmp_data_7718.csv -m "Auto-backup master database: %TIMESTAMP%"
+
+REM Dynamic branch detection instead of a hardcoded "main" - the repo's
+REM actual working branch is "dev".
+for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
 
 echo.
 echo Trying to push to remote (if configured)...
-git push origin main
+git push origin %BRANCH%
 
 echo.
 echo Done! The timeline is secure.
