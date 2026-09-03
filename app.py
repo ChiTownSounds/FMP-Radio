@@ -1979,7 +1979,7 @@ def update_workstation_status():
 
 
 @app.route('/library-eraser')
-def library_eraser(): return render_template('library_eraser.html')
+def library_eraser(): return render_template('library_eraser.html', internal_key=INTERNAL_API_KEY)
 
 @app.route('/api/shows')
 def get_shows():
@@ -2824,15 +2824,18 @@ def search():
 
 @app.route('/execute_scrub', methods=['POST'])
 def execute():
+    auth_err = _require_internal_key()
+    if auth_err:
+        return auth_err
     data = request.get_json(silent=True) or {}
     name = data.get('track_name', '')
     file_path = data.get('file_path', '')
     target = file_path if file_path else name
     s, m = VaultManager().scrub_track(target)
     state.log(f"[ERASED] {name} ({file_path.replace('\\\\', '/').split('/')[-1] if file_path else ''})" if s else f"[FAILED] {m}")
+    if not s:
+        logging.error(f"Scrub failed for {target}: {m}")
     return jsonify({"status": "ok" if s else "error", "message": m})
-    if not s: logging.error(f"Scrub failed for {target}: {m}")
-    return jsonify({"status": "ok"})
 
 @app.route('/api/stream_local')
 def stream_local():

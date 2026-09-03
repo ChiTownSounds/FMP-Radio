@@ -568,6 +568,7 @@
 <audio id="audio-element" style="display: none;"></audio>
 
 <script>
+    const INTERNAL_KEY = "{{ internal_key }}";
     let libraryTracks = [];
     let selectedTracks = new Set();
     let currentPlayingPath = "";
@@ -780,7 +781,7 @@
             try {
                 const res = await fetch('/execute_scrub', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-Internal-Key': INTERNAL_KEY},
                     body: JSON.stringify({track_name: track.name, file_path: track.path})
                 });
                 
@@ -829,7 +830,7 @@
             document.getElementById('player-artist').textContent = artist;
             document.getElementById('player-art').src = `/api/artwork?track_name=${encodeURIComponent(name)}&file_path=${encodeURIComponent(filePath)}`;
             
-            audio.src = `/api/stream_local?file_path=${encodeURIComponent(filePath)}`;
+            audio.src = `/api/stream_local?file_path=${encodeURIComponent(filePath)}&key=${encodeURIComponent(INTERNAL_KEY)}`;
             audio.play();
             playBtn.textContent = '⏸';
         } catch (e) {
