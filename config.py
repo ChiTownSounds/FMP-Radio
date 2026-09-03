@@ -97,8 +97,10 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
 MUSICBRAINZ_USERAGENT = ("FMP_Ultimate_AutoTagger", "1.0", "formypeopleinfo@gmail.com")
 
 # --- SYNC CONFIGS ---
-# Toggle Auto-Git Synchronization on successful vaults.
-# Keep False by default to respect Git save points.
+# Toggle Auto-Git Synchronization on successful vaults. The whole
+# multi-machine sync architecture (Windows <-> VM, all the tools/ scripts)
+# depends on this being True - the "Keep False by default" comment here was
+# stale/aspirational and never matched the actual value.
 AUTO_GIT_PUSH = True
 
 # --- iHEART SYNC SETTINGS ---

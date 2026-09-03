@@ -65,6 +65,14 @@ def update_local_db(old_path, new_path, new_title):
 def update_remote_db_and_files(old_path, new_path, new_title, old_filename, new_filename):
     # SSH execution command for remote database and file rename
     # Remote root path is assumed to be /home/ubuntu/music
+    # Values are embedded via !r (repr()), not raw f-string interpolation -
+    # the previous version wrapped each value in plain '{value}' with no
+    # escaping at all, so a track title/path containing an apostrophe (a
+    # real, not-hypothetical case - e.g. "Sleepy Brown - I Can't Wait")
+    # would break out of the string literal in this generated script, which
+    # is piped straight to `python3` on the VM. repr() safely escapes
+    # quotes/backslashes/unicode so the generated script stays valid Python
+    # regardless of what's in these values.
     remote_script = f"""import sqlite3, os
 db_path = '/home/ubuntu/FMP-Broadcaster/fmp_radio.db'
 music_root = '/home/ubuntu/music'
@@ -72,13 +80,13 @@ music_root = '/home/ubuntu/music'
 # Update DB
 conn = sqlite3.connect(db_path)
 c = conn.cursor()
-c.execute("SELECT id FROM media_library WHERE file_path = ?", ('{new_path}',))
+c.execute("SELECT id FROM media_library WHERE file_path = ?", ({new_path!r},))
 exists = c.fetchone()
 if exists:
-    c.execute("DELETE FROM media_library WHERE file_path = ?", ('{old_path}',))
+    c.execute("DELETE FROM media_library WHERE file_path = ?", ({old_path!r},))
     db_msg = "Deleted remote duplicate entry"
 else:
-    c.execute("UPDATE media_library SET file_path = ?, title = ? WHERE file_path = ?", ('{new_path}', '{new_title}', '{old_path}'))
+    c.execute("UPDATE media_library SET file_path = ?, title = ? WHERE file_path = ?", ({new_path!r}, {new_title!r}, {old_path!r}))
     db_msg = "Updated remote database"
 conn.commit()
 conn.close()
@@ -87,9 +95,9 @@ print("  [OK] " + db_msg)
 # Find and rename physical file on VM
 for root, dirs, files in os.walk(music_root):
     for f in files:
-        if f == '{old_filename}':
+        if f == {old_filename!r}:
             src = os.path.join(root, f)
-            dst = os.path.join(root, '{new_filename}')
+            dst = os.path.join(root, {new_filename!r})
             if os.path.exists(dst):
                 os.remove(src)
                 print(f"  [OK] Deleted duplicate file on VM: {{src}}")

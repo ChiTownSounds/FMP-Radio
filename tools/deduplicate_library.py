@@ -194,20 +194,35 @@ def main():
             print(f"    - Flagging for database removal: '{row['Track Name']}'")
             indices_to_delete.add(idx)
 
+    # Identical file size + same artist is a strong signal on its own, but a
+    # false size collision between two different same-artist tracks of equal
+    # duration is real for fixed-bitrate CBR encoding (used throughout this
+    # library). titles_are_similar() is the secondary guard against that -
+    # but it's the same weak word-overlap heuristic hardened elsewhere
+    # tonight, so only an EXACT title match auto-deletes here; a merely
+    # "similar" title (same size + same artist, but not the same title) is
+    # reported for manual review instead, matching the pattern already
+    # applied to clean_missing_db_dupes.py and this file's own PASS 2.
     size_dupe_groups = {}
+    size_needs_review = []
     for (size, artist), items in size_groups.items():
         if len(items) > 1:
-            # Verify titles are similar to prevent grouping unrelated songs with identical file sizes
             first_title = items[0][1].get('Track Name', '').split(' - ', 1)[-1]
-            similar_items = [items[0]]
+            exact_items = [items[0]]
             for idx, row in items[1:]:
                 row_title = row.get('Track Name', '').split(' - ', 1)[-1]
-                if titles_are_similar(first_title, row_title):
-                    similar_items.append((idx, row))
-            if len(similar_items) > 1:
-                size_dupe_groups[(size, artist)] = similar_items
+                if row_title.strip().lower() == first_title.strip().lower():
+                    exact_items.append((idx, row))
+                elif titles_are_similar(first_title, row_title):
+                    size_needs_review.append((items[0][1].get('Track Name', ''), row.get('Track Name', '')))
+            if len(exact_items) > 1:
+                size_dupe_groups[(size, artist)] = exact_items
 
     print(f"[*] Found {len(size_dupe_groups)} duplicate size groups.")
+    if size_needs_review:
+        print(f"[*] {len(size_needs_review)} same-size/same-artist pair(s) need manual review (title-word-overlap only, not auto-deleted):")
+        for a, b in size_needs_review:
+            print(f"    - '{a}' vs '{b}'")
 
     for (size, artist), items in size_dupe_groups.items():
         print(f"  [SIZE DUPES: {size / (1024*1024):.2f} MB, Artist: '{artist}']")
