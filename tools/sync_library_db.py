@@ -528,6 +528,20 @@ def run_sync():
     # has ever been auto-imported by this script, regardless of what's sitting
     # unmatched on G: Drive.
     untracked_keys = sorted(set(local_files.keys()) - local_keys_matched)
+
+    # is_non_song() was already imported and correctly identifies production/
+    # sweeper/quarantine assets by path, but was previously only consulted for
+    # one cosmetic field value (Explicit) deep in row construction, never as a
+    # gate on whether to import at all. A misplaced production asset sitting
+    # under Music/ (or a nested Music/ondemand/, Music/intro/, etc.) would get
+    # imported as if it were a real song. Filter those out up front.
+    non_song_keys = [k for k in untracked_keys if is_non_song(local_files[k]['filename_no_ext'], local_files[k]['rel_path'])]
+    if non_song_keys:
+        print(f"  [SKIP] {len(non_song_keys)} untracked file(s) identified as production/non-song assets by path, excluding from import:")
+        for k in non_song_keys:
+            print(f"    - {local_files[k]['rel_path']}")
+    untracked_keys = [k for k in untracked_keys if k not in non_song_keys]
+
     new_imported_rows = []
 
     if untracked_keys:
@@ -555,7 +569,19 @@ def run_sync():
                     duration_ms = int(round(length_sec * 1000))
                     
                     file_path_str, meta_updates = am.process_file(str(filepath), original_bitrate="320k")
-                    
+
+                    # Year isn't known until after AutoMaster's real tag/analysis
+                    # pass, so this has to be a post-hoc skip rather than a
+                    # pre-filter - per explicit review, tracks older than 1970
+                    # are not auto-imported.
+                    try:
+                        release_year_val = int(str(meta_updates.get('release_year', '')).strip()[:4])
+                    except (ValueError, TypeError):
+                        release_year_val = None
+                    if release_year_val is not None and release_year_val < 1970:
+                        print(f"    [SKIP] '{new_filename}' is from {release_year_val} (pre-1970), excluding from import.")
+                        continue
+
                     new_row = {}
                     for field in fieldnames:
                         lower_field = field.lower()

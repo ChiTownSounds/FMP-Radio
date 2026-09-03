@@ -117,7 +117,7 @@ def is_non_song(track_name, file_path):
     name_lower = track_name.lower() if track_name else ""
     
     # Directory/Path keywords
-    non_song_dirs = ['ondemand', 'sweeper', 'promo', 'drop', 'commercial', 'sfx', 'effect', 'liner', 'branding', 'shows', 'adbreak', 'ad break']
+    non_song_dirs = ['ondemand', 'sweeper', 'promo', 'drop', 'commercial', 'sfx', 'effect', 'liner', 'branding', 'shows', 'adbreak', 'ad break', 'quarantine']
     if any(x in path_lower for x in non_song_dirs):
         return True
         
