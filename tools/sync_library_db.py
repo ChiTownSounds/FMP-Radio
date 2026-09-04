@@ -566,6 +566,48 @@ def run_sync():
             print(f"    - {local_files[k]['rel_path']}")
     untracked_keys = [k for k in untracked_keys if k not in sync_dup_keys]
 
+    # Race condition fix (root-caused 2026-09-03 via a fingerprint-dedup scan
+    # that flagged "Clarence Carter - Strokin'" as a same-file duplicate):
+    # `rows` above was pulled/read exactly once at the very start of this
+    # run, before the G: Drive walk. That walk can take a while against a
+    # synced Google Drive folder - long enough for a concurrent download to
+    # vault its file to disk AND commit+push its own correct CSV row to
+    # GitHub while this scan is still running. This process's in-memory
+    # `rows`/`local_keys_matched` never see that push, so the file still
+    # looks untracked here and gets a second, worse-metadata row imported
+    # right alongside the real one - confirmed exactly this way from git
+    # history (two commits ~2.5 minutes apart, one real ingest with full
+    # metadata, one Auto-Sync import with none). Re-pull and re-check by
+    # exact File Path (the actual duplicate signature - AGENTS.md guardrail
+    # 5 says match by path, not identity key) immediately before importing
+    # anything, closing the window regardless of how long the disk walk took.
+    if untracked_keys and not DRY_RUN:
+        try:
+            script_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            subprocess.run(["git", "pull", "--rebase"], check=True, capture_output=True, cwd=script_root)
+        except Exception as e:
+            print(f"  [WARNING] Pre-import re-pull failed: {e}")
+        with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
+            fresh_paths = {
+                (r.get('File Path') or '').strip().replace('\\', '/').lower()
+                for r in csv.DictReader(f)
+            }
+        still_untracked = []
+        raced_keys = []
+        for k in untracked_keys:
+            candidate_path = local_files[k]['rel_path'].strip().replace('\\', '/').lower()
+            if candidate_path in fresh_paths:
+                raced_keys.append(k)
+            else:
+                still_untracked.append(k)
+        if raced_keys:
+            print(f"  [SKIP] {len(raced_keys)} untracked file(s) were vaulted and committed by a "
+                  f"concurrent process while this scan was running - already in the CSV as of a "
+                  f"fresh pull, not importing a duplicate row:")
+            for k in raced_keys:
+                print(f"    - {local_files[k]['rel_path']}")
+        untracked_keys = still_untracked
+
     new_imported_rows = []
 
     if untracked_keys:
