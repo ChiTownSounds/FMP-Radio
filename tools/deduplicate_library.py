@@ -14,6 +14,14 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 # Ensure the root dir is in sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import CSV_BLUEPRINT, AUTO_GIT_PUSH, MUSIC_DIR, git_operation_lock, git_safe_pull
+from modules.fingerprint_compare import compare_fingerprints
+from mutagen.id3 import ID3
+
+# Minimum acoustid-style similarity score [0,1] required for PASS 0 to treat
+# two same-titled rows as confirmed audio duplicates. Same default used by
+# tools/fingerprint_dedup.py's report-only scan, which showed zero false
+# positives at this threshold against the real library (2026-09-03).
+FINGERPRINT_MATCH_THRESHOLD = 0.90
 
 def get_rclone_path():
     import platform
@@ -78,6 +86,23 @@ def get_absolute_gpath(file_path_on_server):
     elif clean_rel.lower().startswith('/home/ubuntu/music/'):
         clean_rel = clean_rel[len('/home/ubuntu/music/'):]
     return os.path.join(G_DRIVE_MUSIC, clean_rel.replace('/', os.sep))
+
+def get_fingerprint(row, g_path):
+    """CSV 'Fingerprint' column first (backfilled 2026-09-03); falls back to
+    the file's own TXXX:AUDIO_FINGERPRINT tag in case the CSV cell lags
+    behind it. Same pattern as tools/fingerprint_dedup.py's get_fingerprint()."""
+    fp = row.get('Fingerprint', '').strip()
+    if fp:
+        return fp
+    try:
+        id3 = ID3(g_path)
+        key = 'TXXX:AUDIO_FINGERPRINT'
+        if key in id3 and id3[key].text:
+            return str(id3[key].text[0]).strip() or None
+    except Exception:
+        pass
+    return None
+
 
 def get_ftp_path(z_path):
     clean_rel = z_path.replace('\\', '/')
@@ -148,6 +173,87 @@ def main():
     lyrics_to_delete = []
 
     # ----------------------------------------------------
+    # PASS 0: FINGERPRINT-CONFIRMED EXACT-TITLE DUPLICATES
+    # ----------------------------------------------------
+    # Highest-confidence signal in this file: rows whose Track Name string
+    # is byte-for-byte identical AND whose Chromaprint audio fingerprint
+    # (backfilled 2026-09-03 - see modules/fingerprint_compare.py) confirms
+    # the audio itself matches, not just the title. Runs before PASS 1/2 so
+    # they can skip anything already resolved here instead of re-scoring it
+    # independently under a different signal. Deliberately does NOT touch
+    # Clean/Explicit/Radio Edit version pairs - those have different Track
+    # Name strings on purpose (a station needs both for different dayparts,
+    # FCC compliance) and are exactly the class of "duplicate" this pass
+    # must never delete.
+    print("\n--- PASS 0: Scanning for Fingerprint-Confirmed Exact-Title Duplicates ---")
+    exact_title_groups = defaultdict(list)
+    for idx, row in enumerate(rows):
+        track_name = row.get('Track Name', '').strip()
+        if not track_name:
+            continue
+        exact_title_groups[track_name].append((idx, row))
+
+    fp_confirmed_groups = 0
+    fp_mismatch_groups = 0
+    for track_name, items in exact_title_groups.items():
+        if len(items) < 2:
+            continue
+
+        # Only rows with a real file on disk and a usable fingerprint are
+        # eligible for this pass.
+        eligible = []
+        for idx, row in items:
+            gpath = get_absolute_gpath(row.get('File Path', ''))
+            if not os.path.exists(gpath):
+                continue
+            fingerprint = get_fingerprint(row, gpath)
+            if not fingerprint:
+                continue
+            eligible.append((idx, row, gpath, fingerprint))
+
+        if len(eligible) < 2:
+            continue
+
+        # Pick the highest-quality row as the reference; cluster every
+        # other row that fingerprint-matches it above threshold. A row with
+        # the identical title but audio that does NOT match its reference
+        # is left untouched and reported separately - that's a mislabeled
+        # or corrupted file, not a duplicate, and needs a human to look.
+        scored = sorted(eligible, key=lambda t: (evaluate_row_quality(t[1]), -t[0]), reverse=True)
+        ref_row, ref_gpath, ref_fp = scored[0][1], scored[0][2], scored[0][3]
+
+        cluster = [scored[0]]
+        outliers = []
+        for candidate in scored[1:]:
+            score = compare_fingerprints(ref_fp, candidate[3])
+            if score >= FINGERPRINT_MATCH_THRESHOLD:
+                cluster.append(candidate)
+            else:
+                outliers.append(candidate)
+
+        if len(cluster) >= 2:
+            fp_confirmed_groups += 1
+            print(f"  [FINGERPRINT-CONFIRMED DUPES] '{track_name}'")
+            print(f"    [KEEP] Score: {evaluate_row_quality(ref_row)} - {ref_gpath}")
+            for idx, row, gpath, fingerprint in cluster[1:]:
+                print(f"    [DELETE] Score: {evaluate_row_quality(row)} - {gpath}")
+                indices_to_delete.add(idx)
+                files_to_delete_local.append(gpath)
+                files_to_delete_remote.append(get_ftp_path(row.get('File Path', '')))
+                safe_track = "".join(c for c in track_name if c not in r'\/:*?"<>|').strip()
+                lyric_file = os.path.join(LYRICS_DIR, f"{safe_track}.txt")
+                if os.path.exists(lyric_file):
+                    lyrics_to_delete.append(lyric_file)
+
+        if outliers:
+            fp_mismatch_groups += 1
+            print(f"    [TITLE MATCH, AUDIO MISMATCH - NOT touched] '{track_name}': "
+                  f"{len(outliers)} row(s) share this exact title but audio does not match")
+
+    print(f"[*] PASS 0: {fp_confirmed_groups} fingerprint-confirmed duplicate group(s) queued, "
+          f"{fp_mismatch_groups} same-title group(s) with mismatched audio left for manual review.")
+
+    # ----------------------------------------------------
     # PASS 1: Deduplicate by IDENTICAL LOCAL FILE SIZE or ALREADY DELETED DUPES
     # ----------------------------------------------------
     print("\n--- PASS 1: Scanning for Identical Audio File Sizes ---")
@@ -166,13 +272,19 @@ def main():
             key_has_present[key] = True
 
     for idx, row in enumerate(rows):
+        # Already resolved by PASS 0's stronger fingerprint-confirmed signal -
+        # don't let this pass's weaker size-based heuristic re-score or
+        # re-queue the same row under a different (possibly conflicting) verdict.
+        if idx in indices_to_delete:
+            continue
+
         track_name = row.get('Track Name', '').strip()
         if not track_name:
             continue
 
         gpath = get_absolute_gpath(row.get('File Path', ''))
         key = normalize_track_key(track_name)
-        
+
         if os.path.exists(gpath):
             size = os.path.getsize(gpath)
             # Group by size and normalized artist to ensure they are the same artist
