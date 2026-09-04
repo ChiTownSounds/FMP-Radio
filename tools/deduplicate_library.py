@@ -236,14 +236,23 @@ def main():
             print(f"  [FINGERPRINT-CONFIRMED DUPES] '{track_name}'")
             print(f"    [KEEP] Score: {evaluate_row_quality(ref_row)} - {ref_gpath}")
             for idx, row, gpath, fingerprint in cluster[1:]:
-                print(f"    [DELETE] Score: {evaluate_row_quality(row)} - {gpath}")
                 indices_to_delete.add(idx)
-                files_to_delete_local.append(gpath)
-                files_to_delete_remote.append(get_ftp_path(row.get('File Path', '')))
-                safe_track = "".join(c for c in track_name if c not in r'\/:*?"<>|').strip()
-                lyric_file = os.path.join(LYRICS_DIR, f"{safe_track}.txt")
-                if os.path.exists(lyric_file):
-                    lyrics_to_delete.append(lyric_file)
+                if gpath == ref_gpath:
+                    # Same physical file as the row being kept - this is a
+                    # duplicate DATABASE ROW, not a duplicate file. The kept
+                    # row still needs this exact file, so only the redundant
+                    # CSV entry is removed; the file and its Citrus3 FTP copy
+                    # are left alone. Mirrors PASS 1's existing
+                    # already-cleaned-up-duplicate handling above.
+                    print(f"    [DELETE ROW ONLY - same file as KEEP] Score: {evaluate_row_quality(row)} - {gpath}")
+                else:
+                    print(f"    [DELETE] Score: {evaluate_row_quality(row)} - {gpath}")
+                    files_to_delete_local.append(gpath)
+                    files_to_delete_remote.append(get_ftp_path(row.get('File Path', '')))
+                    safe_track = "".join(c for c in track_name if c not in r'\/:*?"<>|').strip()
+                    lyric_file = os.path.join(LYRICS_DIR, f"{safe_track}.txt")
+                    if os.path.exists(lyric_file):
+                        lyrics_to_delete.append(lyric_file)
 
         if outliers:
             fp_mismatch_groups += 1
