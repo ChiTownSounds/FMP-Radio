@@ -6,6 +6,49 @@ import os
 # nonexistent path, degrading/disabling caching with no error.
 _numba_cache_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cache", "numba_cache")
 os.makedirs(_numba_cache_dir, exist_ok=True)
+
+# Guard against a stale JIT cache surviving a numba/llvmlite/numpy upgrade.
+# Confirmed live 2026-09-14: cached compiled artifacts from an older
+# package combination were binary-incompatible with the currently
+# installed numba/llvmlite/numpy and segfaulted (access violation) on
+# every single call inside librosa.beat.beat_track() -- the root cause of
+# every "Subprocess analysis failed" BPM-fallback-to-98 in the logs since
+# at least Sept 3. Wiping the cache fixed it immediately with no version
+# changes needed; this stamp makes that self-healing on the next upgrade
+# too, instead of relying on someone noticing and clearing it by hand
+# again. Cheap even on a cache hit -- three already-imported __version__
+# string reads and a file comparison, not a re-analysis.
+try:
+    import numba as _numba_for_stamp
+    import llvmlite as _llvmlite_for_stamp
+    import numpy as _numpy_for_stamp
+    _env_stamp = f"{_numba_for_stamp.__version__}|{_llvmlite_for_stamp.__version__}|{_numpy_for_stamp.__version__}"
+    _stamp_path = os.path.join(_numba_cache_dir, "_env_stamp.txt")
+    _previous_stamp = None
+    if os.path.exists(_stamp_path):
+        try:
+            with open(_stamp_path, "r", encoding="utf-8") as _f:
+                _previous_stamp = _f.read().strip()
+        except Exception:
+            _previous_stamp = None
+    if _previous_stamp != _env_stamp:
+        import shutil as _shutil_for_stamp
+        for _entry in os.listdir(_numba_cache_dir):
+            if _entry == "_env_stamp.txt":
+                continue
+            _entry_path = os.path.join(_numba_cache_dir, _entry)
+            if os.path.isdir(_entry_path):
+                _shutil_for_stamp.rmtree(_entry_path, ignore_errors=True)
+            else:
+                try:
+                    os.remove(_entry_path)
+                except Exception:
+                    pass
+        with open(_stamp_path, "w", encoding="utf-8") as _f:
+            _f.write(_env_stamp)
+except Exception as _stamp_err:
+    print(f"[WARN] Could not verify/reset numba cache freshness: {_stamp_err}")
+
 os.environ['NUMBA_CACHE_DIR'] = _numba_cache_dir
 import re
 import json
