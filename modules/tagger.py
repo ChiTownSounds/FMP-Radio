@@ -467,10 +467,24 @@ class AutoMaster:
         except Exception as e:
             logging.error(f"Failed to write cue points and metadata to MP3 tags: {e}")
 
+        # Measure the real output bitrate instead of trusting the caller's
+        # pre-download guess (original_bitrate) -- that guess was being written
+        # straight through to the CSV's Bitrate column for nearly every ingested
+        # track, never actually read from the file. Confirmed live 2026-09-14:
+        # a full-library accuracy audit found 78% of flagged tracks carried a
+        # suspiciously exact "320" bitrate that never matched the real file.
+        measured_bitrate = original_bitrate
+        try:
+            final_audio = MP3(file_path)
+            if final_audio.info and final_audio.info.bitrate:
+                measured_bitrate = f"{int(final_audio.info.bitrate / 1000)}k"
+        except Exception as e:
+            logging.warning(f"Could not measure real bitrate for {file_path}, falling back to caller-provided value: {e}")
+
         metadata_updates = {
             'artist': final_artist,
             'title': final_title,
-            'bitrate': original_bitrate,
+            'bitrate': measured_bitrate,
             'lyrics': lyrics_text,
             'art_ratio': '1.0',
             'release_year': true_year,
