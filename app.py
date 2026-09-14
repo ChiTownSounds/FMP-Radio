@@ -1190,6 +1190,22 @@ def downloader_worker():
             
             meta['energy_category'] = clean_cat
 
+            # Auto-assign a Pool from data we already compute here but were
+            # previously discarding -- clean_cat (from release_year, above)
+            # for decade pools, and the same gospel/genre signal iHeart
+            # Discoveries already uses for the Gospel specialty pool.
+            # Nothing upstream ever set this before: confirmed live
+            # 2026-09-14, 744 of 2070 catalog tracks (36%) had no Pool at
+            # all. Left unset (for manual assignment, same as before) when
+            # neither signal applies, rather than guessing.
+            pool_artist = meta.get('artist', '')
+            pool_title = meta.get('title', track_title)
+            POOL_ID_BY_ERA = {"Classics": 2, "Old School": 7, "Throwbacks": 3, "New School": 1}
+            if is_inspirational_track(pool_artist, pool_title):
+                meta['music_pool_id'] = 5
+            elif clean_cat in POOL_ID_BY_ERA:
+                meta['music_pool_id'] = POOL_ID_BY_ERA[clean_cat]
+
             # Pass explicit status from queue item
             if 'explicit' in task:
                 meta['explicit'] = task['explicit']
@@ -1200,6 +1216,26 @@ def downloader_worker():
                     meta['explicit'] = True
                 elif 'clean' in title_lower:
                     meta['explicit'] = False
+
+            # Verify Explicit against real editorial sources (iTunes +
+            # Deezer) instead of trusting a UI checkbox or filename guess
+            # alone -- only overrides when BOTH sources confidently agree
+            # on the same recording; otherwise keeps whatever the logic
+            # above already decided. This is the same cross-check the
+            # library accuracy audit already does, now running
+            # automatically at ingest instead of only after the fact.
+            try:
+                from mutagen.mp3 import MP3 as _MP3ForDuration
+                mastered_duration_ms = int(_MP3ForDuration(mastered_path).info.length * 1000)
+            except Exception:
+                mastered_duration_ms = None
+            try:
+                from modules.explicit_verify import verify_explicit
+                verified_explicit = verify_explicit(pool_artist, pool_title, mastered_duration_ms)
+                if verified_explicit is not None:
+                    meta['explicit'] = verified_explicit
+            except Exception as e:
+                logging.warning(f"Explicit verification failed for {pool_title}: {e}")
 
             # Pass is_radio status from queue item
             if 'is_radio' in task:
