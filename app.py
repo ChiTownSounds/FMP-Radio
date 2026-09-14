@@ -107,13 +107,26 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
         clean_t = re.sub(r'[^a-z0-9]', '', t)
         for k, v in ALIAS_MAP.items():
             clean_t = clean_t.replace(k, v)
-        if is_radio:
-            clean_t += "_radioedit"
-        elif is_explicit:
-            clean_t += "_explicit"
-        return clean_t
-        
-    if norm_title(ex_title) != norm_title(check_title):
+        tag = "_radioedit" if is_radio else ("_explicit" if is_explicit else None)
+        return clean_t, tag
+
+    ex_base, ex_tag = norm_title(ex_title)
+    check_base, check_tag = norm_title(check_title)
+    if ex_base != check_base:
+        return False, ""
+    # A version tag only rules out a match when BOTH sides carry one and they
+    # disagree (e.g. an on-disk Explicit copy vs. a request specifically for
+    # Clean). Most real callers compare a bare title with no tag at all -
+    # e.g. iHeart's live "now playing" metadata never includes "(Radio
+    # Edit)" - against an on-disk filename that legitimately carries one.
+    # Confirmed live 2026-09-14: "Usher - Nice & Slow" only exists on disk as
+    # "(Radio Edit)"/"(Radio Version)", so the old exact-match here made the
+    # iHeart poller re-stage it as a new discovery on every single play,
+    # forever, since the untagged live title could never match either
+    # on-disk copy. That's the same song we already own, not a request for a
+    # specific missing variant, so a missing tag on either side should not
+    # block the match.
+    if ex_tag and check_tag and ex_tag != check_tag:
         return False, ""
         
     # Titles match! Now extract and clean co-artists
@@ -248,13 +261,25 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
             return True
             
     # 2. Check keywords in title, artist, or album
-    keywords = ["gospel", "choir", "worship", "praise", "pastor", "bishop", "jesus", "god", "lord", "christ", "hymn", "spiritual", "church", "amen"]
-    for kw in keywords:
+    from config import IHEART_CHURCH_KEYWORDS
+    for kw in IHEART_CHURCH_KEYWORDS:
         if kw in title_lower or kw in album_lower:
             return True
         if kw in artist_lower and any(w in artist_lower for w in ["choir", "singers", "gospel", "mass", "fellowship"]):
             return True
-            
+
+    # 3. Keyword/artist-list check was inconclusive -- fall through to a real
+    # genre signal via MusicBrainz artist-level tags/genres. Catches cases
+    # like "Vanessa Bell Armstrong - Peace Be Still" (an unambiguous gospel
+    # standard that's on neither list above): confirmed live 2026-09-03 that
+    # her MusicBrainz artist page carries a genuine "gospel" genre tag.
+    # Cached locally (modules/genre_lookup.py) since the same artists repeat
+    # constantly on a radio station.
+    from modules.genre_lookup import get_artist_genres
+    genres = get_artist_genres(artist)
+    if any(term in g for g in genres for term in ("gospel", "christian", "ccm")):
+        return True
+
     return False
 
 class SystemState:
@@ -1532,11 +1557,7 @@ def iheart_poller_worker():
     import csv
     import re
     from datetime import datetime
-    from config import (
-        IHEART_STATION_ID, IHEART_POLL_INTERVAL, IHEART_CHURCH_FOLDER,
-        IHEART_CHURCH_DAYS, IHEART_CHURCH_START_HOUR, IHEART_CHURCH_END_HOUR,
-        IHEART_CHURCH_KEYWORDS
-    )
+    from config import IHEART_STATION_ID, IHEART_POLL_INTERVAL, IHEART_CHURCH_FOLDER
     
     state.log("[iHeart Sync] Listening for missing tracks")
     
@@ -1571,18 +1592,17 @@ def iheart_poller_worker():
                             
                         logging.info(f"[iHeart Sync] Now Playing on WVAZ V103: \"{title}\" by {artist}")
                         
-                        # 1. Determine Target Routing (Sunday Church or Era-based)
-                        import zoneinfo
-                        now = datetime.now(zoneinfo.ZoneInfo('America/Chicago'))
+                        # 1. Determine Target Routing (Gospel/Church, via is_inspirational_track's
+                        # keyword/artist-list + MusicBrainz genre fallback). The old Sunday
+                        # 6am-12pm time-window fallback is gone -- it only ever covered 1 of 7
+                        # days and is now superseded by the MusicBrainz genre signal, which
+                        # covers every day.
                         is_sunday_church = False
-                        
+
                         if is_inspirational_track(artist, title, album):
                             is_sunday_church = True
                             logging.info(f"[iHeart Sync] Inspirational track matched -> Routing to Gospel/Church.")
-                        elif now.weekday() in IHEART_CHURCH_DAYS:
-                            if IHEART_CHURCH_START_HOUR <= now.hour < IHEART_CHURCH_END_HOUR:
-                                is_sunday_church = True
-                                    
+
                         if is_sunday_church:
                             target_override = IHEART_CHURCH_FOLDER
                             logging.info(f"[iHeart Sync] Routing \"{title}\" to Church folder -> {IHEART_CHURCH_FOLDER}")
