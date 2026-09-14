@@ -311,7 +311,21 @@ def run_sync():
                         except:
                             year_int = None
                             
-                        explicit_val = 1 if str(row.get('Explicit')).lower() in ('true', '1') else 0
+                        # A CSV value that isn't explicitly 'true'/'1' or 'false'/'0'
+                        # (i.e. 'Unknown', blank, or missing) means this track has
+                        # never actually been verified either way. Fail safe: treat
+                        # unverified as explicit (excluded from daytime rotation)
+                        # rather than silently syncing it in as confirmed-clean.
+                        # Confirmed live 2026-09-14: this previously defaulted
+                        # anything non-true to 0, so an unverified track was
+                        # indistinguishable from a confirmed-clean one at playout.
+                        _explicit_raw = str(row.get('Explicit', '')).strip().lower()
+                        if _explicit_raw in ('true', '1', 'yes'):
+                            explicit_val = 1
+                        elif _explicit_raw in ('false', '0', 'no'):
+                            explicit_val = 0
+                        else:
+                            explicit_val = 1
                         duration_ms = int(row.get('duration_ms') or 0)
                         folder = csv_rel_path.split('/')[0] if '/' in csv_rel_path else ''
                         category = get_era_category(folder)
@@ -737,7 +751,16 @@ def run_sync():
                             except:
                                 year_int = None
                                 
-                            explicit_val = 1 if new_row.get('Explicit') == 'True' else 0
+                            # Same fail-safe default as the main insert path above --
+                            # treat anything that isn't a confirmed 'True'/'False' as
+                            # unverified, not confirmed-clean.
+                            _explicit_raw = str(new_row.get('Explicit', '')).strip().lower()
+                            if _explicit_raw in ('true', '1', 'yes'):
+                                explicit_val = 1
+                            elif _explicit_raw in ('false', '0', 'no'):
+                                explicit_val = 0
+                            else:
+                                explicit_val = 1
 
                             # This file was "untracked" only relative to the CSV -
                             # the DB (local or VM) may already have a real row for
