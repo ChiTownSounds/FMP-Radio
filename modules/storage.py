@@ -34,6 +34,21 @@ class VaultManager:
     _csv_lock = threading.RLock()
     _git_lock = threading.Lock()
 
+    # store_track()'s duplicate check reads the CSV once near the top, then
+    # does real work (mastering, fpcalc, FTP/Google Drive upload -- easily
+    # several seconds) before writing its new row near the bottom. Two
+    # concurrent downloader_worker threads (DOWNLOAD_CONCURRENCY, config.py)
+    # processing the same song can both pass that check before either has
+    # written anything, producing duplicate CSV rows for one song. Confirmed
+    # live 2026-09-15: a batch of 9 concurrent redownloads produced 3 rows
+    # for "Pretty Ricky - On the Hotline" (pointing at a file that was never
+    # actually written) and 2 for "Usher - Nice & Slow (Live)". Holding
+    # _csv_lock across the whole method would serialize every download
+    # globally, defeating DOWNLOAD_CONCURRENCY's purpose -- this claims just
+    # the identity key for the duration of one store_track() call instead.
+    _in_flight_keys = set()
+    _in_flight_lock = threading.Lock()
+
     def __init__(self):
         self.era_folders = ["Classics", "Old School 70s80s", "Throwbacks 90s2000s", "New School 2010+", "Live", "Unsorted_Review", "intro", "ondemand", "365 Commercials"]
 
@@ -620,6 +635,7 @@ class VaultManager:
 
     def store_track(self, file_path: str, metadata: dict, task_id: str = "", target_override: str = None, overwrite: bool = False) -> Tuple[bool, str]:
         """Restored V3 storage processing pipeline."""
+        claimed_key = None
         try:
             # 1. Derive names fresh every time
             clean_artist = self._safe_filename(metadata.get('artist', 'Unknown Artist'))
@@ -651,7 +667,17 @@ class VaultManager:
             # - see the version-suffix logic below for how this gets used.
             explicit_counterpart_key = self._normalize_track_key(track_name, explicit_val=True, is_radio_val=False)
             has_explicit_counterpart = False
-            
+
+            # 2.5. Claim this identity key for the rest of this call, closing
+            # the race the CSV-only check below can't: two concurrent calls
+            # for the same song otherwise both read the CSV before either
+            # has written to it, and both see "not a duplicate".
+            with self._in_flight_lock:
+                if not overwrite and new_key in VaultManager._in_flight_keys:
+                    return False, "Duplicate Track Detected (already being vaulted concurrently)"
+                VaultManager._in_flight_keys.add(new_key)
+                claimed_key = new_key
+
             # 3. Verify music folder/G: drive is mounted
             from config import MUSIC_DIR
             g_drive_base = MUSIC_DIR
@@ -964,6 +990,9 @@ class VaultManager:
         except Exception as e:
             return False, str(e)
         finally:
+            if claimed_key is not None:
+                with self._in_flight_lock:
+                    VaultManager._in_flight_keys.discard(claimed_key)
             if task_id:
                 task_dir = os.path.join(STAGING_DIR, task_id)
                 if os.path.exists(task_dir):
