@@ -192,17 +192,53 @@ IHEART_CHURCH_KEYWORDS = ["gospel", "choir", "worship", "praise", "pastor", "bis
 def is_non_song(track_name, file_path):
     path_lower = file_path.lower() if file_path else ""
     name_lower = track_name.lower() if track_name else ""
-    
-    # Directory/Path keywords
-    non_song_dirs = ['ondemand', 'sweeper', 'promo', 'drop', 'commercial', 'sfx', 'effect', 'liner', 'branding', 'shows', 'adbreak', 'ad break', 'quarantine']
-    if any(x in path_lower for x in non_song_dirs):
+
+    # Directory/Path keywords -- matched against folder path SEGMENTS only,
+    # never the filename. Two real bugs found and fixed 2026-09-15 from the
+    # old "substring anywhere in the whole path" approach:
+    # 1. Bare 'shows' matched the entire path, wrongly catching the real
+    #    Shows/InspirationalChurch/ (114 tracks) and Shows/Danny Boy/ (11
+    #    tracks) music folders. Replaced with 'shows_to_delete', the only
+    #    actual non-song folder with "shows" in the name (a known
+    #    junk-staging folder seen on disk, not currently in the CSV).
+    # 2. 'drop' and 'intro' matched inside a SONG'S OWN TITLE, not just a
+    #    folder name -- e.g. "Jackie Wilson - Lonely Teardrops" (contains
+    #    "drop"), both Snoop Dogg "Drop It Like It's Hot" entries, and
+    #    "Danny Boy - Black Heart Intro" were all wrongly flagged as
+    #    non-songs by a keyword that was only ever meant to describe a
+    #    folder. Excluding the filename (the last path segment) from this
+    #    check fixes it without weakening the real folder-based matches
+    #    (ondemand/celebrity_ids/RL/RLFMPBUTTADROP.mp3 still correctly
+    #    matches on 'ondemand', intro/DBLiveMixOpening.mp3 still correctly
+    #    matches on 'intro' as the actual folder).
+    path_segments = [s for s in path_lower.replace('\\', '/').split('/') if s]
+    folder_path = '/'.join(path_segments[:-1]) if len(path_segments) > 1 else ''
+    non_song_dirs = ['ondemand', 'sweeper', 'promo', 'drop', 'commercial', 'sfx', 'effect', 'liner', 'branding', 'shows_to_delete', 'adbreak', 'ad break', 'quarantine', 'intro']
+    if any(x in folder_path for x in non_song_dirs):
         return True
-        
+
     # Track Name keywords
     non_song_names = ['sweeper', 'chicago l announcement', 'liner', 'celebrity drop', 'fmp radio', 'ad break', 'commercial', 'sfx']
     if any(x in name_lower for x in non_song_names):
         return True
-        
+
+    # Structural signal: every real song in this catalog is named
+    # "Artist - Title". A file with no " - " separator at all is a
+    # production asset (sweeper, station ID, show opener) mislabeled as
+    # item_type=Music, not a song that slipped past the keyword lists
+    # above. Deliberately not folder-gated -- real songs live in more than
+    # just Music/ (e.g. Shows/InspirationalChurch/, confirmed above), so
+    # folder alone isn't a safe signal; the missing separator is what
+    # actually distinguishes a real song from a production asset.
+    # Confirmed live 2026-09-15: "DBLiveMixOpening" (intro/) and
+    # "DB Live Show Open Opening" / "Gators Live Show Opening"
+    # (ondemand/sweepers/) all matched this pattern and were showing up in
+    # fingerprint-dedup output looking like ambiguous "is this a duplicate
+    # song" cases when it was actually obvious from the data alone that
+    # they weren't songs at all.
+    if track_name and ' - ' not in track_name:
+        return True
+
     return False
 
 # --- WEB SERVER SETTINGS ---
