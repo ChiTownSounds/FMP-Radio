@@ -299,10 +299,20 @@ class VaultManager:
             results_list.sort(key=lambda x: (float(x.get('score', 0.0)), x.get('display_version', '')), reverse=True)
             return results_list
 
-    def scrub_track(self, target_identifier: str) -> Tuple[bool, str]:
+    def scrub_track(self, target_identifier: str, auto_sync: bool = True) -> Tuple[bool, str]:
         """
         Deletes a track. target_identifier can be a Track Name (scrubs first found file)
         or a File Path (scrubs that specific version, leaving others intact).
+
+        auto_sync: fires the usual background git-push thread when True (the
+        default, unchanged for every existing single-track caller). A caller
+        deleting many tracks in one batch should pass False and call
+        self._git_auto_push(...) once after the whole batch instead -- each
+        call spawning its own thread meant N concurrent threads all fighting
+        over the same cross-process git lock, most exhausting their 5 retries
+        before ever getting a turn. Confirmed live 2026-09-15: 23 scrub_track()
+        calls in one batch produced dozens of "Could not acquire git lock"
+        warnings and left several tracks' deletions uncommitted.
         """
         attempts = 3
         delay = 2
@@ -588,7 +598,7 @@ class VaultManager:
             logging.error(f"Failed to delete lyrics file: {e}")
 
         # Git push updates if CSV database was modified
-        if found_in_csv:
+        if found_in_csv and auto_sync:
             from config import AUTO_GIT_PUSH
             if AUTO_GIT_PUSH:
                 threading.Thread(target=self._git_auto_push, args=(exact_title,), daemon=True).start()
