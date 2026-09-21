@@ -44,7 +44,12 @@ ssl_ctx = ssl.create_default_context()
 # nginx in front of ultimate.fmpmediagroup.com requires Basic Auth on every
 # path - this request was never sending it, so /add has always 401'd here
 # and this tool has never actually queued a single download.
-_AUTH_B64 = base64.b64encode(b"fmpadmin:773312").decode()
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+_VM_AUTH_PASS = os.getenv("ULTIMATE_BASIC_AUTH_PASS")
+if not _VM_AUTH_PASS:
+    raise SystemExit("ULTIMATE_BASIC_AUTH_PASS is not set in .env")
+_AUTH_B64 = base64.b64encode(f"{os.getenv('ULTIMATE_BASIC_AUTH_USER', 'fmpadmin')}:{_VM_AUTH_PASS}".encode()).decode()
 
 def clean_track_query(track_name):
     cleaned = re.sub(r'\((Explicit|Explicit Version|Dirty|Uncut)\)', '', track_name, flags=re.IGNORECASE)

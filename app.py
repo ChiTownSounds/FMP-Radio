@@ -660,6 +660,18 @@ def extract_playlist_urls(playlist_url: str) -> list:
         logging.error(f"Playlist extraction error for {playlist_url}: {e}")
         return []
 
+def _vm_basic_auth_b64():
+    """Base64 'user:pass' for the nginx basic-auth login on the Oracle VM's Ultimate host.
+    Read from .env (ULTIMATE_BASIC_AUTH_USER / ULTIMATE_BASIC_AUTH_PASS) so the secret is
+    never hardcoded in source. Raises if the password is missing rather than falling back."""
+    import base64
+    user = os.getenv("ULTIMATE_BASIC_AUTH_USER", "fmpadmin")
+    password = os.getenv("ULTIMATE_BASIC_AUTH_PASS")
+    if not password:
+        raise RuntimeError("ULTIMATE_BASIC_AUTH_PASS is not set in .env")
+    return base64.b64encode(f"{user}:{password}".encode("utf-8")).decode("utf-8")
+
+
 def _acknowledge_remote_job(job_id):
     """
     Fire-and-forget: immediately tell the remote VM to clear this job from its queue.
@@ -669,7 +681,7 @@ def _acknowledge_remote_job(job_id):
     import base64
     import ssl as _ssl
     remote_host = os.getenv("REMOTE_VM_IP", "149.130.219.114")
-    auth_b64 = base64.b64encode(b"fmpadmin:773312").decode()
+    auth_b64 = _vm_basic_auth_b64()
     ssl_ctx = _ssl.create_default_context()
     # check_hostname=False is required since this connects by raw IP while
     # the cert is issued for ultimate.fmpmediagroup.com - but verify_mode
@@ -1833,8 +1845,7 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url, clea
     }
     
     try:
-        auth_str = "fmpadmin:773312"
-        auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+        auth_b64 = _vm_basic_auth_b64()
         
         ssl_ctx = ssl.create_default_context()
         # check_hostname=False only (connects by IP against a domain cert) -
@@ -1885,8 +1896,7 @@ def poll_jobs_worker():
     
     while not state.stop_event.is_set():
         try:
-            auth_str = "fmpadmin:773312"
-            auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+            auth_b64 = _vm_basic_auth_b64()
             
             # Send local status heartbeat to remote VM
             remote_status_url = f"https://{remote_host}/api/workstation/status"
@@ -1980,8 +1990,7 @@ def poll_deletions_worker():
     # check_hostname=False only, see _acknowledge_remote_job() above for why.
     ctx.check_hostname = False
     
-    auth_str = "fmpadmin:773312"
-    auth_b64 = base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+    auth_b64 = _vm_basic_auth_b64()
     
     local_music_dir = os.getenv("WINDOWS_AUDIO_PATH", "G:/My Drive/FMP MUSIC/BASE/MUSIC")
     from config import CSV_BLUEPRINT
