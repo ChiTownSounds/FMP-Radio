@@ -426,6 +426,19 @@ class AutoMaster:
         
         bpm_int = int(round(true_bpm))
         
+        # Prefer the ORIGINAL release year (MusicBrainz) over the file tag's year: tags very often carry a
+        # re-release/compilation date (e.g. 20170209) which puts old songs in the wrong era pool.
+        # Falls back to the tag year on any problem, so a failed lookup never makes things worse.
+        year_source = "tag" if true_year != "Unknown" else "Unknown"
+        try:
+            try:
+                from modules.original_year import resolve_release_year
+            except ImportError:
+                from original_year import resolve_release_year
+            true_year, year_source = resolve_release_year(true_year, true_artist or artist, true_title or title)
+        except Exception as e:
+            logging.warning(f"[Year] original-year lookup skipped: {e}")
+
         # Calculate Energy Category
         energy_category = self._determine_energy_category(true_year, true_bpm, clean_name)
 
@@ -504,6 +517,10 @@ class AutoMaster:
             audio.tags.add(TBPM(encoding=3, text=[str(bpm_int)]))
             audio.tags.add(TIT2(encoding=3, text=[final_title]))
             audio.tags.add(TPE1(encoding=3, text=[final_artist]))
+            if year_source == "musicbrainz":
+                from mutagen.id3 import TDRC
+                audio.tags.add(TDRC(encoding=3, text=[str(true_year)]))
+                audio.tags.add(TXXX(encoding=3, desc='YEAR_SOURCE', text=['musicbrainz']))
             if audio_fingerprint:
                 audio.tags.add(TXXX(encoding=3, desc='AUDIO_FINGERPRINT', text=[audio_fingerprint]))
             audio.save()
@@ -531,6 +548,7 @@ class AutoMaster:
             'lyrics': lyrics_text,
             'art_ratio': '1.0',
             'release_year': true_year,
+            'year_source': year_source,
             'bpm': bpm_int,
             'intro_sec': float(intro_duration) / 1000.0,
             'cue_in': cue_in_ms,
