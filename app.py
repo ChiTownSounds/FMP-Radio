@@ -1836,6 +1836,7 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url, clea
 
     state.log(f"[Broker] Notifying VM to complete job ID {job_id}...")
     complete_url = f"https://{remote_host}/api/pull_jobs/complete"
+    pull_jobs_url = f"https://{remote_host}/api/pull_jobs"
     payload = {
         "item_id": job_id,
         "staging_path": remote_dest_path,
@@ -1843,40 +1844,71 @@ def wait_and_scp(filepath, filename, job_id, target, overwrite, source_url, clea
         "overwrite": overwrite,
         "source_url": source_url
     }
-    
-    try:
-        auth_b64 = _vm_basic_auth_b64()
-        
-        ssl_ctx = ssl.create_default_context()
-        # check_hostname=False only (connects by IP against a domain cert) -
-        # verify_mode stays CERT_REQUIRED, see _acknowledge_remote_job() above for why.
-        ssl_ctx.check_hostname = False
+    auth_b64 = _vm_basic_auth_b64()
+    ssl_ctx = ssl.create_default_context()
+    # check_hostname=False only (connects by IP against a domain cert) -
+    # verify_mode stays CERT_REQUIRED, see _acknowledge_remote_job() above for why.
+    ssl_ctx.check_hostname = False
 
-        req = urllib.request.Request(
-            complete_url,
-            data=json.dumps(payload).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Basic {auth_b64}',
-                'Host': 'ultimate.fmpmediagroup.com',
-                'X-Internal-Key': INTERNAL_API_KEY
-            },
-            method='POST'
-        )
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=300) as res:
-            response_data = json.loads(res.read().decode('utf-8'))
+    def _job_already_vaulted():
+        # Confirmed live 2026-09-21: nginx can give up on this request (504 to us) and hand back what
+        # looks like total failure, while the VM's own handler keeps running and actually finishes the
+        # vault a few seconds later. Before treating a failed attempt as a real failure, ask whether the
+        # job is still sitting in the queue - if the VM already removed it, the vault already succeeded.
+        if not isinstance(job_id, int):
+            return False  # not a real pull_jobs id (e.g. "local_upload") - nothing to check against
+        try:
+            req = urllib.request.Request(pull_jobs_url, headers={
+                'Authorization': f'Basic {auth_b64}', 'Host': 'ultimate.fmpmediagroup.com',
+                'X-Internal-Key': INTERNAL_API_KEY}, method='GET')
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as res:
+                jobs = json.loads(res.read().decode('utf-8'))
+            return not any(j.get('id') == job_id for j in jobs)
+        except Exception:
+            return False  # can't tell either way - don't assume success
+
+    vaulted = False
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(
+                complete_url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Basic {auth_b64}',
+                    'Host': 'ultimate.fmpmediagroup.com',
+                    'X-Internal-Key': INTERNAL_API_KEY
+                },
+                method='POST'
+            )
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=300) as res:
+                response_data = json.loads(res.read().decode('utf-8'))
             if response_data.get('status') == 'ok':
                 state.log(f"[Broker] SUCCESS: Remote VM vaulted {filename}.")
-                # Only cleaned up on confirmed remote success - if the VM
-                # failed to vault, this local staging copy stays put since
-                # it's the only copy left (the caller skipped its own local
-                # vault for delegated jobs, see vault_worker).
-                if cleanup_dir:
-                    shutil.rmtree(cleanup_dir, ignore_errors=True)
+                vaulted = True
             else:
                 state.log(f"[Broker Error] Remote VM failed to vault: {response_data.get('message')}")
-    except Exception as e:
-        state.log(f"[Broker Error] Failed to send complete notification: {e}")
+            break  # got a real answer either way - retrying would just duplicate-vault it
+        except Exception as e:
+            state.log(f"[Broker Error] Completion notification attempt {attempt}/3 failed ({e}) - "
+                      f"checking whether the VM finished it anyway before retrying...")
+            if _job_already_vaulted():
+                state.log(f"[Broker] The VM had already vaulted {filename} despite the failed response - no retry needed.")
+                vaulted = True
+                break
+            if attempt < 3:
+                time.sleep(10)
+
+    if vaulted:
+        # Only cleaned up on confirmed remote success - if the VM failed to vault, this local staging
+        # copy stays put since it's the only copy left (the caller skipped its own local vault for
+        # delegated jobs, see vault_worker).
+        if cleanup_dir:
+            shutil.rmtree(cleanup_dir, ignore_errors=True)
+    else:
+        state.log(f"[Broker Error] Could not confirm '{filename}' was vaulted after 3 attempts. It is still "
+                  f"safe at {remote_dest_path} on the VM, but needs manual attention (check VM connectivity, "
+                  f"then re-run the completion step or vault it by hand).")
 
 def poll_jobs_worker():
     import urllib.request
@@ -1893,12 +1925,16 @@ def poll_jobs_worker():
     ssl_ctx.check_hostname = False
 
     state.log(f"[Broker] Outbound polling loop started against {poll_url}")
-    
+    heartbeat_fail_streak = 0  # only log on the transition in/out of failing, not every ~10s tick
+
     while not state.stop_event.is_set():
         try:
             auth_b64 = _vm_basic_auth_b64()
-            
-            # Send local status heartbeat to remote VM
+
+            # Send local status heartbeat to remote VM - this is what the VM dashboard's "workstation" panel
+            # reads; if it goes quiet the dashboard shows "WORKSTATION OFFLINE" even though this loop (and
+            # downloading) is running fine, so a failing streak is worth a visible log line rather than
+            # silently swallowing it forever.
             remote_status_url = f"https://{remote_host}/api/workstation/status"
             req_status = urllib.request.Request(
                 remote_status_url,
@@ -1913,8 +1949,14 @@ def poll_jobs_worker():
             try:
                 with urllib.request.urlopen(req_status, context=ssl_ctx, timeout=5) as remote_res:
                     pass
+                if heartbeat_fail_streak >= 3:
+                    state.log("[Broker] Heartbeat to VM recovered.")
+                heartbeat_fail_streak = 0
             except Exception as e:
-                pass
+                heartbeat_fail_streak += 1
+                if heartbeat_fail_streak == 3:
+                    state.log(f"[Broker Error] Heartbeat to VM has failed {heartbeat_fail_streak} times in a "
+                              f"row ({e}) - the VM dashboard may show WORKSTATION OFFLINE until this recovers.")
 
             # Poll for jobs
             req = urllib.request.Request(
