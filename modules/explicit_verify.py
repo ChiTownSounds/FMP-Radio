@@ -24,8 +24,27 @@ _last_call = 0.0
 REQUEST_PAUSE = 1.1
 
 
+def _fix_mojibake(t):
+    """This library has real UTF-8-decoded-as-Latin-1 corruption from past imports (e.g. 'Johntá Austin'
+    instead of 'Johntá Austin', 'Beyonc�' instead of 'Beyoncé') - confirmed live 2026-09-22 while
+    investigating why otherwise-findable tracks kept coming back unverified. Uncorrected, a name like that just
+    silently fails text-similarity matching below and this whole module returns None with no explanation. Only
+    accept the round-trip if it doesn't introduce a literal replacement character (i.e. it actually repaired
+    something coherent rather than mangling valid text further)."""
+    if not t:
+        return t
+    try:
+        fixed = t.encode('latin1').decode('utf-8')
+        if '�' not in fixed:
+            return fixed
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        pass
+    return t
+
+
 def _norm_text(t):
-    t = (t or "").lower()
+    t = _fix_mojibake(t or "")
+    t = t.lower()
     t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
     t = re.sub(r'\[.*?\]|\(.*?\)', '', t)
     t = t.replace('&', ' and ')
@@ -74,7 +93,17 @@ def _deezer_lookup(artist, title):
         return []
 
 
-def _best_match(candidates, title, artist, duration_ms, tol_ms=15000):
+def _duration_tolerance_ms(duration_ms):
+    """A flat 15s window is loose for a 3-minute track (can straddle a Clean/Explicit cut that differs by only
+    the length of one edited line) and needlessly tight for a 6-minute one. Scale it, with a floor and ceiling."""
+    if not duration_ms:
+        return 15000
+    return max(5000, min(15000, int(duration_ms * 0.05)))
+
+
+def _best_match(candidates, title, artist, duration_ms, tol_ms=None):
+    if tol_ms is None:
+        tol_ms = _duration_tolerance_ms(duration_ms)
     best, best_score = None, 0.0
     for c in candidates:
         if duration_ms and c.get("duration_ms"):
@@ -91,6 +120,7 @@ def verify_explicit(artist, title, duration_ms=None):
     same recording and agree on explicit status, else None."""
     if not artist or not title:
         return None
+    artist, title = _fix_mojibake(artist), _fix_mojibake(title)
 
     it_match = _best_match(_itunes_lookup(artist, title), title, artist, duration_ms)
     dz_match = _best_match(_deezer_lookup(artist, title), title, artist, duration_ms)

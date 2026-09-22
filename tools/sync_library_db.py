@@ -25,6 +25,8 @@ except ImportError:
     from mutagen.mp3 import MP3
 
 from modules.tagger import AutoMaster
+from modules.explicit_verify import verify_explicit
+from modules.storage import clean_version_tags
 
 # --- CONFIGURATIONS ---
 from config import MUSIC_DIR, BROADCASTER_DB
@@ -701,12 +703,30 @@ def run_sync():
                             title_lower = new_filename.lower()
                             if is_non_song(new_filename, str(rel_path)):
                                 new_row[field] = 'False'
-                            elif 'explicit' in title_lower:
-                                new_row[field] = 'True'
-                            elif 'clean' in title_lower:
-                                new_row[field] = 'False'
                             else:
-                                new_row[field] = 'Unknown'
+                                # These files never go through app.py's normal download path (that's the whole
+                                # reason they show up here as "untracked"), so unlike a real download they never
+                                # got the iTunes+Deezer cross-check in modules/explicit_verify.py - only a
+                                # filename guess. Confirmed live 2026-09-22: this produced 27+ tracks (mostly
+                                # 60s-80s soul standards - Otis Redding, Sam & Dave, Wilson Pickett...) wrongly
+                                # marked explicit purely because "(Explicit)" happened to be in the source
+                                # filename. Run the same real check a normal download gets; only fall back to the
+                                # filename guess when that comes back genuinely inconclusive.
+                                verified = None
+                                if ' - ' in new_filename:
+                                    guess_artist, guess_title = new_filename.split(' - ', 1)
+                                    try:
+                                        verified = verify_explicit(guess_artist.strip(), clean_version_tags(guess_title.strip()), duration_ms)
+                                    except Exception as verify_err:
+                                        print(f"    [WARNING] Explicit verification failed for '{new_filename}': {verify_err}")
+                                if verified is not None:
+                                    new_row[field] = 'True' if verified else 'False'
+                                elif 'explicit' in title_lower:
+                                    new_row[field] = 'True'
+                                elif 'clean' in title_lower:
+                                    new_row[field] = 'False'
+                                else:
+                                    new_row[field] = 'Unknown'
                         else:
                             new_row[field] = ""
                     
