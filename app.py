@@ -1499,15 +1499,22 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                         # Queue download!
                         counterpart_url = f"https://music.youtube.com/watch?v={video_id}"
                         state.log(f"[Counterpart Auto-Link] Found counterpart ({target_cat}): '{song_artist} - {song_title}' ({counterpart_url}) -> Enqueuing download...")
-                        state.url_queue.put({
+                        counterpart_task = {
                             'url': counterpart_url,
                             'type': 'ingest',
                             'target': target_folder,
                             'title': song_title,
                             'artist': song_artist,
                             'explicit': song_explicit,
-                            'auto_linked': True
-                        })
+                            'auto_linked': True,
+                            # Download THIS release (picked by its explicit badge), not whatever a
+                            # Soulseek search for artist+title returns - otherwise the "clean" or
+                            # "radio edit" counterpart could arrive as the explicit album cut (2026-09-25).
+                            'exact_source': True,
+                        }
+                        if song.get('duration_seconds'):
+                            counterpart_task['expected_seconds'] = float(song['duration_seconds'])
+                        state.url_queue.put(counterpart_task)
                         state.update_count()
                         enqueued = True
                         break
