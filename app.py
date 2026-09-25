@@ -114,6 +114,10 @@ def is_smart_duplicate(existing_name, check_artist, check_title, vm=None):
     check_base, check_tag = norm_title(check_title)
     if ex_base != check_base:
         return False, ""
+    # A remix is a different recording from the original: "Go Crazy (Remix)" must not count as
+    # already owning "Go Crazy" (norm_title strips the word "remix", found 2026-09-25).
+    if ('remix' in ex_title.lower()) != ('remix' in check_title.lower()):
+        return False, ""
     # A version tag only rules out a match when BOTH sides carry one and they
     # disagree (e.g. an on-disk Explicit copy vs. a request specifically for
     # Clean). Most real callers compare a bare title with no tag at all -
