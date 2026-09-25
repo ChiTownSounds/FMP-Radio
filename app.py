@@ -757,7 +757,7 @@ def downloader_worker():
                             for row in reader:
                                 existing_name = row.get('Track Name')
                                 if wanted_explicit is not None and \
-                                        (row.get('Explicit', '').strip().lower() in ('true', '1')) != bool(wanted_explicit):
+                                        ((row.get('Explicit') or '').strip().lower() in ('true', '1')) != bool(wanted_explicit):
                                     continue
                                 if existing_name:
                                     is_dup, reason = is_smart_duplicate(existing_name, expected_artist, expected_title, vm=vm)
@@ -1478,7 +1478,7 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                                     for row in reader:
                                         existing_name = row.get('Track Name')
                                         if existing_name:
-                                            ex_expl = row.get('Explicit', '').strip().lower() in ['true', '1']
+                                            ex_expl = (row.get('Explicit') or '').strip().lower() in ['true', '1']
                                             existing_track_key = vm._normalize_track_key(existing_name, explicit_val=ex_expl)
                                             if existing_track_key == candidate_track_key:
                                                 duplicate = True

@@ -703,9 +703,9 @@ class VaultManager:
                             existing_path = row.get('File Path')
                             if existing_path:
                                 catalog_explicit_by_path[existing_path.replace(chr(92), '/').strip().lower()] = (
-                                    row.get('Explicit', '').strip().lower() in ['true', '1'])
+                                    (row.get('Explicit') or '').strip().lower() in ['true', '1'])
                             if existing_name:
-                                existing_explicit = row.get('Explicit', '').strip().lower() in ['true', '1']
+                                existing_explicit = (row.get('Explicit') or '').strip().lower() in ['true', '1']
                                 existing_key = self._normalize_track_key(existing_name, explicit_val=existing_explicit)
                                 if existing_key == new_key:
                                     if overwrite:
