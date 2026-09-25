@@ -744,10 +744,17 @@ def downloader_worker():
                 with vm._csv_lock:
                     try:
                         import csv
+                        # When the task says which version it is, only a catalog row with the SAME explicit
+                        # flag is a duplicate - an explicit copy must not block downloading its clean version
+                        # (names alone can't tell them apart: explicit files are never tagged). 2026-09-25.
+                        wanted_explicit = task.get('explicit')
                         with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
                             reader = csv.DictReader(f)
                             for row in reader:
                                 existing_name = row.get('Track Name')
+                                if wanted_explicit is not None and \
+                                        (row.get('Explicit', '').strip().lower() in ('true', '1')) != bool(wanted_explicit):
+                                    continue
                                 if existing_name:
                                     is_dup, reason = is_smart_duplicate(existing_name, expected_artist, expected_title, vm=vm)
                                     if is_dup:
