@@ -88,6 +88,7 @@ def _deezer_lookup(artist, title):
         return [{
             "artist": (r.get("artist") or {}).get("name", ""), "title": r.get("title", ""),
             "duration_ms": (r.get("duration") or 0) * 1000, "explicit_lyrics": r.get("explicit_lyrics"),
+            "explicit_code": r.get("explicit_content_lyrics"),
         } for r in data.get("data", [])]
     except Exception:
         return []
@@ -115,15 +116,34 @@ def _best_match(candidates, title, artist, duration_ms, tol_ms=None):
     return best if best and best_score >= 0.5 else None
 
 
-def verify_explicit(artist, title, duration_ms=None):
+# A file whose own name says it's the edited cut. Only then can a store's "edited" match count as clean.
+_CLEAN_HINT = re.compile(r'\b(clean|edited|radio (edit|mix|version)|radio)\b', re.I)
+DEEZER_EDITED = 3   # Deezer explicit_content_lyrics: 0 clean, 1 explicit, 2 unknown, 3 edited, 6 no advice
+
+
+def verify_explicit(artist, title, duration_ms=None, name_hint=None):
     """Returns True/False if iTunes and Deezer both confidently match the
-    same recording and agree on explicit status, else None."""
+    same recording and agree on explicit status, else None.
+
+    name_hint: the file name (or original, untrimmed title) - checked for a clean/radio-edit tag.
+    A store match on an EDITED version (iTunes 'cleaned', Deezer code 3) means an explicit original
+    of this song exists too, usually the same length, and both stores often list only the edit.
+    Duration can't tell the two cuts apart, so such a match only counts as clean when the file's
+    own name says it's the clean/radio edit; otherwise the result is None (unverified). Found
+    2026-09-22: e.g. Usher - Lemme See (feat. Rick Ross) is 252s in both cuts and both stores list
+    only the edit, so an album-version file was being verified clean."""
     if not artist or not title:
         return None
     artist, title = _fix_mojibake(artist), _fix_mojibake(title)
+    says_clean = bool(_CLEAN_HINT.search(f"{title} {name_hint or ''}"))
 
     it_match = _best_match(_itunes_lookup(artist, title), title, artist, duration_ms)
     dz_match = _best_match(_deezer_lookup(artist, title), title, artist, duration_ms)
+
+    edited_match = ((it_match and it_match.get("explicitness") == "cleaned")
+                    or (dz_match and dz_match.get("explicit_code") == DEEZER_EDITED))
+    if edited_match and not says_clean:
+        return None
 
     signals = []
     if it_match and it_match.get("explicitness") in ("explicit", "notExplicit", "cleaned"):

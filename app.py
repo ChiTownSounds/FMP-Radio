@@ -1243,7 +1243,7 @@ def downloader_worker():
                 mastered_duration_ms = None
             try:
                 from modules.explicit_verify import verify_explicit
-                verified_explicit = verify_explicit(pool_artist, pool_title, mastered_duration_ms)
+                verified_explicit = verify_explicit(pool_artist, pool_title, mastered_duration_ms, name_hint=f"{track_title} {os.path.basename(mastered_path)}")
                 if verified_explicit is not None:
                     meta['explicit'] = verified_explicit
             except Exception as e:

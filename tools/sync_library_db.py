@@ -53,6 +53,26 @@ RCLONE_EXE = get_rclone_path()
 DRY_RUN = True
 SKIP_FTP = True  # Set to True to bypass Citrus3 FTP operations for speed
 
+_VERSION_TAG = re.compile(r'\((?:clean|explicit|radio edit|radio version)\)', re.I)
+_CLEAN_TAG = re.compile(r'\(clean\)', re.I)
+
+
+def clean_explicit_pair_keys(key, existing_name, new_name):
+    """Two files collided on the same "_clean" identity key. If exactly one is tagged "(Clean)" and the other has
+    no version tag at all, they are a clean/explicit pair: returns (which one is the CLEAN file: 'existing'|'new',
+    the key to store the untagged/explicit file under). Otherwise None (a genuine duplicate)."""
+    if not key.endswith('_clean'):
+        return None
+    ex_clean, new_clean = bool(_CLEAN_TAG.search(existing_name)), bool(_CLEAN_TAG.search(new_name))
+    ex_any, new_any = bool(_VERSION_TAG.search(existing_name)), bool(_VERSION_TAG.search(new_name))
+    explicit_key = key[:-len('_clean')] + '_explicit'
+    if ex_clean and not new_any:
+        return ('existing', explicit_key)
+    if new_clean and not ex_any:
+        return ('new', explicit_key)
+    return None
+
+
 def normalize_track_key(name: str, explicit_val=None) -> str:
     if not name:
         return ""
@@ -191,7 +211,30 @@ def run_sync():
                 key = normalize_track_key(filename_no_ext)
                 if not key:
                     continue
+                entry = {'local_path': filepath, 'rel_path': rel_path, 'filename_no_ext': filename_no_ext, 'folder': folder}
                 if key in local_files:
+                    pair_keys = clean_explicit_pair_keys(key, local_files[key]['filename_no_ext'], filename_no_ext)
+                    if pair_keys and pair_keys[1] not in local_files:
+                        # "Song (Clean).mp3" + untagged "Song.mp3" is a clean/explicit PAIR, not a
+                        # duplicate: by the naming convention (Explicit never tagged, Clean tagged only
+                        # when an explicit counterpart exists) the untagged file is the explicit one.
+                        # Both used to get the same "_clean" key, so the (Clean) file was reported as a
+                        # duplicate and never imported - real clean edits silently went missing
+                        # (found 2026-09-25: Hypnotize (Clean), Come Through and Chill (Clean)).
+                        clean_entry = local_files[key] if pair_keys[0] == 'existing' else entry
+                        explicit_entry = entry if pair_keys[0] == 'existing' else local_files[key]
+                        local_files[key] = clean_entry
+                        local_files[pair_keys[1]] = explicit_entry
+                        continue
+                    if pair_keys:
+                        # Same pair, but the explicit slot is already taken (a third copy, or a file tagged
+                        # "(Explicit)"): the "(Clean)" file still owns the clean slot - report the extra
+                        # UNTAGGED copy as the duplicate instead of hiding the clean edit.
+                        clean_entry = local_files[key] if pair_keys[0] == 'existing' else entry
+                        extra = entry if pair_keys[0] == 'existing' else local_files[key]
+                        local_files[key] = clean_entry
+                        duplicate_files.append((key, clean_entry['rel_path'], extra['rel_path']))
+                        continue
                     # Two physical files share the same identity key (e.g. a leftover
                     # "Song (Clean).mp3" alongside the canonical "Song.mp3" after a
                     # rename). Silently overwriting here used to make one of them
@@ -716,7 +759,7 @@ def run_sync():
                                 if ' - ' in new_filename:
                                     guess_artist, guess_title = new_filename.split(' - ', 1)
                                     try:
-                                        verified = verify_explicit(guess_artist.strip(), clean_version_tags(guess_title.strip()), duration_ms)
+                                        verified = verify_explicit(guess_artist.strip(), clean_version_tags(guess_title.strip()), duration_ms, name_hint=new_filename)
                                     except Exception as verify_err:
                                         print(f"    [WARNING] Explicit verification failed for '{new_filename}': {verify_err}")
                                 if verified is not None:
