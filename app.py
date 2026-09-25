@@ -1581,6 +1581,13 @@ def vault_worker():
                         daemon=True
                     )
                     t.start()
+                elif platform.system() == "Windows":
+                    # Direct (non-delegated) download vaulted right here on Windows: the file is already
+                    # on Google Drive (the VM's 3-minute rclone pull copies it) and the catalog row goes
+                    # out via this vault's own git push (which the VM's app merges). Handing it to the VM
+                    # as well ('local_upload') made the VM vault it a SECOND time with its own catalog row
+                    # - two rows per download, the VM's without a pool (found 2026-09-25).
+                    state.log(f"[Vault] '{clean_name}' saved on Google Drive - the VM picks it up via Drive sync + git.")
                 else:
                     # LOCAL-ONLY Additions directly from ultimate.fmpmediagroup.com
                     # They MUST reach the VM as well. We pass 'local_upload' to bypass the 400 error on the VM.

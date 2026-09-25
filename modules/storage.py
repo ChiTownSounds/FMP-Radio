@@ -191,7 +191,12 @@ class VaultManager:
                     # but never got committed, silently drifting further from git on
                     # every single track. Confirmed live 2026-09-03 (Billy Stewart,
                     # then Arthur Conley) as a real, recurring gap, not a one-off.
-                    subprocess.run(["git", "add", "configs/fmp_data_7718.csv", "configs/lyrics"], check=True, capture_output=True)
+                    # configs/lyrics/ is in .gitignore (1,000+ lyric files were committed before that
+                    # rule), so `git add configs/lyrics` exits 1 ("paths are ignored") and aborted this
+                    # whole commit on every Windows vault (found 2026-09-25). `add -u` stages changes to
+                    # lyric files git already tracks and never trips on the ignore rule.
+                    subprocess.run(["git", "add", "--", "configs/fmp_data_7718.csv"], check=True, capture_output=True)
+                    subprocess.run(["git", "add", "-u", "--", "configs/lyrics"], check=True, capture_output=True)
 
                     # Check if there are any staged changes for the CSV/lyrics files
                     status_res = subprocess.run(["git", "status", "--porcelain", "configs/fmp_data_7718.csv", "configs/lyrics"], capture_output=True, text=True, check=True)
@@ -985,8 +990,17 @@ class VaultManager:
                 # 10. Update local CSV database
                 with self._csv_lock:
                     file_exists = os.path.exists(CSV_BLUEPRINT)
+                    # Match the file's existing line endings - csv's default "\r\n" appended to an LF
+                    # file left mixed endings (git normalises the file to LF), which breaks tools that
+                    # rewrite the catalog byte-for-byte (found 2026-09-25).
+                    line_end = "\r\n"
+                    if file_exists:
+                        with open(CSV_BLUEPRINT, 'rb') as fb:
+                            head = fb.read(65536)
+                        if b"\n" in head and b"\r\n" not in head:
+                            line_end = "\n"
                     with open(CSV_BLUEPRINT, 'a', encoding='utf-8', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator=line_end)
                         if not file_exists: writer.writeheader()
                         writer.writerow(new_row)
 
