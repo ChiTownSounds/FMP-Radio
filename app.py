@@ -1244,7 +1244,10 @@ def downloader_worker():
             try:
                 from modules.explicit_verify import verify_explicit
                 verified_explicit = verify_explicit(pool_artist, pool_title, mastered_duration_ms, name_hint=f"{track_title} {os.path.basename(mastered_path)}")
-                if verified_explicit is not None:
+                # A download queued as already verified from its own audio (e.g. compared against the
+                # official clean/explicit releases) keeps that answer - the store lookup can only
+                # match by title + length and can't tell a clean edit from the album cut.
+                if verified_explicit is not None and not task.get('explicit_verified'):
                     meta['explicit'] = verified_explicit
             except Exception as e:
                 logging.warning(f"Explicit verification failed for {pool_title}: {e}")
@@ -2610,6 +2613,8 @@ def add():
             item_data['is_radio'] = is_radio
         if overwrite:
             item_data['overwrite'] = overwrite
+        if data.get('explicit_verified') and explicit is not None:
+            item_data['explicit_verified'] = True
             
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title

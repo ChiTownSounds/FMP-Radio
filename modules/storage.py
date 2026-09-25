@@ -686,6 +686,9 @@ class VaultManager:
 
             # 4. Check for duplicates in CSV database
             duplicates_to_scrub = []
+            # Catalog's explicit flag per file path - step 5 uses it instead of guessing from the filename
+            # (explicit files are never tagged, so a filename alone can't say whether a file is explicit).
+            catalog_explicit_by_path = {}
             with self._csv_lock:
                 if os.path.exists(CSV_BLUEPRINT):
                     with open(CSV_BLUEPRINT, 'r', encoding='utf-8') as f:
@@ -693,6 +696,9 @@ class VaultManager:
                         for row in reader:
                             existing_name = row.get('Track Name')
                             existing_path = row.get('File Path')
+                            if existing_path:
+                                catalog_explicit_by_path[existing_path.replace(chr(92), '/').strip().lower()] = (
+                                    row.get('Explicit', '').strip().lower() in ['true', '1'])
                             if existing_name:
                                 existing_explicit = row.get('Explicit', '').strip().lower() in ['true', '1']
                                 existing_key = self._normalize_track_key(existing_name, explicit_val=existing_explicit)
@@ -725,13 +731,17 @@ class VaultManager:
                         for f in os.listdir(folder_path):
                             if f.lower().endswith(".mp3"):
                                 f_name_without_ext = f[:-4]
-                                f_explicit = (subf == "Explicit") or ('explicit' in f_name_without_ext.lower())
+                                if folder == "Music":
+                                    rel_path = f"Music/{f}"
+                                else:
+                                    rel_path = f"{folder}/{subf}/{f}" if subf else f"{folder}/{f}"
+                                # The catalog knows whether this file is explicit; the filename only guesses
+                                # (untagged = explicit by convention). Guessing made every clean download of a
+                                # song whose explicit copy is untagged look like a duplicate (2026-09-25).
+                                f_explicit = catalog_explicit_by_path.get(
+                                    rel_path.lower(), (subf == "Explicit") or ('explicit' in f_name_without_ext.lower()))
                                 f_key = self._normalize_track_key(f_name_without_ext, explicit_val=f_explicit)
                                 if f_key == new_key:
-                                    if folder == "Music":
-                                        rel_path = f"Music/{f}"
-                                    else:
-                                        rel_path = f"{folder}/{subf}/{f}" if subf else f"{folder}/{f}"
                                     
                                     if overwrite:
                                         g_duplicates_to_scrub.append(rel_path)
@@ -814,6 +824,10 @@ class VaultManager:
             g_target_dir = os.path.join(g_drive_base, relative_target_dir)
             os.makedirs(g_target_dir, exist_ok=True)
             g_target_file = os.path.join(g_target_dir, clean_name)
+            if os.path.exists(g_target_file) and not overwrite:
+                # Never silently replace an existing file (copy2 would) - e.g. a clean download whose
+                # "(Clean)" filename is already taken by a mislabeled explicit copy (2026-09-25).
+                return False, f"Target file already exists on G: drive: {relative_target_dir}/{clean_name}"
             try:
                 shutil.copy2(file_path, g_target_file)
                 if is_production:
