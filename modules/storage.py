@@ -946,7 +946,13 @@ class VaultManager:
                         if is_inspirational:
                             new_row[field] = '5'
                         else:
-                            new_row[field] = metadata.get('pool', '') or metadata.get('music_pool_id', '')
+                            # Fall back to the era folder worked out above from the release year. Files
+                            # arriving via the Broker hand-off (Windows download -> VM vault) carry no pool
+                            # in their metadata, so the VM's catalog row had none and the song could never
+                            # air (found 2026-09-25; also why the 2026-09-22 re-downloads had no pool).
+                            era_pool = {"Classics": 2, "Old School 70s80s": 7, "Throwbacks 90s2000s": 3,
+                                        "New School 2010+": 1}.get(era_folder, '')
+                            new_row[field] = metadata.get('pool', '') or metadata.get('music_pool_id', '') or era_pool
                     else: 
                         new_row[field] = metadata.get(lower_field, "")
 

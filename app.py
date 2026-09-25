@@ -934,12 +934,31 @@ def downloader_worker():
                 state.log(f"[WARNING] Gatekeeper blind: {meta.get('error', 'Unknown')}. Forcing SomeDL override.")
                 meta = {'release_year': 'Unknown', 'lyrics': 'Not Found', 'url': url}
 
-            state.log(f"Phase 2: Downloading via SomeDL")
-            raw_path, bitrate = tr.download_track(
-                url, task_id=task_id,
-                artist=task.get('artist') or meta.get('artist'),
-                title=task.get('title') or meta.get('title'),
-            )
+            if task.get('exact_source'):
+                # EXACT-SOURCE MODE: download precisely this link. No artist/title is passed, so
+                # download_track never runs its Soulseek search (which returns whatever version
+                # Soulseek has - usually the explicit album cut - not the release that was picked).
+                state.log(f"Phase 2: Downloading the exact link (exact-source mode, no Soulseek search)")
+                raw_path, bitrate = tr.download_track(url, task_id=task_id)
+                expected_seconds = task.get('expected_seconds')
+                if raw_path and expected_seconds:
+                    try:
+                        from mutagen.mp3 import MP3 as _MP3ForExactCheck
+                        got_seconds = _MP3ForExactCheck(raw_path).info.length
+                    except Exception:
+                        got_seconds = None
+                    if got_seconds is None or abs(got_seconds - float(expected_seconds)) > 6:
+                        state.log(f"[EXACT-SOURCE REFUSED] Downloaded length {got_seconds} s does not match the "
+                                  f"verified release ({expected_seconds} s) - not saving it: {url}")
+                        handoff_success = False
+                        continue
+            else:
+                state.log(f"Phase 2: Downloading via SomeDL")
+                raw_path, bitrate = tr.download_track(
+                    url, task_id=task_id,
+                    artist=task.get('artist') or meta.get('artist'),
+                    title=task.get('title') or meta.get('title'),
+                )
 
             # Soulseek missed and we're on the VM - hand off to the Windows scrape
             # worker instead of logging this as a dead link.
@@ -2620,9 +2639,18 @@ def add():
             item_data['is_radio'] = is_radio
         if overwrite:
             item_data['overwrite'] = overwrite
-        if data.get('explicit_verified') and explicit is not None:
+        # exact_source: download exactly this link (see downloader_worker). Only for real links.
+        exact_source = bool(data.get('exact_source')) and u.startswith(('http://', 'https://'))
+        if exact_source:
+            item_data['exact_source'] = True
+            if data.get('expected_seconds'):
+                item_data['expected_seconds'] = float(data['expected_seconds'])
+        # explicit_verified (keep the caller's explicit answer over the store lookup) is only
+        # honoured together with exact_source - otherwise the file that arrives may not be the
+        # version that was verified.
+        if data.get('explicit_verified') and explicit is not None and exact_source:
             item_data['explicit_verified'] = True
-            
+
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title
             item_data['artist'] = artist
