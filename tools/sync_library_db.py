@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import urllib.request
 import re
+import time
 from pathlib import Path
 
 # Fix console encoding for Windows
@@ -666,6 +667,21 @@ def run_sync():
             for k in raced_keys:
                 print(f"    - {local_files[k]['rel_path']}")
         untracked_keys = still_untracked
+
+    # A file that only just appeared was almost certainly vaulted by the Ultimate app (on Windows, via
+    # Google Drive), and its catalog row is still on its way through git. Importing it here first made
+    # a second, poorer row (no pool, a guessed explicit flag) and then git conflicts that stopped the
+    # app's own push - 111 downloads on 2026-09-25 hit this. Give fresh files 30 minutes; anything
+    # still untracked after that really is untracked and gets imported on a later run.
+    if untracked_keys:
+        fresh_cutoff = time.time() - 30 * 60
+        too_new = [k for k in untracked_keys if os.path.getmtime(local_files[k]['local_path']) > fresh_cutoff]
+        if too_new:
+            print(f"  [WAIT] {len(too_new)} untracked file(s) arrived in the last 30 minutes - leaving them for the "
+                  f"vaulting app's catalog row to arrive first:")
+            for k in too_new:
+                print(f"    - {local_files[k]['rel_path']}")
+            untracked_keys = [k for k in untracked_keys if k not in too_new]
 
     new_imported_rows = []
 
