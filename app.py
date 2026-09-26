@@ -242,10 +242,9 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
         return False
     
     artist_lower = artist.lower()
-    title_lower = title.lower()
-    album_lower = album.lower() if album else ""
-    
-    # 1. Check against known Gospel artists
+
+    # Known gospel acts. PJ Morton was removed (he records R&B too: "Say So" is R&B/Soul);
+    # Mary Mary added (Apple files their crossover hit "Shackles" under R&B/Soul).
     g_artists = [
         "smokie norful", "marvin sapp", "kirk franklin", "helen baylor", "fred hammond",
         "donnie mcclurkin", "yolanda adams", "cece winans", "tamela mann", "tasha cobbs",
@@ -253,36 +252,43 @@ def is_inspirational_track(artist: str, title: str, album: str = "") -> bool:
         "shirley caesar", "james fortune", "byron cage", "j.j. hairston", "koryn hawthorne",
         "zacardi cortez", "jonathan mcreynolds", "vashawn mitchell", "charles jenkins",
         "william murphy", "marvin winans", "clark sisters", "lisa knowles-smith",
-        "josh copeland", "ted & sheri", "pj morton", "milton brunson", "douglas miller",
+        "josh copeland", "ted & sheri", "mary mary", "milton brunson", "douglas miller",
         "jekalyn carr", "bishop larry trotter", "mississippi mass choir", "chicago mass choir",
         "williams brothers", "victorious army", "tri-city singers", "donald lawrence",
         "andraé crouch", "andrae crouch", "edwin hawkins", "walter hawkins", "tramaine hawkins",
         "georgia mass choir", "rance allen", "cantons", "jackson southernaires", "sensational nightingales",
         "mighty clouds of joy", "lee williams", "spiritual qc", "canton spirituals"
     ]
-    for ga in g_artists:
-        if ga in artist_lower:
-            return True
-            
-    # 2. Check keywords in title, artist, or album
-    from config import IHEART_CHURCH_KEYWORDS
-    for kw in IHEART_CHURCH_KEYWORDS:
-        if kw in title_lower or kw in album_lower:
-            return True
-        if kw in artist_lower and any(w in artist_lower for w in ["choir", "singers", "gospel", "mass", "fellowship"]):
-            return True
+    on_gospel_list = any(ga in artist_lower for ga in g_artists)
+    church_words_in_artist = bool(
+        re.search(r'\b(choir|mass choir|gospel|pastor|bishop|rev\.?|reverend|apostle|elder|evangelist)\b', artist_lower))
 
-    # 3. Keyword/artist-list check was inconclusive -- fall through to a real
-    # genre signal via MusicBrainz artist-level tags/genres. Catches cases
-    # like "Vanessa Bell Armstrong - Peace Be Still" (an unambiguous gospel
-    # standard that's on neither list above): confirmed live 2026-09-03 that
-    # her MusicBrainz artist page carries a genuine "gospel" genre tag.
-    # Cached locally (modules/genre_lookup.py) since the same artists repeat
-    # constantly on a radio station.
-    from modules.genre_lookup import get_artist_genres
-    genres = get_artist_genres(artist)
-    if any(term in g for g in genres for term in ("gospel", "christian", "ccm")):
+    # 1. Apple Music's genre for THIS SONG decides when it knows the song (2026-09-25: 30 of 34 real cases
+    #    right, vs 10 of 28 for the old title-keyword + MusicBrainz check, which routed "God's Plan",
+    #    "Jesus Walks", Aretha's "Respect" and Al Green's "Let's Stay Together" to Gospel and missed Pastor
+    #    Mike Jr., Chandler Moore, Todd Dulaney...). Title keywords (god/jesus/lord/church) are no longer
+    #    used at all - they matched too many secular hits.
+    from modules.genre_lookup import get_song_genre, is_gospel_genre, get_artist_genres
+    song_genre = get_song_genre(artist, title)
+    if song_genre:
+        if is_gospel_genre(song_genre):
+            return True
+        # a listed gospel act's crossover single (Mary Mary "Shackles" is filed R&B/Soul) is still gospel.
+        # Church words alone don't override Apple here - "Bishop Briggs" is a pop act.
+        return on_gospel_list
+
+    # 2. Apple doesn't know the song: listed gospel act, or church words in the artist name
+    #    ("Rev. Ernest Davis Jr.", "... Mass Choir", "Pastor Mike Jr.")
+    if on_gospel_list or church_words_in_artist:
         return True
+
+    # 3. Last resort, MusicBrainz ARTIST genres - only when gospel/christian is most of the artist's genres.
+    #    One gospel tag among six (Aretha, Al Green, Sam Cooke, Billy Preston) is a soul artist with gospel roots.
+    genres = get_artist_genres(artist)
+    if genres:
+        churchy = sum(1 for g in genres if any(t in g for t in ("gospel", "christian", "ccm", "worship")))
+        if churchy / len(genres) >= 0.5:
+            return True
 
     return False
 
@@ -1248,7 +1254,11 @@ def downloader_worker():
             pool_artist = meta.get('artist', '')
             pool_title = meta.get('title', track_title)
             POOL_ID_BY_ERA = {"Classics": 2, "Old School": 7, "Throwbacks": 3, "New School": 1}
-            if is_inspirational_track(pool_artist, pool_title):
+            # Sent to the gospel folder on purpose (discovery routing / the owner's choice) -> Gospel pool.
+            # Before 2026-09-25 this fell through to the era default ("Throwbacks") whenever the genre
+            # check didn't recognise the artist (Dr. Marcus Cosby "One Word" got pool 3).
+            from config import IHEART_CHURCH_FOLDER as _CHURCH_FOLDER
+            if target_override == _CHURCH_FOLDER or is_inspirational_track(pool_artist, pool_title):
                 meta['music_pool_id'] = 5
             elif clean_cat in POOL_ID_BY_ERA:
                 meta['music_pool_id'] = POOL_ID_BY_ERA[clean_cat]
