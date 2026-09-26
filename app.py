@@ -1021,7 +1021,12 @@ def downloader_worker():
             if expected_title:
                 expected_title = re.sub(r'\s*[([]\s*(?:clean|explicit|radio\s+edit|radio\s+version|album\s+version|main)\s*[)\]]', '', str(expected_title), flags=re.I).strip()
 
-            if api_key and expected_title:
+            if task.get('fingerprint_verified'):
+                # The caller already proved this exact release is the song (see /add) and AcoustID is known
+                # to mislabel it - e.g. 2026-09-25 the Clark Sisters medley (MusicBrainz: 418 s on Bringing
+                # It Back Home) comes back from AcoustID as 'Leonard Cohen - Hallelujah' at 418 s.
+                state.log(f"[AcoustID INFO] Validation gate skipped - identity verified by caller: {task['fingerprint_verified']}")
+            elif api_key and expected_title:
                 state.log(f"[AcoustID Validation] Validating '{os.path.basename(raw_path)}' (Expected: '{expected_artist} - {expected_title}')...")
                 
                 fpcalc_bin = "fpcalc"
@@ -1077,15 +1082,15 @@ def downloader_worker():
                                             artist_matched = True
                                         else:
                                             for art_name in artist_names_ac:
-                                                if fuzz.token_set_ratio(expected_artist.lower(), art_name.lower()) >= 95:
+                                                if fuzz.token_set_ratio(_fold_accents(expected_artist), _fold_accents(art_name)) >= 95:
                                                     artist_matched = True
                                                     break
                                             if not artist_matched and artist_names_ac:
                                                 combined_art = " & ".join(artist_names_ac)
-                                                if fuzz.token_set_ratio(expected_artist.lower(), combined_art.lower()) >= 95:
+                                                if fuzz.token_set_ratio(_fold_accents(expected_artist), _fold_accents(combined_art)) >= 95:
                                                     artist_matched = True
                                                     
-                                        title_matched = fuzz.token_set_ratio(expected_title.lower(), t_title.lower()) >= 95
+                                        title_matched = fuzz.token_set_ratio(_fold_accents(expected_title), _fold_accents(t_title)) >= 95
                                         
                                         if artist_matched and title_matched:
                                             is_match = True
@@ -1096,7 +1101,7 @@ def downloader_worker():
                                         if artist_names_ac and t_title:
                                             combined_expected = f"{expected_artist} - {expected_title}"
                                             combined_ac = f"{' & '.join(artist_names_ac)} - {t_title}"
-                                            if fuzz.token_set_ratio(combined_expected.lower(), combined_ac.lower()) >= 95:
+                                            if fuzz.token_set_ratio(_fold_accents(combined_expected), _fold_accents(combined_ac)) >= 95:
                                                 is_match = True
                                                 best_match_details = f"'{', '.join(artist_names_ac)} - {t_title}' (Score: {score:.2f} via combined fallback)"
                                                 break
@@ -1310,6 +1315,13 @@ def downloader_worker():
             
             state.url_queue.task_done()
             state.update_count()
+
+def _fold_accents(s):
+    """Lower-case and strip accents, so AcoustID's 'Mýa' matches our 'Mya' (2026-09-25: an exact-source
+    Mya download was rejected as a mismatch at fingerprint score 1.00 over the accent alone)."""
+    import unicodedata
+    return ''.join(c for c in unicodedata.normalize('NFKD', str(s or '')) if not unicodedata.combining(c)).lower()
+
 
 _ALT_MIX_WORDS = re.compile(r'\b(remix|mix|club|extended|dub|live|acoustic|instrumental|a ?cappella|rework|re-?edit|'
                             r'vip|bootleg|demo|unplugged|session|reprise|interlude|strip to the bone)\b', re.I)
@@ -2701,6 +2713,11 @@ def add():
         # version that was verified.
         if data.get('explicit_verified') and explicit is not None and exact_source:
             item_data['explicit_verified'] = True
+        # fingerprint_verified: a written reason (the evidence) that this exact release is the song even though
+        # AcoustID mislabels it. Only with exact_source and an expected length, so it can't wave through a search hit.
+        fp_reason = str(data.get('fingerprint_verified') or '').strip()
+        if fp_reason and exact_source and item_data.get('expected_seconds'):
+            item_data['fingerprint_verified'] = fp_reason
 
         if len(raw_urls) == 1 and title and artist:
             item_data['title'] = title
