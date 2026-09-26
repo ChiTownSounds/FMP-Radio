@@ -1311,6 +1311,33 @@ def downloader_worker():
             state.url_queue.task_done()
             state.update_count()
 
+_ALT_MIX_WORDS = re.compile(r'\b(remix|mix|club|extended|dub|live|acoustic|instrumental|a ?cappella|rework|re-?edit|'
+                            r'vip|bootleg|demo|unplugged|session|reprise|interlude|strip to the bone)\b', re.I)
+# Version tags that ARE a counterpart of the same recording ("Radio Mix" is how some labels name the clean edit,
+# e.g. Outkast "So Fresh, So Clean (Radio Mix)").
+_COUNTERPART_TAGS = re.compile(r'\b(radio edit|radio version|radio mix|clean version|clean edit|clean|explicit version|explicit)\b', re.I)
+
+
+def counterpart_rejection(original_title, candidate_title, original_seconds, candidate_seconds, radio_involved):
+    """Why a search result is NOT a clean/explicit/radio-edit counterpart of our recording, or None if it may be.
+    A counterpart is the same recording with words changed: a remix, club mix, live take etc. is a different
+    recording, and so is anything whose length is far off (2026-09-25: the 7:32 Basement Boy club mix was
+    auto-linked as the 'clean version' of the 3:49 Gypsy Woman radio single)."""
+    orig_words = {w.lower() for w in _ALT_MIX_WORDS.findall(_COUNTERPART_TAGS.sub(' ', original_title or ''))}
+    cand_words = {w.lower() for w in _ALT_MIX_WORDS.findall(_COUNTERPART_TAGS.sub(' ', candidate_title or ''))}
+    extra = cand_words - orig_words
+    if extra:
+        return f"different mix/version ({', '.join(sorted(extra))})"
+    if original_seconds and candidate_seconds:
+        # clean and explicit edits of one recording run within seconds of each other; radio edits cut intros,
+        # skits and verses, so allow more whenever a radio edit is on either side
+        limit = 90 if radio_involved else 20
+        gap = abs(float(original_seconds) - float(candidate_seconds))
+        if gap > limit:
+            return f"length differs by {gap:.0f}s (limit {limit}s)"
+    return None
+
+
 def trigger_single_song_counterpart_search(artist, title, is_explicit, target_folder, original_duration_seconds=0):
     def bg_search():
         try:
@@ -1449,7 +1476,13 @@ def trigger_single_song_counterpart_search(artist, title, is_explicit, target_fo
                     elif target_cat == 'clean':
                         if song_explicit or candidate_radio:
                             continue
-                            
+
+                    why_not = counterpart_rejection(title, song_title, original_duration_seconds, candidate_duration_seconds,
+                                                    radio_involved=(is_radio or target_cat == 'radioedit'))
+                    if why_not:
+                        state.log(f"[Counterpart Search] Not a counterpart: '{song_artist} - {song_title}' - {why_not}")
+                        continue
+
                     # Match normalized key (without version details)
                     existing_key = vm._normalize_track_key(f"{artist} - {clean_title}")
                     candidate_title_clean = re.sub(r'\((?:explicit|clean|radio edit|radio version)\)', '', song_title, flags=re.I).strip()
